@@ -1,0 +1,8 @@
+language: go
+go:
+ - 1.6
+ - tip
+before_install:
+ - go get -v github.com/aandryashin/matchers
+install:
+ - go get -v -d -t ./...
