@@ -1,0 +1,11 @@
+{
+	"ImportPath": "github.com/aandryashin/ggr",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v74",
+	"Deps": [
+		{
+			"ImportPath": "github.com/aandryashin/matchers",
+			"Rev": "4b86bad5c0c80d8c05a401aaae9489cb5fc95bac"
+		}
+	]
+}
