@@ -35,3 +35,67 @@ func TestChooseLast(t *testing.T) {
 	AssertThat(t, host.Name, EqualTo{"last"})
 	AssertThat(t, index, EqualTo{2})
 }
+
+func TestFindDefaultVersion(t *testing.T) {
+	hosts := (&Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					Host{Name: "browser-1.0"},
+				}},
+			}},
+			Version{Number: "", Regions: []Region{
+				Region{Hosts: Hosts{
+					Host{Name: "browser"},
+				}},
+			}},
+		}}}}).find("browser", "")
+	AssertThat(t, len(hosts), EqualTo{1})
+	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
+}
+
+func TestFindVersion(t *testing.T) {
+	hosts := (&Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			Version{Number: "2.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					Host{Name: "browser-2.0"},
+				}},
+			}},
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					Host{Name: "browser-1.0"},
+				}},
+			}},
+		}}}}).find("browser", "1.0")
+	AssertThat(t, len(hosts), EqualTo{1})
+	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
+}
+
+func TestVersionNotFound(t *testing.T) {
+	hosts := (&Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			Version{Number: "2.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					Host{Name: "browser-2.0"},
+				}},
+			}},
+		}}}}).find("browser", "1.0")
+	AssertThat(t, len(hosts), EqualTo{0})
+}
+
+func TestFindWithExcludes(t *testing.T) {
+	hosts := (&Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Name: "e", Hosts: Hosts{
+					Host{Name: "browser-e-1.0"},
+				}},
+				Region{Name: "f", Hosts: Hosts{
+					Host{Name: "browser-f-1.0"},
+				}},
+			}},
+		}}}}).find("browser", "1.0", "f")
+	AssertThat(t, len(hosts), EqualTo{1})
+	AssertThat(t, hosts[0].Name, EqualTo{"browser-e-1.0"})
+}
