@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"strings"
 )
 
 const (
@@ -25,6 +27,7 @@ const (
 	proxyPath string = routePath + "/"
 	head      int    = len(proxyPath)
 	tail      int    = head + 32
+	sessPart  int    = 3 // /wd/hub/session/{various length session}
 )
 
 var (
@@ -38,8 +41,14 @@ var (
 type caps map[string]interface{}
 
 func (c *caps) capability(k string) string {
-	if v, ok := (*c)["desiredCapabilities"].(map[string]interface{})[k].(string); ok {
-		return v
+	dc := (*c)["desiredCapabilities"]
+	switch dc.(type) {
+	case map[string]interface{}:
+		v := dc.(map[string]interface{})
+		switch v[k].(type) {
+		case string:
+			return v[k].(string)
+		}
 	}
 	return ""
 }
@@ -57,6 +66,7 @@ func (h *Host) url() string {
 }
 
 func (h *Host) session(c caps) (map[string]interface{}, int) {
+
 	b, _ := json.Marshal(c)
 	resp, err := http.Post(h.url(), "application/json", bytes.NewReader(b))
 	if err != nil {
@@ -88,6 +98,7 @@ func route(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "browser not set", http.StatusBadRequest)
 		return
 	}
+	count := 0
 loop:
 	for {
 		hosts := config.find(browser, version)
@@ -95,13 +106,16 @@ loop:
 			http.Error(w, fmt.Sprintf("unsupported browser: %s %s", browser, version), http.StatusNotFound)
 			return
 		}
-		excludes := make([]string, 0)
-		n := 1
 		for h, i := hosts.choose(); ; h, i = hosts.choose() {
+			count++
+			if h == nil {
+				break loop
+			}
+			excludes := make([]string, 0)
 			switch resp, status := h.session(c); status {
 			case browserStarted:
 				sess := resp["sessionId"].(string)
-				log.Printf("session %s started on %s in %d attempt", sess, h.net(), n)
+				log.Printf("session %s started on %s in %d attempt(s)", sess, h.net(), count)
 				resp["sessionId"] = h.sum() + sess
 				reply(w, resp)
 				return
@@ -114,25 +128,25 @@ loop:
 				hosts = config.find(browser, version, excludes...)
 			}
 			if len(hosts) == 0 {
+				count++
 				break loop
 			}
-			n++
 		}
 	}
-	http.Error(w, fmt.Sprintf("cannot create session %s %s on any hosts", browser, version), http.StatusInternalServerError)
+	msg := fmt.Sprintf("cannot create session %s %s on any hosts after %d attempt(s)", browser, version, count)
+	log.Println(msg)
+	http.Error(w, msg, http.StatusInternalServerError)
 }
 
 func proxy(r *http.Request) {
 	r.URL.Scheme = "http"
 	if len(r.URL.Path) > tail {
 		sum := r.URL.Path[head:tail]
-
 		path := r.URL.Path[:head] + r.URL.Path[tail:]
-		sess := path[head : head+36]
 		if h, ok := routes[sum]; ok {
 			if r.ContentLength > 0 {
-				defer r.Body.Close()
 				body, _ := ioutil.ReadAll(r.Body)
+				defer r.Body.Close()
 				var msg map[string]interface{}
 				if err := json.Unmarshal(body, &msg); err == nil {
 					delete(msg, "sessionId")
@@ -144,7 +158,7 @@ func proxy(r *http.Request) {
 			r.URL.Host = h.net()
 			r.URL.Path = path
 			if r.Method == "DELETE" {
-				log.Printf("session %s deleted on %s", sess, h.net())
+				log.Printf("session %s deleted on %s", strings.Split(path, "/")[sessPart], h.net())
 			}
 			return
 		}
@@ -158,30 +172,31 @@ func ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func err(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "route not found", http.StatusBadRequest)
+	http.Error(w, "route not found", http.StatusNotFound)
 }
 
 func postOnly(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		handler(w, r)
 	}
 }
 
-func init() {
-	flag.Parse()
-	listen = fmt.Sprintf(":%d", *port)
-
-	file, err := ioutil.ReadFile(*conf)
+func readConfig(fn string, browsers *Browsers) error {
+	file, err := ioutil.ReadFile(fn)
 	if err != nil {
-		log.Fatal("error reading configuration: ", err)
+		return errors.New(fmt.Sprintf("error reading configuration file %s: %v", fn, err))
 	}
-	if err := xml.Unmarshal(file, &config); err != nil {
-		log.Fatal("error parsing configuration: ", err)
+	if err := xml.Unmarshal(file, browsers); err != nil {
+		return errors.New(fmt.Sprintf("error parsing configuration file %s: %v", fn, err))
 	}
+	return nil
+}
+
+func linkRoutes(config *Browsers) {
 	for _, b := range config.Browsers {
 		for _, v := range b.Versions {
 			for _, r := range v.Regions {
@@ -194,12 +209,27 @@ func init() {
 	}
 }
 
-func main() {
+func init() {
+	flag.Parse()
+	listen = fmt.Sprintf(":%d", *port)
+
+	err := readConfig(*conf, &config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	linkRoutes(&config)
+}
+
+func mux() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc(pingPath, ping)
 	mux.HandleFunc(errPath, err)
 	mux.HandleFunc(routePath, postOnly(route))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
+	return mux
+}
+
+func main() {
 	log.Println("listening on", listen)
-	log.Print(http.ListenAndServe(listen, mux))
+	log.Print(http.ListenAndServe(listen, mux()))
 }
