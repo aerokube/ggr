@@ -28,8 +28,8 @@ const (
 )
 
 var (
-	port   = flag.Int("port", 8080, "port to bind")
-	conf   = flag.String("conf", "browsers.xml", "browsers configuration")
+	port   = flag.Int("port", 8080, "port to bind to")
+	conf   = flag.String("conf", "browsers.xml", "browsers configuration file path")
 	listen string
 	config Browsers
 	routes map[string]*Host = make(map[string]*Host)
