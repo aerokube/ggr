@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
+	"sync"
 )
 
 const (
@@ -27,15 +28,17 @@ const (
 	proxyPath string = routePath + "/"
 	head      int    = len(proxyPath)
 	tail      int    = head + 32
-	sessPart  int    = 3 // /wd/hub/session/{various length session}
+	sessPart  int    = 4 // /wd/hub/session/{various length session}
 )
 
 var (
-	port   = flag.Int("port", 8080, "port to bind to")
-	conf   = flag.String("conf", "browsers.xml", "browsers configuration file path")
-	listen string
-	config Browsers
-	routes map[string]*Host = make(map[string]*Host)
+	port    = flag.Int("port", 8080, "port to bind to")
+	conf    = flag.String("conf", "browsers.xml", "browsers configuration file path")
+	listen  string
+	config  Browsers
+	routes  map[string]*Host = make(map[string]*Host)
+	rid     uint64
+	ridLock sync.Mutex
 )
 
 type caps map[string]interface{}
@@ -66,7 +69,6 @@ func (h *Host) url() string {
 }
 
 func (h *Host) session(c caps) (map[string]interface{}, int) {
-
 	b, _ := json.Marshal(c)
 	resp, err := http.Post(h.url(), "application/json", bytes.NewReader(b))
 	if err != nil {
@@ -84,6 +86,19 @@ func reply(w http.ResponseWriter, msg map[string]interface{}) {
 	reply, _ := json.Marshal(msg)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(reply)
+}
+
+func info(r *http.Request) (id uint64, user, remote string) {
+	ridLock.Lock()
+	id = rid
+	rid++
+	ridLock.Unlock()
+	user = "unknown"
+	if u, _, ok := r.BasicAuth(); ok {
+		user = u
+	}
+	remote = r.RemoteAddr
+	return
 }
 
 func route(w http.ResponseWriter, r *http.Request) {

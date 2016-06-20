@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -45,10 +47,20 @@ func (m Body) String() string {
 	return fmt.Sprintf("response body %v", m.B)
 }
 
+func hostport(u string) string {
+	uri, _ := url.Parse(u)
+	return uri.Host
+}
+
+func hostportnum(u string) (string, int) {
+	host, portS, _ := net.SplitHostPort(hostport(u))
+	port, _ := strconv.Atoi(portS)
+	return host, port
+}
+
 func init() {
 	srv = httptest.NewServer(mux())
-	u, _ := url.Parse(srv.URL)
-	listen = u.Host
+	listen = hostport(srv.URL)
 }
 
 func gridrouter(p string) string {
@@ -170,4 +182,35 @@ func TestSessionWrongHash(t *testing.T) {
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"route not found"}})
+}
+
+func TestDeleteSession(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
+	})
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+	route := node.sum()
+
+	lock.Lock()
+	defer lock.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	linkRoutes(&config)
+
+	r, _ := http.NewRequest("DELETE", gridrouter("/wd/hub/session/"+route+"123"), nil)
+	rsp, err := http.DefaultClient.Do(r)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusOK})
 }
