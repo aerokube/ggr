@@ -32,13 +32,13 @@ const (
 )
 
 var (
-	port    = flag.Int("port", 8080, "port to bind to")
-	conf    = flag.String("conf", "browsers.xml", "browsers configuration file path")
-	listen  string
-	config  Browsers
-	routes  map[string]*Host = make(map[string]*Host)
-	rid     uint64
-	ridLock sync.Mutex
+	port   = flag.Int("port", 8080, "port to bind to")
+	conf   = flag.String("conf", "browsers.xml", "browsers configuration file path")
+	listen string
+	config Browsers
+	routes map[string]*Host = make(map[string]*Host)
+	num    uint64
+	lock   sync.Mutex
 )
 
 type caps map[string]interface{}
@@ -88,11 +88,15 @@ func reply(w http.ResponseWriter, msg map[string]interface{}) {
 	w.Write(reply)
 }
 
-func info(r *http.Request) (id uint64, user, remote string) {
-	ridLock.Lock()
-	id = rid
-	rid++
-	ridLock.Unlock()
+func serial() uint64 {
+	lock.Lock()
+	defer lock.Unlock()
+	id := num
+	num++
+	return id
+}
+
+func info(r *http.Request) (user, remote string) {
 	user = "unknown"
 	if u, _, ok := r.BasicAuth(); ok {
 		user = u
@@ -143,7 +147,6 @@ loop:
 				hosts = config.find(browser, version, excludes...)
 			}
 			if len(hosts) == 0 {
-				count++
 				break loop
 			}
 		}
@@ -159,9 +162,8 @@ func proxy(r *http.Request) {
 		sum := r.URL.Path[head:tail]
 		path := r.URL.Path[:head] + r.URL.Path[tail:]
 		if h, ok := routes[sum]; ok {
-			if r.ContentLength > 0 {
-				body, _ := ioutil.ReadAll(r.Body)
-				defer r.Body.Close()
+			if body, err := ioutil.ReadAll(r.Body); err == nil {
+				r.Body.Close()
 				var msg map[string]interface{}
 				if err := json.Unmarshal(body, &msg); err == nil {
 					delete(msg, "sessionId")

@@ -2,13 +2,16 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -17,7 +20,7 @@ import (
 
 var (
 	srv  *httptest.Server
-	lock sync.Mutex
+	test sync.Mutex
 )
 
 type Code struct {
@@ -40,7 +43,7 @@ func (m Body) Match(i interface{}) bool {
 	rsp := i.(*http.Response)
 	body, _ := ioutil.ReadAll(rsp.Body)
 	rsp.Body.Close()
-	return EqualTo{[]byte(fmt.Sprintf("%s\n", m.B))}.Match(body)
+	return EqualTo{m.B}.Match(strings.TrimSpace(string(body)))
 }
 
 func (m Body) String() string {
@@ -131,8 +134,8 @@ func TestCreateSessionUnsupportedBrowser(t *testing.T) {
 }
 
 func TestCreateSessionNoHosts(t *testing.T) {
-	lock.Lock()
-	defer lock.Unlock()
+	test.Lock()
+	defer test.Unlock()
 
 	config = Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
@@ -151,8 +154,8 @@ func TestCreateSessionNoHosts(t *testing.T) {
 }
 
 func TestCreateSessionHostDown(t *testing.T) {
-	lock.Lock()
-	defer lock.Unlock()
+	test.Lock()
+	defer test.Unlock()
 
 	config = Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
@@ -167,7 +170,7 @@ func TestCreateSessionHostDown(t *testing.T) {
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser 1.0 on any hosts after 2 attempt(s)"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser 1.0 on any hosts after 1 attempt(s)"}})
 }
 
 func TestSessionEmptyHash(t *testing.T) {
@@ -184,19 +187,19 @@ func TestSessionWrongHash(t *testing.T) {
 	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"route not found"}})
 }
 
-func TestDeleteSession(t *testing.T) {
+func TestStartSession(t *testing.T) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
-	})
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(fmt.Sprintf(`{"sessionId":"123"}`)))
+	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
 
 	host, port := hostportnum(selenium.URL)
 	node := Host{Name: host, Port: port, Count: 1}
-	route := node.sum()
 
-	lock.Lock()
-	defer lock.Unlock()
+	test.Lock()
+	defer test.Unlock()
 
 	config = Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
@@ -208,9 +211,214 @@ func TestDeleteSession(t *testing.T) {
 		}}}}
 	linkRoutes(&config)
 
-	r, _ := http.NewRequest("DELETE", gridrouter("/wd/hub/session/"+route+"123"), nil)
+	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{`{"sessionId":"` + node.sum() + `123"}`}})
+}
+
+func TestStartSessionFail(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "", http.StatusInternalServerError)
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node, node, node, node, node,
+				}},
+			}},
+		}}}}
+	linkRoutes(&config)
+
+	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser 1.0 on any hosts after 5 attempt(s)"}})
+}
+
+func TestDeleteSession(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
+	})
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	linkRoutes(&config)
+
+	r, _ := http.NewRequest("DELETE", gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
 	rsp, err := http.DefaultClient.Do(r)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusOK})
+}
+
+func TestProxyRequest(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("response"))
+	})
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	linkRoutes(&config)
+
+	rsp, err := http.Get(gridrouter("/wd/hub/session/" + node.sum() + "123"))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{"response"}})
+}
+
+func TestProxyJsonRequest(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
+		var msg map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&msg)
+		AssertThat(t, msg["sessionId"], Is{nil})
+	})
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	linkRoutes(&config)
+
+	http.Post(gridrouter("/wd/hub/session/"+node.sum()+"123"), "", bytes.NewReader([]byte(`{"sessionId":"123"}`)))
+}
+
+func TestProxyPlainRequest(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := ioutil.ReadAll(r.Body)
+		r.Body.Close()
+		AssertThat(t, string(body), EqualTo{"request"})
+	})
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	linkRoutes(&config)
+
+	http.Post(gridrouter("/wd/hub/session/"+node.sum()+"123"), "", bytes.NewReader([]byte("request")))
+}
+
+func TestReadUnexistentConfig(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "config")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Remove(tmp.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var browsers Browsers
+	err = readConfig(tmp.Name(), &browsers)
+
+	AssertThat(t, err, Is{Not{nil}})
+	AssertThat(t, err.Error(), EqualTo{fmt.Sprintf("error reading configuration file %s: open %s: no such file or directory", tmp.Name(), tmp.Name())})
+}
+
+func TestParseInvalidConfig(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "config")
+	defer os.Remove(tmp.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tmp.Write([]byte("this is not valid xml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = tmp.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var browsers Browsers
+	err = readConfig(tmp.Name(), &browsers)
+
+	AssertThat(t, err, Is{Not{nil}})
+	AssertThat(t, err.Error(), EqualTo{fmt.Sprintf("error parsing configuration file %s: EOF", tmp.Name())})
+}
+
+func TestParseConfig(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "config")
+	defer os.Remove(tmp.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tmp.Write([]byte(`<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"><browser name="browser"/></qa:browsers>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = tmp.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var browsers Browsers
+	err = readConfig(tmp.Name(), &browsers)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, browsers.Browsers[0].Name, EqualTo{"browser"})
 }
