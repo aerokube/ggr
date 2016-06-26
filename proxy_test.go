@@ -150,7 +150,7 @@ func TestCreateSessionNoHosts(t *testing.T) {
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser 1.0 on any hosts after 1 attempt(s)"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
 }
 
 func TestCreateSessionHostDown(t *testing.T) {
@@ -170,7 +170,7 @@ func TestCreateSessionHostDown(t *testing.T) {
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser 1.0 on any hosts after 1 attempt(s)"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
 }
 
 func TestSessionEmptyHash(t *testing.T) {
@@ -244,7 +244,7 @@ func TestStartSessionFail(t *testing.T) {
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser 1.0 on any hosts after 5 attempt(s)"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser-1.0 on any hosts after 5 attempt(s)"}})
 }
 
 func TestDeleteSession(t *testing.T) {

@@ -13,6 +13,7 @@ import (
 	"net/http/httputil"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -105,16 +106,28 @@ func info(r *http.Request) (user, remote string) {
 	return
 }
 
+func fmtBrowser(browser, version string) string {
+	if version != "" {
+		return fmt.Sprintf("%s-%s", browser, version)
+	}
+	return browser
+}
+
 func route(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	id := serial()
+	user, remote := info(r)
 	var c caps
 	err := json.NewDecoder(r.Body).Decode(&c)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("bad json format: %s", err.Error()), http.StatusBadRequest)
+		log.Printf("[%d] [BAD_JSON] [%s] [%s] [%v]\n", id, user, remote, err)
 		return
 	}
 	browser, version := c.browser(), c.version()
 	if browser == "" {
 		http.Error(w, "browser not set", http.StatusBadRequest)
+		log.Printf("[%d] [BROWSER_NOT_SET] [%s] [%s]\n", id, user, remote)
 		return
 	}
 	count := 0
@@ -123,6 +136,7 @@ loop:
 		hosts := config.find(browser, version)
 		if len(hosts) == 0 {
 			http.Error(w, fmt.Sprintf("unsupported browser: %s %s", browser, version), http.StatusNotFound)
+			log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
 			return
 		}
 		for h, i := hosts.choose(); ; h, i = hosts.choose() {
@@ -130,33 +144,33 @@ loop:
 			if h == nil {
 				break loop
 			}
+			log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [%d]\n", id, user, remote, fmtBrowser(browser, version), h.net(), count)
 			excludes := make([]string, 0)
 			switch resp, status := h.session(c); status {
 			case browserStarted:
 				sess := resp["sessionId"].(string)
-				log.Printf("session %s started on %s in %d attempt(s)", sess, h.net(), count)
 				resp["sessionId"] = h.sum() + sess
 				reply(w, resp)
+				log.Printf("[%d] [%v] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d]\n", id, time.Now().Sub(start), user, remote, fmtBrowser(browser, version), h.net(), sess, count)
 				return
 			case browserFailed:
-				log.Printf("cannot start %s %s on %s", browser, version, h.net())
 				hosts = append(hosts[:i], hosts[i+1:]...)
 			case seleniumError:
-				log.Printf("failed to connect to %s:%d from %s", h.Name, h.Port, h.region)
 				excludes = append(excludes, h.region)
 				hosts = config.find(browser, version, excludes...)
 			}
+			log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version), h.net())
 			if len(hosts) == 0 {
 				break loop
 			}
 		}
 	}
-	msg := fmt.Sprintf("cannot create session %s %s on any hosts after %d attempt(s)", browser, version, count)
-	log.Println(msg)
-	http.Error(w, msg, http.StatusInternalServerError)
+	http.Error(w, fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version), count), http.StatusInternalServerError)
+	log.Printf("[%d] [SESSION_NOT_CREATED] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
 }
 
 func proxy(r *http.Request) {
+	user, remote := info(r)
 	r.URL.Scheme = "http"
 	if len(r.URL.Path) > tail {
 		sum := r.URL.Path[head:tail]
@@ -175,7 +189,8 @@ func proxy(r *http.Request) {
 			r.URL.Host = h.net()
 			r.URL.Path = path
 			if r.Method == "DELETE" {
-				log.Printf("session %s deleted on %s", strings.Split(path, "/")[sessPart], h.net())
+				sess := strings.Split(path, "/")[sessPart]
+				log.Printf("[SESSION_DELETED] [%s] [%s] [%s] [%s]\n", user, remote, h.net(), sess)
 			}
 			return
 		}
