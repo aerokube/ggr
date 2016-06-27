@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -102,7 +103,10 @@ func info(r *http.Request) (user, remote string) {
 	if u, _, ok := r.BasicAuth(); ok {
 		user = u
 	}
-	remote = r.RemoteAddr
+	remote, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		remote = r.RemoteAddr
+	}
 	return
 }
 
