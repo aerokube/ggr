@@ -249,11 +249,17 @@ func init() {
 	flag.Parse()
 	listen = fmt.Sprintf(":%d", *port)
 
+	log.Printf("Loading configuration file [%s]\n", *conf)
 	err := readConfig(*conf, &config)
 	if err != nil {
 		log.Fatal(err)
 	}
 	linkRoutes(&config)
+	buf, err := xml.MarshalIndent(config, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Loaded configuration from [%s]:\n%s\n", *conf, string(buf))
 }
 
 func mux() http.Handler {

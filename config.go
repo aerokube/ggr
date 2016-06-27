@@ -29,7 +29,6 @@ type Hosts []Host
 type Region struct {
 	Name  string `xml:"name,attr"`
 	Hosts Hosts  `xml:"host"`
-	Count int
 }
 
 type Host struct {

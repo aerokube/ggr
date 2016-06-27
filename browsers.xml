@@ -1,5 +1,4 @@
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
-<!--
     <browser name="firefox" defaultVersion="43.0">
         <version number="43.0">
             <region name="1">
@@ -20,5 +19,4 @@
             </region>
         </version>
     </browser>
--->
 </qa:browsers>

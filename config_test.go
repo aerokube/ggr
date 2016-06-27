@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	. "github.com/aandryashin/matchers"
@@ -98,4 +101,62 @@ func TestFindWithExcludes(t *testing.T) {
 		}}}}).find("browser", "1.0", "f")
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-e-1.0"})
+}
+
+func TestReadUnexistentConfig(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "config")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Remove(tmp.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var browsers Browsers
+	err = readConfig(tmp.Name(), &browsers)
+
+	AssertThat(t, err, Is{Not{nil}})
+	AssertThat(t, err.Error(), EqualTo{fmt.Sprintf("error reading configuration file %s: open %s: no such file or directory", tmp.Name(), tmp.Name())})
+}
+
+func TestParseInvalidConfig(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "config")
+	defer os.Remove(tmp.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tmp.Write([]byte("this is not valid xml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = tmp.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var browsers Browsers
+	err = readConfig(tmp.Name(), &browsers)
+
+	AssertThat(t, err, Is{Not{nil}})
+	AssertThat(t, err.Error(), EqualTo{fmt.Sprintf("error parsing configuration file %s: EOF", tmp.Name())})
+}
+
+func TestParseConfig(t *testing.T) {
+	tmp, err := ioutil.TempFile("", "config")
+	defer os.Remove(tmp.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tmp.Write([]byte(`<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"><browser name="browser"/></qa:browsers>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = tmp.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var browsers Browsers
+	err = readConfig(tmp.Name(), &browsers)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, browsers.Browsers[0].Name, EqualTo{"browser"})
 }
