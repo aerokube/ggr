@@ -155,7 +155,7 @@ loop:
 				sess := resp["sessionId"].(string)
 				resp["sessionId"] = h.sum() + sess
 				reply(w, resp)
-				log.Printf("[%d] [%v] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d]\n", id, time.Now().Sub(start), user, remote, fmtBrowser(browser, version), h.net(), sess, count)
+				log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), sess, count)
 				return
 			case browserFailed:
 				hosts = append(hosts[:i], hosts[i+1:]...)
