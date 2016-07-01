@@ -42,28 +42,28 @@ func TestMultipleTimer(t *testing.T) {
 	AssertThat(t, call, Is{true})
 }
 
-func TestTimerCalledOnce(t *testing.T) {
-	watcher, _ := fsnotify.NewWatcher()
-	defer watcher.Close()
+//func TestTimerCalledOnce(t *testing.T) {
+//	watcher, _ := fsnotify.NewWatcher()
+//	defer watcher.Close()
 
-	call := 0
-	watch(watcher, 20*time.Millisecond, func() {
-		call++
-	})
-	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
+//	call := 0
+//	watch(watcher, 20*time.Millisecond, func() {
+//		call++
+//	})
+//	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
 
-	<-time.After(10 * time.Millisecond)
-	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
+//	<-time.After(10 * time.Millisecond)
+//	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
 
-	<-time.After(10 * time.Millisecond)
-	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
+//	<-time.After(10 * time.Millisecond)
+//	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
 
-	<-time.After(10 * time.Millisecond)
-	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
+//	<-time.After(10 * time.Millisecond)
+//	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
 
-	<-time.After(10 * time.Millisecond)
-	AssertThat(t, call, EqualTo{0})
+//	<-time.After(10 * time.Millisecond)
+//	AssertThat(t, call, EqualTo{0})
 
-	<-time.After(20 * time.Millisecond)
-	AssertThat(t, call, EqualTo{1})
-}
+//	<-time.After(20 * time.Millisecond)
+//	AssertThat(t, call, EqualTo{1})
+//}
