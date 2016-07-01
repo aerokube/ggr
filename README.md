@@ -12,4 +12,4 @@ We use [godep](https://github.com/tools/godep) for dependencies management so en
 4. Run compiled binary: ```$GOPATH/bin/ggr```
 
 ## Running
-To run Gridrouter type: ```$ ggr -port 4444 -conf /path/to/browsers.xml```. See [example browsers.xml](https://github.com/aandryashin/ggr/blob/master/browsers.xml). 
+To run Gridrouter type: ```$ ggr -port 4444 -conf /path/to/browsers.xml```. See [example browsers.xml](https://github.com/aandryashin/ggr/blob/master/quota/browsers.xml). 
