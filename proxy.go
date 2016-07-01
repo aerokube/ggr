@@ -12,9 +12,12 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"path"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 const (
@@ -34,13 +37,15 @@ const (
 )
 
 var (
-	port   = flag.Int("port", 8080, "port to bind to")
-	conf   = flag.String("conf", "browsers.xml", "browsers configuration file path")
-	listen string
-	config Browsers
-	routes map[string]*Host = make(map[string]*Host)
-	num    uint64
-	lock   sync.Mutex
+	port     = flag.Int("port", 8080, "port to bind to")
+	conf     = flag.String("conf", "quota/browsers.xml", "browsers configuration file path")
+	delay    = flag.Int("delay", 10, "delay in seconds before config reloading")
+	listen   string
+	config   Browsers
+	routes   map[string]*Host = make(map[string]*Host)
+	num      uint64
+	numLock  sync.Mutex
+	confLock sync.Mutex
 )
 
 type caps map[string]interface{}
@@ -91,8 +96,8 @@ func reply(w http.ResponseWriter, msg map[string]interface{}) {
 }
 
 func serial() uint64 {
-	lock.Lock()
-	defer lock.Unlock()
+	numLock.Lock()
+	defer numLock.Unlock()
 	id := num
 	num++
 	return id
@@ -232,7 +237,8 @@ func readConfig(fn string, browsers *Browsers) error {
 	return nil
 }
 
-func linkRoutes(config *Browsers) {
+func linkRoutes(config *Browsers) map[string]*Host {
+	routes := make(map[string]*Host)
 	for _, b := range config.Browsers {
 		for _, v := range b.Versions {
 			for _, r := range v.Regions {
@@ -243,6 +249,31 @@ func linkRoutes(config *Browsers) {
 			}
 		}
 	}
+	return routes
+}
+
+func watchDir(dir string, delay int) error {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return errors.New(fmt.Sprintf("error initializing file system notification: %v", err))
+	}
+	watch(watcher, time.Duration(delay)*time.Second, func() {
+		log.Printf("Reloading configuration file [%s]\n", *conf)
+		var newconf Browsers
+		err := readConfig(*conf, &newconf)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		newroutes := linkRoutes(&newconf)
+		config, routes = newconf, newroutes
+		log.Printf("Reloaded configuration from [%s]:\n%v\n", *conf, config)
+	})
+	err = watcher.Add(dir)
+	if err != nil {
+		return errors.New(fmt.Sprintf("cannot watch directory: %s: %v", dir, err))
+	}
+	return nil
 }
 
 func init() {
@@ -254,12 +285,9 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	linkRoutes(&config)
-	buf, err := xml.MarshalIndent(config, "", "  ")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Loaded configuration from [%s]:\n%s\n", *conf, string(buf))
+	routes = linkRoutes(&config)
+	log.Printf("Loaded configuration from [%s]:\n%v\n", *conf, config)
+	watchDir(path.Dir(*conf), *delay)
 }
 
 func mux() http.Handler {

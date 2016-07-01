@@ -6,6 +6,15 @@
 		{
 			"ImportPath": "github.com/aandryashin/matchers",
 			"Rev": "4b86bad5c0c80d8c05a401aaae9489cb5fc95bac"
+		},
+		{
+			"ImportPath": "github.com/fsnotify/fsnotify",
+			"Comment": "v1.3.0",
+			"Rev": "30411dbcefb7a1da7e84f75530ad3abe4011b4f8"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "62bee037599929a6e9146f29d10dd5208c43507d"
 		}
 	]
 }

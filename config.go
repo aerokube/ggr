@@ -38,6 +38,11 @@ type Host struct {
 	region string
 }
 
+func (b Browsers) String() string {
+	buf, _ := xml.MarshalIndent(b, "", "  ")
+	return string(buf)
+}
+
 func (h *Host) net() string {
 	return fmt.Sprintf("%s:%d", h.Name, h.Port)
 }

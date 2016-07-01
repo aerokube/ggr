@@ -144,7 +144,7 @@ func TestCreateSessionNoHosts(t *testing.T) {
 				}},
 			}},
 		}}}}
-	linkRoutes(&config)
+	routes = linkRoutes(&config)
 
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
 
@@ -164,7 +164,7 @@ func TestCreateSessionHostDown(t *testing.T) {
 				}},
 			}},
 		}}}}
-	linkRoutes(&config)
+	routes = linkRoutes(&config)
 
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
 
@@ -208,7 +208,7 @@ func TestStartSession(t *testing.T) {
 				}},
 			}},
 		}}}}
-	linkRoutes(&config)
+	routes = linkRoutes(&config)
 
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
 
@@ -238,7 +238,7 @@ func TestStartSessionFail(t *testing.T) {
 				}},
 			}},
 		}}}}
-	linkRoutes(&config)
+	routes = linkRoutes(&config)
 
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
 
@@ -267,7 +267,7 @@ func TestDeleteSession(t *testing.T) {
 				}},
 			}},
 		}}}}
-	linkRoutes(&config)
+	routes = linkRoutes(&config)
 
 	r, _ := http.NewRequest("DELETE", gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
 	rsp, err := http.DefaultClient.Do(r)
@@ -298,7 +298,7 @@ func TestProxyRequest(t *testing.T) {
 				}},
 			}},
 		}}}}
-	linkRoutes(&config)
+	routes = linkRoutes(&config)
 
 	rsp, err := http.Get(gridrouter("/wd/hub/session/" + node.sum() + "123"))
 
@@ -330,7 +330,7 @@ func TestProxyJsonRequest(t *testing.T) {
 				}},
 			}},
 		}}}}
-	linkRoutes(&config)
+	routes = linkRoutes(&config)
 
 	http.Post(gridrouter("/wd/hub/session/"+node.sum()+"123"), "", bytes.NewReader([]byte(`{"sessionId":"123"}`)))
 }
@@ -359,7 +359,7 @@ func TestProxyPlainRequest(t *testing.T) {
 				}},
 			}},
 		}}}}
-	linkRoutes(&config)
+	routes = linkRoutes(&config)
 
 	http.Post(gridrouter("/wd/hub/session/"+node.sum()+"123"), "", bytes.NewReader([]byte("request")))
 }
