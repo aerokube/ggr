@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"time"
@@ -173,7 +174,9 @@ func TestConfDirDoesNotExist(t *testing.T) {
 	err := watchDir(watcher, tmp.Name(), 1*time.Millisecond)
 
 	AssertThat(t, err, Is{Not{nil}})
-	AssertThat(t, err.Error(), EqualTo{fmt.Sprintf("cannot watch directory: %s: lstat %s: no such file or directory", tmp.Name(), tmp.Name())})
+
+	AssertThat(t, strings.HasPrefix(err.Error(), fmt.Sprintf("cannot watch directory: %s:", tmp.Name())), Is{true})
+	AssertThat(t, strings.HasSuffix(err.Error(), fmt.Sprintf("%s: no such file or directory", tmp.Name())), Is{true})
 }
 
 func TestReloadConfig(t *testing.T) {
