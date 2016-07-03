@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
+	"time"
+
 	. "github.com/aandryashin/matchers"
+	"github.com/fsnotify/fsnotify"
 )
 
 func TestEmptyListOfHosts(t *testing.T) {
@@ -159,4 +163,38 @@ func TestParseConfig(t *testing.T) {
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, browsers.Browsers[0].Name, EqualTo{"browser"})
+}
+
+func TestConfDirDoesNotExist(t *testing.T) {
+	tmp, _ := ioutil.TempFile("", "config")
+	os.Remove(tmp.Name())
+
+	watcher, _ := fsnotify.NewWatcher()
+	err := watchDir(watcher, tmp.Name(), 1*time.Millisecond)
+
+	AssertThat(t, err, Is{Not{nil}})
+	AssertThat(t, err.Error(), EqualTo{fmt.Sprintf("cannot watch directory: %s: lstat %s: no such file or directory", tmp.Name(), tmp.Name())})
+}
+
+func TestReloadConfig(t *testing.T) {
+	tmp, _ := ioutil.TempFile("", "config")
+	defer os.Remove(tmp.Name())
+
+	test.Lock()
+	defer test.Unlock()
+	watcher, _ := fsnotify.NewWatcher()
+	*conf = tmp.Name()
+	watchDir(watcher, path.Dir(tmp.Name()), 5*time.Millisecond)
+
+	tmp.Write([]byte(`<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"><browser name="browser"/></qa:browsers>`))
+	tmp.Close()
+
+	<-time.After(10 * time.Millisecond)
+
+	AssertThat(t, config.Browsers[0].Name, EqualTo{"browser"})
+
+	os.Remove(tmp.Name())
+	<-time.After(10 * time.Millisecond)
+
+	AssertThat(t, config.Browsers[0].Name, EqualTo{"browser"})
 }

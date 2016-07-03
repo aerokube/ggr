@@ -108,10 +108,11 @@ func info(r *http.Request) (user, remote string) {
 	if u, _, ok := r.BasicAuth(); ok {
 		user = u
 	}
-	remote, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		remote = r.RemoteAddr
+	remote = r.Header.Get("X-Forwarded-For")
+	if remote != "" {
+		return
 	}
+	remote, _, _ = net.SplitHostPort(r.RemoteAddr)
 	return
 }
 
@@ -144,7 +145,7 @@ loop:
 	for {
 		hosts := config.find(browser, version)
 		if len(hosts) == 0 {
-			http.Error(w, fmt.Sprintf("unsupported browser: %s %s", browser, version), http.StatusNotFound)
+			http.Error(w, fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version)), http.StatusNotFound)
 			log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
 			return
 		}
@@ -252,12 +253,8 @@ func linkRoutes(config *Browsers) map[string]*Host {
 	return routes
 }
 
-func watchDir(dir string, delay int) error {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return errors.New(fmt.Sprintf("error initializing file system notification: %v", err))
-	}
-	watch(watcher, time.Duration(delay)*time.Second, func() {
+func watchDir(watcher *fsnotify.Watcher, dir string, delay time.Duration) error {
+	watch(watcher, delay, func() {
 		log.Printf("Reloading configuration file [%s]\n", *conf)
 		var newconf Browsers
 		err := readConfig(*conf, &newconf)
@@ -269,11 +266,19 @@ func watchDir(dir string, delay int) error {
 		config, routes = newconf, newroutes
 		log.Printf("Reloaded configuration from [%s]:\n%v\n", *conf, config)
 	})
-	err = watcher.Add(dir)
-	if err != nil {
+	if err := watcher.Add(dir); err != nil {
 		return errors.New(fmt.Sprintf("cannot watch directory: %s: %v", dir, err))
 	}
 	return nil
+}
+
+func mux() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc(pingPath, ping)
+	mux.HandleFunc(errPath, err)
+	mux.HandleFunc(routePath, postOnly(route))
+	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
+	return mux
 }
 
 func init() {
@@ -287,16 +292,12 @@ func init() {
 	}
 	routes = linkRoutes(&config)
 	log.Printf("Loaded configuration from [%s]:\n%v\n", *conf, config)
-	watchDir(path.Dir(*conf), *delay)
-}
 
-func mux() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc(pingPath, ping)
-	mux.HandleFunc(errPath, err)
-	mux.HandleFunc(routePath, postOnly(route))
-	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
-	return mux
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatalf("error initializing file system notifications: %v", err)
+	}
+	watchDir(watcher, path.Dir(*conf), time.Duration(*delay)*time.Second)
 }
 
 func main() {

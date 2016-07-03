@@ -126,10 +126,17 @@ func TestCreateSessionBadBrowserName(t *testing.T) {
 }
 
 func TestCreateSessionUnsupportedBrowser(t *testing.T) {
+	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"mosaic"}}`)))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"unsupported browser: mosaic"}})
+}
+
+func TestCreateSessionUnsupportedBrowserVersion(t *testing.T) {
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"mosaic", "version":"1.0"}}`)))
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"unsupported browser: mosaic 1.0"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"unsupported browser: mosaic-1.0"}})
 }
 
 func TestCreateSessionNoHosts(t *testing.T) {
@@ -362,4 +369,52 @@ func TestProxyPlainRequest(t *testing.T) {
 	routes = linkRoutes(&config)
 
 	http.Post(gridrouter("/wd/hub/session/"+node.sum()+"123"), "", bytes.NewReader([]byte("request")))
+}
+
+func TestRequest(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, remote := info(r)
+		AssertThat(t, user, EqualTo{"unknown"})
+		AssertThat(t, remote, EqualTo{"127.0.0.1"})
+	}))
+
+	r, _ := http.NewRequest("GET", srv.URL, nil)
+	http.DefaultClient.Do(r)
+}
+
+func TestRequestAuth(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, remote := info(r)
+		AssertThat(t, user, EqualTo{"user"})
+		AssertThat(t, remote, EqualTo{"127.0.0.1"})
+	}))
+
+	r, _ := http.NewRequest("GET", srv.URL, nil)
+	r.SetBasicAuth("user", "password")
+	http.DefaultClient.Do(r)
+}
+
+func TestRequestForwarded(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, remote := info(r)
+		AssertThat(t, user, EqualTo{"unknown"})
+		AssertThat(t, remote, EqualTo{"proxy"})
+	}))
+
+	r, _ := http.NewRequest("GET", srv.URL, nil)
+	r.Header.Set("X-Forwarded-For", "proxy")
+	http.DefaultClient.Do(r)
+}
+
+func TestRequestAuthForwarded(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, remote := info(r)
+		AssertThat(t, user, EqualTo{"user"})
+		AssertThat(t, remote, EqualTo{"proxy"})
+	}))
+
+	r, _ := http.NewRequest("GET", srv.URL, nil)
+	r.Header.Set("X-Forwarded-For", "proxy")
+	r.SetBasicAuth("user", "password")
+	http.DefaultClient.Do(r)
 }
