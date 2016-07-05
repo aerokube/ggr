@@ -141,6 +141,15 @@ func browserErrMsg(js map[string]interface{}) string {
 	return msg
 }
 
+func jsonErrMsg(msg string) string {
+	message := make(map[string]string)
+	message["message"] = msg
+	value := make(map[string]interface{})
+	value["value"] = message
+	result, _ := json.Marshal(value)
+	return string(result)
+}
+
 func route(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	id := serial()
@@ -194,7 +203,7 @@ loop:
 			}
 		}
 	}
-	http.Error(w, fmt.Sprintf(`{"status": 13, "value" : {"message" : "cannot create session %s on any hosts after %d attempt(s)"}}`, fmtBrowser(browser, version), count), http.StatusInternalServerError)
+	http.Error(w, jsonErrMsg(fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version), count)), http.StatusInternalServerError)
 	log.Printf("[%d] [SESSION_NOT_CREATED] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
 }
 

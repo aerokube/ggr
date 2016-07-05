@@ -248,6 +248,36 @@ func TestStartSession(t *testing.T) {
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{`{"sessionId":"` + node.sum() + `123"}`}})
 }
 
+func TestStartSessionWithJsonSpecChars(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"sessionId":"123"}`))
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "{browser}", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	routes = linkRoutes(&config)
+
+	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{`{"sessionId":"` + node.sum() + `123"}`}})
+}
+
 func TestStartSessionFail(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
