@@ -146,6 +146,7 @@ func jsonErrMsg(msg string) string {
 	message["message"] = msg
 	value := make(map[string]interface{})
 	value["value"] = message
+	value["status"] = 13
 	result, _ := json.Marshal(value)
 	return string(result)
 }
