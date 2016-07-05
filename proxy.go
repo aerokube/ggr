@@ -188,13 +188,13 @@ loop:
 				excludes = append(excludes, h.region)
 				hosts = config.find(browser, version, excludes...)
 			}
-			log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s] - %s\n", id, user, remote, fmtBrowser(browser, version), h.net(), browserErrMsg(resp))
+			log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s] %s\n", id, user, remote, fmtBrowser(browser, version), h.net(), browserErrMsg(resp))
 			if len(hosts) == 0 {
 				break loop
 			}
 		}
 	}
-	http.Error(w, fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version), count), http.StatusInternalServerError)
+	http.Error(w, fmt.Sprintf(`{"status": 13, "value" : {"message" : "cannot create session %s on any hosts after %d attempt(s)"}}`, fmtBrowser(browser, version), count), http.StatusInternalServerError)
 	log.Printf("[%d] [SESSION_NOT_CREATED] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
 }
 
