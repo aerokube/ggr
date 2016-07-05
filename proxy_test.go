@@ -196,7 +196,7 @@ func TestSessionWrongHash(t *testing.T) {
 func TestStartSession(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf(`{"sessionId":"123"}`)))
+		w.Write([]byte(`{"sessionId":"123"}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -250,7 +250,131 @@ func TestStartSessionFail(t *testing.T) {
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
 
 	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
+}
+
+func TestStartSessionBrowserFail(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"value": {"message" : "Browser startup failure..."}}`))
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node, node, node, node, node,
+				}},
+			}},
+		}}}}
+	routes = linkRoutes(&config)
+
+	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+
+	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser-1.0 on any hosts after 5 attempt(s)"}})
+}
+
+func TestStartSessionBrowserFailUnknownError(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{}`))
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	routes = linkRoutes(&config)
+
+	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
+}
+
+func TestStartSessionBrowserFailWrongValue(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"value": 1}`))
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	routes = linkRoutes(&config)
+
+	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
+}
+
+func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"value": {"message" : true}}`))
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	config = Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	routes = linkRoutes(&config)
+
+	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Body{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
 }
 
 func TestDeleteSession(t *testing.T) {

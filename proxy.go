@@ -81,11 +81,14 @@ func (h *Host) session(c caps) (map[string]interface{}, int) {
 	if err != nil {
 		return nil, seleniumError
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, browserFailed
-	}
 	var reply map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&reply)
+	err = json.NewDecoder(resp.Body).Decode(&reply)
+	if err != nil {
+		return nil, seleniumError
+	}
+	if resp.StatusCode != http.StatusOK {
+		return reply, browserFailed
+	}
 	return reply, browserStarted
 }
 
@@ -123,6 +126,21 @@ func fmtBrowser(browser, version string) string {
 	return browser
 }
 
+func browserErrMsg(js map[string]interface{}) string {
+	if js == nil {
+		return ""
+	}
+	val, ok := js["value"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	msg, ok := val["message"].(string)
+	if !ok {
+		return ""
+	}
+	return msg
+}
+
 func route(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	id := serial()
@@ -156,7 +174,8 @@ loop:
 			}
 			log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [%d]\n", id, user, remote, fmtBrowser(browser, version), h.net(), count)
 			excludes := make([]string, 0)
-			switch resp, status := h.session(c); status {
+			resp, status := h.session(c)
+			switch status {
 			case browserStarted:
 				sess := resp["sessionId"].(string)
 				resp["sessionId"] = h.sum() + sess
@@ -169,7 +188,7 @@ loop:
 				excludes = append(excludes, h.region)
 				hosts = config.find(browser, version, excludes...)
 			}
-			log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version), h.net())
+			log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s] - %s\n", id, user, remote, fmtBrowser(browser, version), h.net(), browserErrMsg(resp))
 			if len(hosts) == 0 {
 				break loop
 			}
