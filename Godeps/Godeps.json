@@ -5,7 +5,7 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/aandryashin/matchers",
-			"Rev": "4b86bad5c0c80d8c05a401aaae9489cb5fc95bac"
+			"Rev": "2bf26bff7a280b4c17379f8d71778e6a1a905959"
 		},
 		{
 			"ImportPath": "github.com/fsnotify/fsnotify",
