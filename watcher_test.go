@@ -13,14 +13,14 @@ func TestTimerShouldTrigger(t *testing.T) {
 	defer watcher.Close()
 
 	ch := make(chan bool)
-	watch(watcher, 15*time.Millisecond, func() {
+	watch(watcher, 150*time.Millisecond, func() {
 		ch <- true
 	})
 	call := false
 
 	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
 	select {
-	case <-time.After(10 * time.Millisecond):
+	case <-time.After(100 * time.Millisecond):
 	case call = <-ch:
 	}
 	AssertThat(t, call, Is{false})
@@ -31,14 +31,14 @@ func TestTimerShouldNotTrigger(t *testing.T) {
 	defer watcher.Close()
 
 	ch := make(chan bool)
-	watch(watcher, 10*time.Millisecond, func() {
+	watch(watcher, 100*time.Millisecond, func() {
 		ch <- true
 	})
 	call := false
 
 	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
 	select {
-	case <-time.After(15 * time.Millisecond):
+	case <-time.After(150 * time.Millisecond):
 	case call = <-ch:
 	}
 	AssertThat(t, call, Is{true})
@@ -49,27 +49,27 @@ func TestTimerShouldTriggerOnce(t *testing.T) {
 	defer watcher.Close()
 
 	ch := make(chan bool)
-	watch(watcher, 15*time.Millisecond, func() {
+	watch(watcher, 150*time.Millisecond, func() {
 		ch <- true
 	})
 	call := false
 
 	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
 	select {
-	case <-time.After(10 * time.Millisecond):
+	case <-time.After(100 * time.Millisecond):
 	case call = <-ch:
 	}
 	AssertThat(t, call, Is{false})
 
 	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
 	select {
-	case <-time.After(10 * time.Millisecond):
+	case <-time.After(100 * time.Millisecond):
 	case call = <-ch:
 	}
 	AssertThat(t, call, Is{false})
 
 	select {
-	case <-time.After(10 * time.Millisecond):
+	case <-time.After(100 * time.Millisecond):
 	case call = <-ch:
 	}
 	AssertThat(t, call, Is{true})

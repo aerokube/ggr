@@ -192,7 +192,7 @@ func TestReloadConfig(t *testing.T) {
 	tmp.Write([]byte(`<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"><browser name="browser"/></qa:browsers>`))
 	tmp.Close()
 
-	<-time.After(10 * time.Millisecond)
+	<-time.After(100 * time.Millisecond)
 
 	confLock.RLock()
 	AssertThat(t, config.Browsers[0].Name, EqualTo{"browser"})
