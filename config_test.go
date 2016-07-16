@@ -199,7 +199,7 @@ func TestReloadConfig(t *testing.T) {
 	confLock.RUnlock()
 
 	os.Remove(tmp.Name())
-	<-time.After(10 * time.Millisecond)
+	<-time.After(100 * time.Millisecond)
 
 	AssertThat(t, config.Browsers[0].Name, EqualTo{"browser"})
 }
