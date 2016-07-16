@@ -45,7 +45,7 @@ var (
 	routes   map[string]*Host = make(map[string]*Host)
 	num      uint64
 	numLock  sync.Mutex
-	confLock sync.Mutex
+	confLock sync.RWMutex
 )
 
 type caps map[string]interface{}
@@ -171,7 +171,9 @@ func route(w http.ResponseWriter, r *http.Request) {
 	count := 0
 loop:
 	for {
+		confLock.RLock()
 		hosts := config.find(browser, version)
+		confLock.RUnlock()
 		if len(hosts) == 0 {
 			http.Error(w, fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version)), http.StatusNotFound)
 			log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
@@ -292,7 +294,9 @@ func watchDir(watcher *fsnotify.Watcher, dir string, delay time.Duration) error 
 			return
 		}
 		newroutes := linkRoutes(&newconf)
+		confLock.Lock()
 		config, routes = newconf, newroutes
+		confLock.Unlock()
 		log.Printf("Reloaded configuration from [%s]:\n%v\n", *conf, config)
 	})
 	if err := watcher.Add(dir); err != nil {

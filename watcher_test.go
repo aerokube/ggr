@@ -8,62 +8,69 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-func TestSingleTimer(t *testing.T) {
+func TestTimerShouldTrigger(t *testing.T) {
 	watcher, _ := fsnotify.NewWatcher()
 	defer watcher.Close()
-	call := false
-	watch(watcher, 150*time.Millisecond, func() {
-		call = true
+
+	ch := make(chan bool)
+	watch(watcher, 15*time.Millisecond, func() {
+		ch <- true
 	})
+	call := false
+
 	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
-	<-time.After(100 * time.Millisecond)
+	select {
+	case <-time.After(10 * time.Millisecond):
+	case call = <-ch:
+	}
 	AssertThat(t, call, Is{false})
-	<-time.After(100 * time.Millisecond)
+}
+
+func TestTimerShouldNotTrigger(t *testing.T) {
+	watcher, _ := fsnotify.NewWatcher()
+	defer watcher.Close()
+
+	ch := make(chan bool)
+	watch(watcher, 10*time.Millisecond, func() {
+		ch <- true
+	})
+	call := false
+
+	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
+	select {
+	case <-time.After(15 * time.Millisecond):
+	case call = <-ch:
+	}
 	AssertThat(t, call, Is{true})
 }
 
-func TestMultipleTimer(t *testing.T) {
+func TestTimerShouldTriggerOnce(t *testing.T) {
 	watcher, _ := fsnotify.NewWatcher()
 	defer watcher.Close()
 
-	call := false
-	watch(watcher, 150*time.Millisecond, func() {
-		call = true
+	ch := make(chan bool)
+	watch(watcher, 15*time.Millisecond, func() {
+		ch <- true
 	})
-	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
+	call := false
 
-	<-time.After(100 * time.Millisecond)
 	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
-
-	<-time.After(100 * time.Millisecond)
+	select {
+	case <-time.After(10 * time.Millisecond):
+	case call = <-ch:
+	}
 	AssertThat(t, call, Is{false})
 
-	<-time.After(100 * time.Millisecond)
+	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
+	select {
+	case <-time.After(10 * time.Millisecond):
+	case call = <-ch:
+	}
+	AssertThat(t, call, Is{false})
+
+	select {
+	case <-time.After(10 * time.Millisecond):
+	case call = <-ch:
+	}
 	AssertThat(t, call, Is{true})
-}
-
-func TestTimerCalledOnce(t *testing.T) {
-	watcher, _ := fsnotify.NewWatcher()
-	defer watcher.Close()
-
-	call := 0
-	watch(watcher, 200*time.Millisecond, func() {
-		call++
-	})
-	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
-
-	<-time.After(100 * time.Millisecond)
-	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
-
-	<-time.After(100 * time.Millisecond)
-	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
-
-	<-time.After(100 * time.Millisecond)
-	watcher.Events <- fsnotify.Event{Op: fsnotify.Create}
-
-	<-time.After(100 * time.Millisecond)
-	AssertThat(t, call, EqualTo{0})
-
-	<-time.After(200 * time.Millisecond)
-	AssertThat(t, call, EqualTo{1})
 }

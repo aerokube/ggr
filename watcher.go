@@ -8,27 +8,22 @@ import (
 
 func watch(w *fsnotify.Watcher, t time.Duration, f func()) {
 	go func() {
-		cancel := make(chan bool, 1)
-		canceled := make(chan bool, 1)
-		triggered := false
+		var cancel chan struct{}
 		for {
 			select {
 			case e := <-w.Events:
 				if e.Op != 0 {
-					if triggered {
-						cancel <- true
-						<-canceled
+					if cancel != nil {
+						close(cancel)
 					}
-					go func() {
+					cancel = make(chan struct{})
+					go func(cancel chan struct{}) {
 						select {
 						case <-time.After(t):
-							triggered = false
 							f()
 						case <-cancel:
-							canceled <- true
 						}
-					}()
-					triggered = true
+					}(cancel)
 				}
 			}
 		}
