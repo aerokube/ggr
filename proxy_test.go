@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	. "github.com/aandryashin/matchers"
+	"io"
 )
 
 var (
@@ -111,59 +112,81 @@ func TestErr(t *testing.T) {
 }
 
 func TestCreateSessionGet(t *testing.T) {
-	rsp, err := http.Get(gridrouter("/wd/hub/session"))
+	req, _ := http.NewRequest("GET", gridrouter("/wd/hub/session"), nil)
+	req.SetBasicAuth("test", "test")
+	client := &http.Client{}
+	rsp, err := client.Do(req)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusMethodNotAllowed}, Body{"method not allowed"}})
 }
 
+func TestUnathorized(t *testing.T) {
+	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{}}`)))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
 func TestCreateSessionEmptyBody(t *testing.T) {
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", nil)
+	rsp, err := createSessionFromReader(nil)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Body{"bad json format: EOF"}})
 }
 
 func TestCreateSessionBadJson(t *testing.T) {
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte("")))
+	rsp, err := createSession("")
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Body{"bad json format: EOF"}})
 }
 
 func TestCreateSessionCapsNotSet(t *testing.T) {
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte("{}")))
+	rsp, err := createSession("{}")
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Body{"browser not set"}})
 }
 
 func TestCreateSessionBrowserNotSet(t *testing.T) {
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Body{"browser not set"}})
 }
 
 func TestCreateSessionBadBrowserName(t *testing.T) {
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":false}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":false}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Body{"browser not set"}})
 }
 
 func TestCreateSessionUnsupportedBrowser(t *testing.T) {
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"mosaic"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"mosaic"}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"unsupported browser: mosaic"}})
 }
 
 func TestCreateSessionUnsupportedBrowserVersion(t *testing.T) {
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"mosaic", "version":"1.0"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"mosaic", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"unsupported browser: mosaic-1.0"}})
+}
+
+func createSession(capabilities string) (*http.Response, error) {
+	body := bytes.NewReader([]byte(capabilities))
+	return createSessionFromReader(body)
+}
+
+func createSessionFromReader(body io.Reader) (*http.Response, error) {
+	req, _ := http.NewRequest("POST", gridrouter("/wd/hub/session"), body)
+	req.SetBasicAuth("test", "test")
+	client := &http.Client{}
+	return client.Do(req)
 }
 
 func TestCreateSessionNoHosts(t *testing.T) {
@@ -180,7 +203,7 @@ func TestCreateSessionNoHosts(t *testing.T) {
 		}}}}
 	routes = linkRoutes(&config)
 
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
 }
@@ -199,7 +222,7 @@ func TestCreateSessionHostDown(t *testing.T) {
 		}}}}
 	routes = linkRoutes(&config)
 
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
 }
@@ -242,7 +265,7 @@ func TestStartSession(t *testing.T) {
 		}}}}
 	routes = linkRoutes(&config)
 
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{`{"sessionId":"` + node.sum() + `123"}`}})
@@ -272,7 +295,7 @@ func TestStartSessionWithJsonSpecChars(t *testing.T) {
 		}}}}
 	routes = linkRoutes(&config)
 
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{`{"sessionId":"` + node.sum() + `123"}`}})
@@ -302,7 +325,7 @@ func TestStartSessionFail(t *testing.T) {
 		}}}}
 	routes = linkRoutes(&config)
 
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
@@ -333,7 +356,7 @@ func TestStartSessionBrowserFail(t *testing.T) {
 		}}}}
 	routes = linkRoutes(&config)
 
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 5 attempt(s)"}})
@@ -364,7 +387,7 @@ func TestStartSessionBrowserFailUnknownError(t *testing.T) {
 		}}}}
 	routes = linkRoutes(&config)
 
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
@@ -395,7 +418,7 @@ func TestStartSessionBrowserFailWrongValue(t *testing.T) {
 		}}}}
 	routes = linkRoutes(&config)
 
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
@@ -426,7 +449,7 @@ func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
 		}}}}
 	routes = linkRoutes(&config)
 
-	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
