@@ -186,7 +186,7 @@ func TestReloadConfig(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 	watcher, _ := fsnotify.NewWatcher()
-	*conf = tmp.Name()
+	conf = tmp.Name()
 	watchDir(watcher, path.Dir(tmp.Name()), 5*time.Millisecond)
 
 	tmp.Write([]byte(`<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"><browser name="browser"/></qa:browsers>`))

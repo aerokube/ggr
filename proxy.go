@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/abbot/go-http-auth"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -37,9 +38,10 @@ const (
 )
 
 var (
-	port     = flag.Int("port", 8080, "port to bind to")
-	conf     = flag.String("conf", "quota/browsers.xml", "browsers configuration file path")
-	delay    = flag.Int("delay", 10, "delay in seconds before config reloading")
+	port     int
+	conf     string
+	users    string
+	delay    int
 	listen   string
 	config   Browsers
 	routes   map[string]*Host = make(map[string]*Host)
@@ -215,7 +217,7 @@ func proxy(r *http.Request) {
 	r.URL.Scheme = "http"
 	if len(r.URL.Path) > tail {
 		sum := r.URL.Path[head:tail]
-		path := r.URL.Path[:head] + r.URL.Path[tail:]
+		proxyPath := r.URL.Path[:head] + r.URL.Path[tail:]
 		if h, ok := routes[sum]; ok {
 			if body, err := ioutil.ReadAll(r.Body); err == nil {
 				r.Body.Close()
@@ -228,9 +230,9 @@ func proxy(r *http.Request) {
 				r.Body = ioutil.NopCloser(bytes.NewReader(body))
 			}
 			r.URL.Host = h.net()
-			r.URL.Path = path
+			r.URL.Path = proxyPath
 			if r.Method == "DELETE" {
-				sess := strings.Split(path, "/")[sessPart]
+				sess := strings.Split(proxyPath, "/")[sessPart]
 				log.Printf("[SESSION_DELETED] [%s] [%s] [%s] [%s]\n", user, remote, h.net(), sess)
 			}
 			return
@@ -286,9 +288,9 @@ func linkRoutes(config *Browsers) map[string]*Host {
 
 func watchDir(watcher *fsnotify.Watcher, dir string, delay time.Duration) error {
 	watch(watcher, delay, func() {
-		log.Printf("Reloading configuration file [%s]\n", *conf)
+		log.Printf("Reloading configuration file [%s]\n", conf)
 		var newconf Browsers
-		err := readConfig(*conf, &newconf)
+		err := readConfig(conf, &newconf)
 		if err != nil {
 			log.Println(err)
 			return
@@ -297,7 +299,7 @@ func watchDir(watcher *fsnotify.Watcher, dir string, delay time.Duration) error 
 		confLock.Lock()
 		config, routes = newconf, newroutes
 		confLock.Unlock()
-		log.Printf("Reloaded configuration from [%s]:\n%v\n", *conf, config)
+		log.Printf("Reloaded configuration from [%s]:\n%v\n", conf, config)
 	})
 	if err := watcher.Add(dir); err != nil {
 		return errors.New(fmt.Sprintf("cannot watch directory: %s: %v", dir, err))
@@ -305,32 +307,48 @@ func watchDir(watcher *fsnotify.Watcher, dir string, delay time.Duration) error 
 	return nil
 }
 
+func requireBasicAuth(authenticator *auth.BasicAuth, handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return authenticator.Wrap(func(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+		handler(w, &r.Request)
+	})
+}
+
 func mux() http.Handler {
 	mux := http.NewServeMux()
+	authenticator := auth.NewBasicAuthenticator(
+		"Selenium Grid Router",
+		auth.HtpasswdFileProvider(users),
+	)
+
 	mux.HandleFunc(pingPath, ping)
 	mux.HandleFunc(errPath, err)
-	mux.HandleFunc(routePath, postOnly(route))
+	mux.HandleFunc(routePath, requireBasicAuth(authenticator, postOnly(route)))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	return mux
 }
 
 func init() {
+	flag.IntVar(&port, "port", 4444, "port to bind to")
+	flag.StringVar(&conf, "conf", "quota/browsers.xml", "browsers configuration file path")
+	flag.StringVar(&users, "users", ".htpasswd", "htpasswd auth file path")
+	flag.IntVar(&delay, "delay", 10, "delay in seconds before config reloading")
 	flag.Parse()
-	listen = fmt.Sprintf(":%d", *port)
+	listen = fmt.Sprintf(":%d", port)
 
-	log.Printf("Loading configuration file [%s]\n", *conf)
-	err := readConfig(*conf, &config)
+	log.Printf("Users file is [%s]\n", users)
+	log.Printf("Loading configuration file [%s]\n", conf)
+	err := readConfig(conf, &config)
 	if err != nil {
 		log.Fatal(err)
 	}
 	routes = linkRoutes(&config)
-	log.Printf("Loaded configuration from [%s]:\n%v\n", *conf, config)
+	log.Printf("Loaded configuration from [%s]:\n%v\n", conf, config)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatalf("error initializing file system notifications: %v", err)
 	}
-	watchDir(watcher, path.Dir(*conf), time.Duration(*delay)*time.Second)
+	watchDir(watcher, path.Dir(conf), time.Duration(delay)*time.Second)
 }
 
 func main() {
