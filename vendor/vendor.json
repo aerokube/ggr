@@ -1,0 +1,63 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "24CmI1XvvB42B1pV1OhLKecZo2s=",
+			"origin": "github.com/aandryashin/ggr/vendor/github.com/aandryashin/matchers",
+			"path": "github.com/aandryashin/matchers",
+			"revision": "5eb67beb188b5076812683a96c13bef79d970fd8",
+			"revisionTime": "2016-07-29T13:19:23Z"
+		},
+		{
+			"checksumSHA1": "wFR9BZ6TX3bqU4+jTCcr87R7Liw=",
+			"origin": "github.com/aandryashin/ggr/vendor/github.com/aandryashin/reloader",
+			"path": "github.com/aandryashin/reloader",
+			"revision": "6f7a98e506714c870489aa8cdb9fbdc6d23c3e77",
+			"revisionTime": "2016-11-27T10:38:03Z"
+		},
+		{
+			"checksumSHA1": "rOuGi1DcTUn3yMXjKQMIQlLVLRE=",
+			"origin": "github.com/aandryashin/ggr/vendor/github.com/abbot/go-http-auth",
+			"path": "github.com/abbot/go-http-auth",
+			"revision": "cb4372376e1e00e9f6ab9ec142e029302c9e7140",
+			"revisionTime": "2016-05-03T22:00:38Z"
+		},
+		{
+			"checksumSHA1": "nmc2qcdbg17Ny8tHeEDQuphV6jA=",
+			"origin": "github.com/aandryashin/ggr/vendor/github.com/fsnotify/fsnotify",
+			"path": "github.com/fsnotify/fsnotify",
+			"revision": "bd2828f9f176e52d7222e565abb2d338d3f3c103",
+			"revisionTime": "2016-10-13T01:22:19Z"
+		},
+		{
+			"checksumSHA1": "vE43s37+4CJ2CDU6TlOUOYE0K9c=",
+			"origin": "github.com/aandryashin/ggr/vendor/golang.org/x/crypto/bcrypt",
+			"path": "golang.org/x/crypto/bcrypt",
+			"revision": "5f4e837b98443e9e7a65072235205993af565d85",
+			"revisionTime": "2016-10-16T21:16:03Z"
+		},
+		{
+			"checksumSHA1": "JsJdKXhz87gWenMwBeejTOeNE7k=",
+			"origin": "github.com/aandryashin/ggr/vendor/golang.org/x/crypto/blowfish",
+			"path": "golang.org/x/crypto/blowfish",
+			"revision": "5f4e837b98443e9e7a65072235205993af565d85",
+			"revisionTime": "2016-10-16T21:16:03Z"
+		},
+		{
+			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
+			"origin": "github.com/aandryashin/ggr/vendor/golang.org/x/net/context",
+			"path": "golang.org/x/net/context",
+			"revision": "4d38db76854b199960801a1734443fd02870d7e1",
+			"revisionTime": "2016-07-20T03:23:22Z"
+		},
+		{
+			"checksumSHA1": "e6tx+mrbPNlzXbr1VErnBPY+vmQ=",
+			"origin": "github.com/aandryashin/ggr/vendor/golang.org/x/sys/unix",
+			"path": "golang.org/x/sys/unix",
+			"revision": "002cbb5f952456d0c50e0d2aff17ea5eca716979",
+			"revisionTime": "2016-10-16T18:36:00Z"
+		}
+	],
+	"rootPath": "github.com/aandryashin/ggr"
+}

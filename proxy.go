@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aandryashin/reloader"
 	"github.com/abbot/go-http-auth"
 	"path/filepath"
 )
@@ -298,7 +299,15 @@ func parseArgs() {
 
 func loadConfig() error {
 	log.Printf("Users file is [%s]\n", users)
-	return loadQuotaFiles(quotaDir)
+	err := loadQuotaFiles(quotaDir)
+	if err != nil {
+		return err
+	}
+	err = reloader.Watch(quotaDir, func() { loadQuotaFiles(quotaDir) }, 5*time.Second)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func loadQuotaFiles(quotaDir string) error {

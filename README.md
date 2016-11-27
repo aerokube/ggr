@@ -6,10 +6,10 @@
 This repository contains a [Go](http://golang.org/) implementation of original [Gridrouter](http://github.com/seleniumkit/gridrouter) code.
 
 ## Building
-We use [godep](https://github.com/tools/godep) for dependencies management so ensure it's installed before proceeding with next steps. To build the code:
+We use [govendor](https://github.com/kardianos/govendor) for dependencies management so ensure it's installed before proceeding with next steps. To build the code:
 
 1. Checkout this source tree: ```$ git clone https://github.com/aandryashin/ggr.git```
-2. Download dependencies: ```$ godep restore```
+2. Download dependencies: ```$ govendor sync```
 3. Build as usually: ```$ go build```
 4. Run compiled binary: ```$GOPATH/bin/ggr```
 
