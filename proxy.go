@@ -296,12 +296,9 @@ func parseArgs() {
 	listen = fmt.Sprintf(":%d", port)
 }
 
-func loadConfig() {
+func loadConfig() error {
 	log.Printf("Users file is [%s]\n", users)
-	err := loadQuotaFiles(quotaDir)
-	if err != nil {
-		log.Fatalf("%v\n", err)
-	}
+	return loadQuotaFiles(quotaDir)
 }
 
 func loadQuotaFiles(quotaDir string) error {
@@ -357,7 +354,10 @@ func mux() http.Handler {
 
 func init() {
 	parseArgs()
-	loadConfig()
+	err := loadConfig()
+	if err != nil {
+		log.Fatalf("%v\n", err)
+	}
 }
 
 func main() {
