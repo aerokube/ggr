@@ -165,29 +165,3 @@ func TestConfDirDoesNotExist(t *testing.T) {
 	err := loadQuotaFiles("missing-dir")
 	AssertThat(t, err, Is{Not{nil}})
 }
-
-//TODO: fix these tests when quota reloading is implemented
-func TestReloadConfig(t *testing.T) {
-	//tmp, _ := ioutil.TempFile("", "config")
-	//defer os.Remove(tmp.Name())
-	//
-	//test.Lock()
-	//defer test.Unlock()
-	//watcher, _ := fsnotify.NewWatcher()
-	//conf = tmp.Name()
-	//watchDir(watcher, path.Dir(tmp.Name()), 5*time.Millisecond)
-	//
-	//tmp.Write([]byte(`<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"><browser name="browser"/></qa:browsers>`))
-	//tmp.Close()
-	//
-	//<-time.After(100 * time.Millisecond)
-	//
-	//confLock.RLock()
-	//AssertThat(t, browsers.Browsers[0].Name, EqualTo{"browser"})
-	//confLock.RUnlock()
-	//
-	//os.Remove(tmp.Name())
-	//<-time.After(100 * time.Millisecond)
-	//
-	//AssertThat(t, browsers.Browsers[0].Name, EqualTo{"browser"})
-}
