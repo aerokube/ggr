@@ -12,13 +12,12 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"path"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/abbot/go-http-auth"
-	"github.com/fsnotify/fsnotify"
+	"path/filepath"
 )
 
 const (
@@ -39,16 +38,17 @@ const (
 
 var (
 	port     int
-	conf     string
+	quotaDir string
 	users    string
-	delay    int
 	listen   string
-	config   Browsers
-	routes   map[string]*Host = make(map[string]*Host)
+	quota    map[string]Browsers = make(map[string]Browsers)
+	routes   map[string]Routes   = make(map[string]Routes)
 	num      uint64
 	numLock  sync.Mutex
 	confLock sync.RWMutex
 )
+
+type Routes map[string]*Host
 
 type caps map[string]interface{}
 
@@ -174,7 +174,8 @@ func route(w http.ResponseWriter, r *http.Request) {
 loop:
 	for {
 		confLock.RLock()
-		hosts := config.find(browser, version)
+		browsers := quota[user]
+		hosts := browsers.find(browser, version)
 		confLock.RUnlock()
 		if len(hosts) == 0 {
 			http.Error(w, fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version)), http.StatusNotFound)
@@ -200,7 +201,7 @@ loop:
 				hosts = append(hosts[:i], hosts[i+1:]...)
 			case seleniumError:
 				excludes = append(excludes, h.region)
-				hosts = config.find(browser, version, excludes...)
+				hosts = browsers.find(browser, version, excludes...)
 			}
 			log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s] %s\n", id, user, remote, fmtBrowser(browser, version), h.net(), browserErrMsg(resp))
 			if len(hosts) == 0 {
@@ -218,7 +219,8 @@ func proxy(r *http.Request) {
 	if len(r.URL.Path) > tail {
 		sum := r.URL.Path[head:tail]
 		proxyPath := r.URL.Path[:head] + r.URL.Path[tail:]
-		if h, ok := routes[sum]; ok {
+		userRoutes := routes[user]
+		if h, ok := userRoutes[sum]; ok {
 			if body, err := ioutil.ReadAll(r.Body); err == nil {
 				r.Body.Close()
 				var msg map[string]interface{}
@@ -271,8 +273,8 @@ func readConfig(fn string, browsers *Browsers) error {
 	return nil
 }
 
-func linkRoutes(config *Browsers) map[string]*Host {
-	routes := make(map[string]*Host)
+func createRoutes(config *Browsers) Routes {
+	routes := make(Routes)
 	for _, b := range config.Browsers {
 		for _, v := range b.Versions {
 			for _, r := range v.Regions {
@@ -286,25 +288,51 @@ func linkRoutes(config *Browsers) map[string]*Host {
 	return routes
 }
 
-func watchDir(watcher *fsnotify.Watcher, dir string, delay time.Duration) error {
-	watch(watcher, delay, func() {
-		log.Printf("Reloading configuration file [%s]\n", conf)
-		var newconf Browsers
-		err := readConfig(conf, &newconf)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		newroutes := linkRoutes(&newconf)
-		confLock.Lock()
-		config, routes = newconf, newroutes
-		confLock.Unlock()
-		log.Printf("Reloaded configuration from [%s]:\n%v\n", conf, config)
-	})
-	if err := watcher.Add(dir); err != nil {
-		return errors.New(fmt.Sprintf("cannot watch directory: %s: %v", dir, err))
+func parseArgs() {
+	flag.IntVar(&port, "port", 4444, "port to bind to")
+	flag.StringVar(&quotaDir, "quotaDir", "quota", "quota directory")
+	flag.StringVar(&users, "users", ".htpasswd", "htpasswd auth file path")
+	flag.Parse()
+	listen = fmt.Sprintf(":%d", port)
+}
+
+func loadConfig() {
+	log.Printf("Users file is [%s]\n", users)
+	err := loadQuotaFiles(quotaDir)
+	if err != nil {
+		log.Fatalf("%v\n", err)
+	}
+}
+
+func loadQuotaFiles(quotaDir string) error {
+	log.Printf("Loading configuration files from [%s]\n", quotaDir)
+
+	confLock.Lock()
+	defer confLock.Unlock()
+	glob := fmt.Sprintf("%s%c%s", quotaDir, filepath.Separator, "*.xml")
+	files, _ := filepath.Glob(glob)
+	if len(files) == 0 {
+		return errors.New(fmt.Sprintf("no quota XML files found in [%s] - exiting\n", quotaDir))
+	}
+
+	for _, file := range files {
+		loadQuotaFile(file)
 	}
 	return nil
+}
+
+func loadQuotaFile(file string) {
+	fileName := filepath.Base(file)
+	quotaName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	var browsers Browsers
+	err := readConfig(file, &browsers)
+	if err != nil {
+		log.Printf("Failed to load configuration from [%s]: %v", fileName, err)
+		return
+	}
+	quota[quotaName] = browsers
+	routes[quotaName] = createRoutes(&browsers)
+	log.Printf("Loaded configuration from [%s]:\n%v\n", file, browsers)
 }
 
 func requireBasicAuth(authenticator *auth.BasicAuth, handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
@@ -328,27 +356,8 @@ func mux() http.Handler {
 }
 
 func init() {
-	flag.IntVar(&port, "port", 4444, "port to bind to")
-	flag.StringVar(&conf, "conf", "quota/browsers.xml", "browsers configuration file path")
-	flag.StringVar(&users, "users", ".htpasswd", "htpasswd auth file path")
-	flag.IntVar(&delay, "delay", 10, "delay in seconds before config reloading")
-	flag.Parse()
-	listen = fmt.Sprintf(":%d", port)
-
-	log.Printf("Users file is [%s]\n", users)
-	log.Printf("Loading configuration file [%s]\n", conf)
-	err := readConfig(conf, &config)
-	if err != nil {
-		log.Fatal(err)
-	}
-	routes = linkRoutes(&config)
-	log.Printf("Loaded configuration from [%s]:\n%v\n", conf, config)
-
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatalf("error initializing file system notifications: %v", err)
-	}
-	watchDir(watcher, path.Dir(conf), time.Duration(delay)*time.Second)
+	parseArgs()
+	loadConfig()
 }
 
 func main() {

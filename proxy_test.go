@@ -23,6 +23,11 @@ var (
 	test sync.Mutex
 )
 
+const (
+	user     = "test"
+	password = "test"
+)
+
 type Code struct {
 	C int
 }
@@ -121,7 +126,7 @@ func TestCreateSessionGet(t *testing.T) {
 	AssertThat(t, rsp, AllOf{Code{http.StatusMethodNotAllowed}, Body{"method not allowed"}})
 }
 
-func TestUnathorized(t *testing.T) {
+func TestUnauthorized(t *testing.T) {
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{}}`)))
 
 	AssertThat(t, err, Is{nil})
@@ -183,8 +188,12 @@ func createSession(capabilities string) (*http.Response, error) {
 }
 
 func createSessionFromReader(body io.Reader) (*http.Response, error) {
-	req, _ := http.NewRequest("POST", gridrouter("/wd/hub/session"), body)
-	req.SetBasicAuth("test", "test")
+	return doBasicHttpRequest("POST", gridrouter("/wd/hub/session"), body)
+}
+
+func doBasicHttpRequest(method string, url string, body io.Reader) (*http.Response, error) {
+	req, _ := http.NewRequest(method, url, body)
+	req.SetBasicAuth(user, password)
 	client := &http.Client{}
 	return client.Do(req)
 }
@@ -193,7 +202,7 @@ func TestCreateSessionNoHosts(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -201,7 +210,8 @@ func TestCreateSessionNoHosts(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 	AssertThat(t, err, Is{nil})
@@ -212,7 +222,7 @@ func TestCreateSessionHostDown(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -220,7 +230,8 @@ func TestCreateSessionHostDown(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 	AssertThat(t, err, Is{nil})
@@ -255,7 +266,7 @@ func TestStartSession(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -263,7 +274,8 @@ func TestStartSession(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -285,7 +297,7 @@ func TestStartSessionWithJsonSpecChars(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "{browser}", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -293,7 +305,8 @@ func TestStartSessionWithJsonSpecChars(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
 
@@ -315,7 +328,7 @@ func TestStartSessionFail(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -323,7 +336,8 @@ func TestStartSessionFail(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -346,7 +360,7 @@ func TestStartSessionBrowserFail(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -354,7 +368,8 @@ func TestStartSessionBrowserFail(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -377,7 +392,7 @@ func TestStartSessionBrowserFailUnknownError(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -385,7 +400,8 @@ func TestStartSessionBrowserFailUnknownError(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -408,7 +424,7 @@ func TestStartSessionBrowserFailWrongValue(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -416,7 +432,8 @@ func TestStartSessionBrowserFailWrongValue(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -439,7 +456,7 @@ func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -447,7 +464,8 @@ func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -468,7 +486,7 @@ func TestDeleteSession(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -476,9 +494,11 @@ func TestDeleteSession(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
 	r, _ := http.NewRequest("DELETE", gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
+	r.SetBasicAuth("test", "test")
 	rsp, err := http.DefaultClient.Do(r)
 
 	AssertThat(t, err, Is{nil})
@@ -499,7 +519,7 @@ func TestProxyRequest(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -507,9 +527,12 @@ func TestProxyRequest(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
-	rsp, err := http.Get(gridrouter("/wd/hub/session/" + node.sum() + "123"))
+	r, _ := http.NewRequest("GET", gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
+	r.SetBasicAuth("test", "test")
+	rsp, err := http.DefaultClient.Do(r)
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{"response"}})
@@ -531,7 +554,7 @@ func TestProxyJsonRequest(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -539,9 +562,10 @@ func TestProxyJsonRequest(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
-	http.Post(gridrouter("/wd/hub/session/"+node.sum()+"123"), "", bytes.NewReader([]byte(`{"sessionId":"123"}`)))
+	doBasicHttpRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
 }
 
 func TestProxyPlainRequest(t *testing.T) {
@@ -560,7 +584,7 @@ func TestProxyPlainRequest(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
 
-	config = Browsers{Browsers: []Browser{
+	browsers := Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -568,9 +592,10 @@ func TestProxyPlainRequest(t *testing.T) {
 				}},
 			}},
 		}}}}
-	routes = linkRoutes(&config)
+	quota[user] = browsers
+	routes[user] = createRoutes(&browsers)
 
-	http.Post(gridrouter("/wd/hub/session/"+node.sum()+"123"), "", bytes.NewReader([]byte("request")))
+	doBasicHttpRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte("request")))
 }
 
 func TestRequest(t *testing.T) {
