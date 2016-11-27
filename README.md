@@ -14,7 +14,7 @@ We use [govendor](https://github.com/kardianos/govendor) for dependencies manage
 4. Run compiled binary: ```$GOPATH/bin/ggr```
 
 ## Running
-To run Gridrouter type: ```$ ggr -port 4444 -conf /path/to/browsers.xml -users /path/to/.htpasswd```. See [example browsers.xml](https://github.com/aandryashin/ggr/blob/master/quota/browsers.xml) and [example .htpasswd](https://github.com/aandryashin/ggr/blob/master/.htpasswd).
+To run Gridrouter type: ```$ ggr -port 4444 -quotaDir /path/to/quota/directory -users /path/to/.htpasswd```. See [example browsers.xml](https://github.com/aandryashin/ggr/blob/master/quota/browsers.xml) and [example .htpasswd](https://github.com/aandryashin/ggr/blob/master/.htpasswd).
 
 ## Generating users file
 This implementation is using [htpasswd](https://httpd.apache.org/docs/2.4/misc/password_encryptions.html) files to store authentication data, i.e. password are normally stored in encrypted form. To create such file type:
@@ -26,3 +26,11 @@ To add a new record to existing file:
 $ htpasswd -b /path/to/existing.htpasswd username password
 ```
 You certainly should have ```htpasswd``` utility installed.
+
+## Building Docker container
+To build [Docker](http://docker.com/) container install Docker and type:
+ ```
+ $ go build
+ $ docker build -t ggr:latest .
+ ```
+ This will create an image named ```ggr:latest``` in your local storage.
