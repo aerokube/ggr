@@ -211,7 +211,7 @@ func TestCreateSessionNoHosts(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 	AssertThat(t, err, Is{nil})
@@ -231,7 +231,7 @@ func TestCreateSessionHostDown(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 	AssertThat(t, err, Is{nil})
@@ -275,7 +275,7 @@ func TestStartSession(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -306,7 +306,7 @@ func TestStartSessionWithJsonSpecChars(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
 
@@ -337,7 +337,7 @@ func TestStartSessionFail(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -369,7 +369,7 @@ func TestStartSessionBrowserFail(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -401,7 +401,7 @@ func TestStartSessionBrowserFailUnknownError(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -433,7 +433,7 @@ func TestStartSessionBrowserFailWrongValue(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -465,7 +465,7 @@ func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -495,7 +495,7 @@ func TestDeleteSession(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	r, _ := http.NewRequest("DELETE", gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
 	r.SetBasicAuth("test", "test")
@@ -528,7 +528,7 @@ func TestProxyRequest(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	r, _ := http.NewRequest("GET", gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
 	r.SetBasicAuth("test", "test")
@@ -563,7 +563,7 @@ func TestProxyJsonRequest(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	doBasicHttpRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
 }
@@ -593,7 +593,7 @@ func TestProxyPlainRequest(t *testing.T) {
 			}},
 		}}}}
 	quota[user] = browsers
-	routes[user] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 
 	doBasicHttpRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte("request")))
 }

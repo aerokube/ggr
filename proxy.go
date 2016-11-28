@@ -43,7 +43,7 @@ var (
 	users    string
 	listen   string
 	quota    map[string]Browsers = make(map[string]Browsers)
-	routes   map[string]Routes   = make(map[string]Routes)
+	routes   Routes              = make(Routes)
 	num      uint64
 	numLock  sync.Mutex
 	confLock sync.RWMutex
@@ -215,13 +215,12 @@ loop:
 }
 
 func proxy(r *http.Request) {
-	user, remote := info(r)
+	_, remote := info(r)
 	r.URL.Scheme = "http"
 	if len(r.URL.Path) > tail {
 		sum := r.URL.Path[head:tail]
 		proxyPath := r.URL.Path[:head] + r.URL.Path[tail:]
-		userRoutes := routes[user]
-		if h, ok := userRoutes[sum]; ok {
+		if h, ok := routes[sum]; ok {
 			if body, err := ioutil.ReadAll(r.Body); err == nil {
 				r.Body.Close()
 				var msg map[string]interface{}
@@ -236,7 +235,7 @@ func proxy(r *http.Request) {
 			r.URL.Path = proxyPath
 			if r.Method == "DELETE" {
 				sess := strings.Split(proxyPath, "/")[sessPart]
-				log.Printf("[SESSION_DELETED] [%s] [%s] [%s] [%s]\n", user, remote, h.net(), sess)
+				log.Printf("[SESSION_DELETED] [%s] [%s] [%s]\n", remote, h.net(), sess)
 			}
 			return
 		}
@@ -274,8 +273,7 @@ func readConfig(fn string, browsers *Browsers) error {
 	return nil
 }
 
-func createRoutes(config *Browsers) Routes {
-	routes := make(Routes)
+func appendRoutes(routes Routes, config *Browsers) Routes {
 	for _, b := range config.Browsers {
 		for _, v := range b.Versions {
 			for _, r := range v.Regions {
@@ -337,7 +335,7 @@ func loadQuotaFile(file string) {
 		return
 	}
 	quota[quotaName] = browsers
-	routes[quotaName] = createRoutes(&browsers)
+	routes = appendRoutes(routes, &browsers)
 	log.Printf("Loaded configuration from [%s]:\n%v\n", file, browsers)
 }
 
