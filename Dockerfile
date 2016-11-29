@@ -8,5 +8,5 @@ ENV QUOTA_DIRECTORY /etc/grid-router/quota
 COPY ggr /usr/bin
 COPY entrypoint.sh /
 
-EXPOSE 4444
+EXPOSE $PORT
 ENTRYPOINT /entrypoint.sh
