@@ -76,7 +76,7 @@ func (c *caps) version() string {
 
 func (h *Host) session(c caps) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
-	resp, err := http.Post(h.url(), "application/json", bytes.NewReader(b))
+	resp, err := http.Post(h.sessionUrl(), "application/json", bytes.NewReader(b))
 	if err != nil {
 		return nil, seleniumError
 	}
