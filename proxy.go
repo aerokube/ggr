@@ -74,10 +74,6 @@ func (c *caps) version() string {
 	return c.capability("version")
 }
 
-func (h *Host) url() string {
-	return fmt.Sprintf("http://%s%s", h.net(), routePath)
-}
-
 func (h *Host) session(c caps) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
 	resp, err := http.Post(h.url(), "application/json", bytes.NewReader(b))
