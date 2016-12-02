@@ -47,8 +47,12 @@ func (h *Host) net() string {
 	return fmt.Sprintf("%s:%d", h.Name, h.Port)
 }
 
+func (h *Host) url() string {
+	return fmt.Sprintf("http://%s%s", h.net(), routePath)
+}
+
 func (h *Host) sum() string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(h.net())))
+	return fmt.Sprintf("%x", md5.Sum([]byte(h.url())))
 }
 
 func (browsers *Browsers) find(browser, version string, excludes ...string) (hosts Hosts) {
