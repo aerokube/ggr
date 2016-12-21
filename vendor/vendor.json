@@ -1,62 +1,102 @@
 {
 	"comment": "",
-	"ignore": "test",
+	"ignore": "",
 	"package": [
 		{
-			"checksumSHA1": "24CmI1XvvB42B1pV1OhLKecZo2s=",
-			"origin": "github.com/aandryashin/ggr/vendor/github.com/aandryashin/matchers",
+			"checksumSHA1": "QYsKe+3uupzyTEwgZsKH4H/9D6o=",
 			"path": "github.com/aandryashin/matchers",
-			"revision": "5eb67beb188b5076812683a96c13bef79d970fd8",
-			"revisionTime": "2016-07-29T13:19:23Z"
+			"revision": "435295ea180e58dbfa526db1ebab8c801b4c2b75",
+			"revisionTime": "2016-11-26T17:04:13Z"
 		},
 		{
-			"checksumSHA1": "wFR9BZ6TX3bqU4+jTCcr87R7Liw=",
-			"origin": "github.com/aandryashin/ggr/vendor/github.com/aandryashin/reloader",
-			"path": "github.com/aandryashin/reloader",
-			"revision": "6f7a98e506714c870489aa8cdb9fbdc6d23c3e77",
-			"revisionTime": "2016-11-27T10:38:03Z"
-		},
-		{
-			"checksumSHA1": "rOuGi1DcTUn3yMXjKQMIQlLVLRE=",
-			"origin": "github.com/aandryashin/ggr/vendor/github.com/abbot/go-http-auth",
+			"checksumSHA1": "HQCNyou4jmGu45IDa+lAzwBmm0w=",
 			"path": "github.com/abbot/go-http-auth",
 			"revision": "cb4372376e1e00e9f6ab9ec142e029302c9e7140",
 			"revisionTime": "2016-05-03T22:00:38Z"
 		},
 		{
-			"checksumSHA1": "nmc2qcdbg17Ny8tHeEDQuphV6jA=",
-			"origin": "github.com/aandryashin/ggr/vendor/github.com/fsnotify/fsnotify",
-			"path": "github.com/fsnotify/fsnotify",
-			"revision": "bd2828f9f176e52d7222e565abb2d338d3f3c103",
-			"revisionTime": "2016-10-13T01:22:19Z"
+			"checksumSHA1": "WRu+mhZ2PfQu27qRr69HVGjtN4Q=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
+			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
-			"checksumSHA1": "vE43s37+4CJ2CDU6TlOUOYE0K9c=",
-			"origin": "github.com/aandryashin/ggr/vendor/golang.org/x/crypto/bcrypt",
+			"checksumSHA1": "a2yC46a1qsJomgY6rb+FkTFiqmE=",
+			"path": "github.com/davecgh/go-spew/spew/testdata",
+			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
+			"revisionTime": "2016-10-29T20:57:26Z"
+		},
+		{
+			"checksumSHA1": "tih88XkJ8c/nGHdMsRoi10N64fQ=",
+			"path": "github.com/facebookgo/clock",
+			"revision": "600d898af40aa09a7a93ecb9265d87b0504b6f03",
+			"revisionTime": "2015-04-10T01:09:13Z"
+		},
+		{
+			"checksumSHA1": "2fJIc4QHz5DLsQZWvscaKLQ5Dqs=",
+			"path": "github.com/facebookgo/ensure",
+			"revision": "b4ab57deab51ee655ae4bd85281f0715a068016d",
+			"revisionTime": "2016-01-27T19:34:07Z"
+		},
+		{
+			"checksumSHA1": "qB8cFxDi2Rx0xCmK1xBPwWVge1I=",
+			"path": "github.com/facebookgo/freeport",
+			"revision": "d4adf43b75b9357dc7775f033e807a3411591522",
+			"revisionTime": "2015-06-12T18:29:05Z"
+		},
+		{
+			"checksumSHA1": "b6BUs2H1C5/p8/EKfnNcwD4/iMk=",
+			"path": "github.com/facebookgo/grace/gracehttp",
+			"revision": "5729e484473f52048578af1b80d0008c7024089b",
+			"revisionTime": "2016-09-26T23:17:15Z"
+		},
+		{
+			"checksumSHA1": "esCLYBP4UgbRhy5F7beonYMw5XM=",
+			"path": "github.com/facebookgo/grace/gracenet",
+			"revision": "5729e484473f52048578af1b80d0008c7024089b",
+			"revisionTime": "2016-09-26T23:17:15Z"
+		},
+		{
+			"checksumSHA1": "+jzvj7Vad92fiskWGxOPWPHL0w0=",
+			"path": "github.com/facebookgo/httpdown",
+			"revision": "a3b1354551a26449fbe05f5d855937f6e7acbd71",
+			"revisionTime": "2016-03-23T22:10:27Z"
+		},
+		{
+			"checksumSHA1": "vHvJA+LcJOd1VQoK24HnlrIeVmA=",
+			"path": "github.com/facebookgo/stack",
+			"revision": "751773369052141c013c6e827a71e8f35c07879c",
+			"revisionTime": "2016-02-09T18:44:15Z"
+		},
+		{
+			"checksumSHA1": "BMOlXPELdp72k01fl9wUEKawQ+U=",
+			"path": "github.com/facebookgo/stats",
+			"revision": "1b76add642e42c6ffba7211ad7b3939ce654526e",
+			"revisionTime": "2015-10-06T22:16:25Z"
+		},
+		{
+			"checksumSHA1": "/rcA60cygz3NsLEt9+5ojFAZnZU=",
+			"path": "github.com/facebookgo/subset",
+			"revision": "8dac2c3c48703541e481feddf22975953d4ff842",
+			"revisionTime": "2015-06-12T18:29:17Z"
+		},
+		{
+			"checksumSHA1": "5HymxKSV8zcw6eiNV5Z/MZBPmuU=",
 			"path": "golang.org/x/crypto/bcrypt",
-			"revision": "5f4e837b98443e9e7a65072235205993af565d85",
-			"revisionTime": "2016-10-16T21:16:03Z"
+			"revision": "f5719d24587163700c5f7fa625ef3e05d9b372e7",
+			"revisionTime": "2016-12-14T01:56:25Z"
 		},
 		{
-			"checksumSHA1": "JsJdKXhz87gWenMwBeejTOeNE7k=",
-			"origin": "github.com/aandryashin/ggr/vendor/golang.org/x/crypto/blowfish",
+			"checksumSHA1": "nkSU+D5ZACy+jm3aEB+Sr5t0Eqc=",
 			"path": "golang.org/x/crypto/blowfish",
-			"revision": "5f4e837b98443e9e7a65072235205993af565d85",
-			"revisionTime": "2016-10-16T21:16:03Z"
+			"revision": "f5719d24587163700c5f7fa625ef3e05d9b372e7",
+			"revisionTime": "2016-12-14T01:56:25Z"
 		},
 		{
-			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
-			"origin": "github.com/aandryashin/ggr/vendor/golang.org/x/net/context",
+			"checksumSHA1": "jr9CBChWOd6ZdXNikH8Hbx6PuVo=",
 			"path": "golang.org/x/net/context",
-			"revision": "4d38db76854b199960801a1734443fd02870d7e1",
-			"revisionTime": "2016-07-20T03:23:22Z"
-		},
-		{
-			"checksumSHA1": "e6tx+mrbPNlzXbr1VErnBPY+vmQ=",
-			"origin": "github.com/aandryashin/ggr/vendor/golang.org/x/sys/unix",
-			"path": "golang.org/x/sys/unix",
-			"revision": "002cbb5f952456d0c50e0d2aff17ea5eca716979",
-			"revisionTime": "2016-10-16T18:36:00Z"
+			"revision": "45e771701b814666a7eb299e6c7a57d0b1799e91",
+			"revisionTime": "2016-12-15T19:42:18Z"
 		}
 	],
 	"rootPath": "github.com/aandryashin/ggr"

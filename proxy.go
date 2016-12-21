@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,9 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aandryashin/reloader"
 	"github.com/abbot/go-http-auth"
-	"path/filepath"
 )
 
 const (
@@ -38,15 +35,10 @@ const (
 )
 
 var (
-	port     int
-	quotaDir string
-	users    string
-	listen   string
-	quota    map[string]Browsers = make(map[string]Browsers)
-	routes   Routes              = make(Routes)
-	num      uint64
-	numLock  sync.Mutex
-	confLock sync.RWMutex
+	quota  map[string]Browsers = make(map[string]Browsers)
+	routes Routes              = make(Routes)
+	num    uint64
+	lock   sync.Mutex
 )
 
 type Routes map[string]*Host
@@ -98,8 +90,8 @@ func reply(w http.ResponseWriter, msg map[string]interface{}) {
 }
 
 func serial() uint64 {
-	numLock.Lock()
-	defer numLock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 	id := num
 	num++
 	return id
@@ -170,10 +162,8 @@ func route(w http.ResponseWriter, r *http.Request) {
 	count := 0
 loop:
 	for {
-		confLock.RLock()
 		browsers := quota[user]
 		hosts := browsers.find(browser, version)
-		confLock.RUnlock()
 		if len(hosts) == 0 {
 			http.Error(w, fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version)), http.StatusNotFound)
 			log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
@@ -283,58 +273,6 @@ func appendRoutes(routes Routes, config *Browsers) Routes {
 	return routes
 }
 
-func parseArgs() {
-	flag.IntVar(&port, "port", 4444, "port to bind to")
-	flag.StringVar(&quotaDir, "quotaDir", "quota", "quota directory")
-	flag.StringVar(&users, "users", ".htpasswd", "htpasswd auth file path")
-	flag.Parse()
-	listen = fmt.Sprintf(":%d", port)
-}
-
-func loadConfig() error {
-	log.Printf("Users file is [%s]\n", users)
-	err := loadQuotaFiles(quotaDir)
-	if err != nil {
-		return err
-	}
-	err = reloader.Watch(quotaDir, func() { loadQuotaFiles(quotaDir) }, 5*time.Second)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func loadQuotaFiles(quotaDir string) error {
-	log.Printf("Loading configuration files from [%s]\n", quotaDir)
-
-	confLock.Lock()
-	defer confLock.Unlock()
-	glob := fmt.Sprintf("%s%c%s", quotaDir, filepath.Separator, "*.xml")
-	files, _ := filepath.Glob(glob)
-	if len(files) == 0 {
-		return errors.New(fmt.Sprintf("no quota XML files found in [%s] - exiting\n", quotaDir))
-	}
-
-	for _, file := range files {
-		loadQuotaFile(file)
-	}
-	return nil
-}
-
-func loadQuotaFile(file string) {
-	fileName := filepath.Base(file)
-	quotaName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-	var browsers Browsers
-	err := readConfig(file, &browsers)
-	if err != nil {
-		log.Printf("Failed to load configuration from [%s]: %v", fileName, err)
-		return
-	}
-	quota[quotaName] = browsers
-	routes = appendRoutes(routes, &browsers)
-	log.Printf("Loaded configuration from [%s]:\n%v\n", file, browsers)
-}
-
 func requireBasicAuth(authenticator *auth.BasicAuth, handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return authenticator.Wrap(func(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 		handler(w, &r.Request)
@@ -353,17 +291,4 @@ func mux() http.Handler {
 	mux.HandleFunc(routePath, requireBasicAuth(authenticator, postOnly(route)))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	return mux
-}
-
-func init() {
-	parseArgs()
-	err := loadConfig()
-	if err != nil {
-		log.Fatalf("%v\n", err)
-	}
-}
-
-func main() {
-	log.Println("listening on", listen)
-	log.Print(http.ListenAndServe(listen, mux()))
 }
