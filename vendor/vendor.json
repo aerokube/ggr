@@ -3,16 +3,23 @@
 	"ignore": "",
 	"package": [
 		{
-			"checksumSHA1": "QYsKe+3uupzyTEwgZsKH4H/9D6o=",
+			"checksumSHA1": "MuHuGHBrxCBhaWJ4b1tYCKERUBc=",
 			"path": "github.com/aandryashin/matchers",
-			"revision": "435295ea180e58dbfa526db1ebab8c801b4c2b75",
-			"revisionTime": "2016-11-26T17:04:13Z"
+			"revision": "5eb67beb188b5076812683a96c13bef79d970fd8",
+			"revisionTime": "2016-07-29T13:19:23Z"
 		},
 		{
-			"checksumSHA1": "HQCNyou4jmGu45IDa+lAzwBmm0w=",
+			"checksumSHA1": "UPW223cCRT1GSjs4+qjkicEI0Ys=",
+			"origin": "github.com/aandryashin/ggr/vendor/github.com/aandryashin/reloader",
+			"path": "github.com/aandryashin/reloader",
+			"revision": "6f7a98e506714c870489aa8cdb9fbdc6d23c3e77",
+			"revisionTime": "2016-11-27T10:38:03Z"
+		},
+		{
+			"checksumSHA1": "BYME4R7FvA9d2Pne0aXIPIwYyO8=",
 			"path": "github.com/abbot/go-http-auth",
-			"revision": "cb4372376e1e00e9f6ab9ec142e029302c9e7140",
-			"revisionTime": "2016-05-03T22:00:38Z"
+			"revision": "d45c47bedec736d172957bd394786b76626fa8ac",
+			"revisionTime": "2016-12-24T19:38:27Z"
 		},
 		{
 			"checksumSHA1": "WRu+mhZ2PfQu27qRr69HVGjtN4Q=",
@@ -81,22 +88,36 @@
 			"revisionTime": "2015-06-12T18:29:17Z"
 		},
 		{
+			"checksumSHA1": "fdxUnxCy6vxzGtK9LYTlFy1/zak=",
+			"origin": "github.com/aandryashin/ggr/vendor/github.com/fsnotify/fsnotify",
+			"path": "github.com/fsnotify/fsnotify",
+			"revision": "bd2828f9f176e52d7222e565abb2d338d3f3c103",
+			"revisionTime": "2016-10-13T01:22:19Z"
+		},
+		{
 			"checksumSHA1": "5HymxKSV8zcw6eiNV5Z/MZBPmuU=",
 			"path": "golang.org/x/crypto/bcrypt",
-			"revision": "f5719d24587163700c5f7fa625ef3e05d9b372e7",
-			"revisionTime": "2016-12-14T01:56:25Z"
+			"revision": "f6b343c37ca80bfa8ea539da67a0b621f84fab1d",
+			"revisionTime": "2016-12-21T04:54:10Z"
 		},
 		{
 			"checksumSHA1": "nkSU+D5ZACy+jm3aEB+Sr5t0Eqc=",
 			"path": "golang.org/x/crypto/blowfish",
-			"revision": "f5719d24587163700c5f7fa625ef3e05d9b372e7",
-			"revisionTime": "2016-12-14T01:56:25Z"
+			"revision": "f6b343c37ca80bfa8ea539da67a0b621f84fab1d",
+			"revisionTime": "2016-12-21T04:54:10Z"
 		},
 		{
 			"checksumSHA1": "jr9CBChWOd6ZdXNikH8Hbx6PuVo=",
 			"path": "golang.org/x/net/context",
 			"revision": "45e771701b814666a7eb299e6c7a57d0b1799e91",
 			"revisionTime": "2016-12-15T19:42:18Z"
+		},
+		{
+			"checksumSHA1": "BX3xqkHED3QByXU2Dzhet/A0JmU=",
+			"origin": "github.com/aandryashin/ggr/vendor/golang.org/x/sys/unix",
+			"path": "golang.org/x/sys/unix",
+			"revision": "002cbb5f952456d0c50e0d2aff17ea5eca716979",
+			"revisionTime": "2016-10-16T18:36:00Z"
 		}
 	],
 	"rootPath": "github.com/aandryashin/ggr"
