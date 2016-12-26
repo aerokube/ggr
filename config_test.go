@@ -78,7 +78,7 @@ func TestFindVersion(t *testing.T) {
 }
 
 func TestFindVersionByPrefix(t *testing.T) {
-	hosts, version := (&Browsers{Browsers: []Browser{
+	hosts, _ := (&Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
 			Version{Number: "2.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -91,7 +91,6 @@ func TestFindVersionByPrefix(t *testing.T) {
 				}},
 			}},
 		}}}}).find("browser", "1")
-	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
 }
