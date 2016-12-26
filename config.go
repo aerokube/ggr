@@ -59,7 +59,8 @@ func (h *Host) sum() string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(h.route())))
 }
 
-func (browsers *Browsers) find(browser, version string, excludes ...string) (hosts Hosts) {
+func (browsers *Browsers) find(browser, version string, excludes ...string) (Hosts, string) {
+	var hosts Hosts
 	for _, b := range browsers.Browsers {
 		if b.Name == browser {
 			if version == "" {
@@ -67,6 +68,7 @@ func (browsers *Browsers) find(browser, version string, excludes ...string) (hos
 			}
 			for _, v := range b.Versions {
 				if strings.HasPrefix(v.Number, version) {
+					version = v.Number
 				next:
 					for _, r := range v.Regions {
 						for _, e := range excludes {
@@ -80,7 +82,7 @@ func (browsers *Browsers) find(browser, version string, excludes ...string) (hos
 			}
 		}
 	}
-	return hosts
+	return hosts, version
 }
 
 func (hosts Hosts) choose() (*Host, int) {

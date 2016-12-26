@@ -40,7 +40,7 @@ func TestChooseLast(t *testing.T) {
 }
 
 func TestFindDefaultVersion(t *testing.T) {
-	hosts := (&Browsers{Browsers: []Browser{
+	hosts, version := (&Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -53,12 +53,13 @@ func TestFindDefaultVersion(t *testing.T) {
 				}},
 			}},
 		}}}}).find("browser", "")
+	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
 }
 
 func TestFindVersion(t *testing.T) {
-	hosts := (&Browsers{Browsers: []Browser{
+	hosts, version := (&Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
 			Version{Number: "2.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -71,12 +72,32 @@ func TestFindVersion(t *testing.T) {
 				}},
 			}},
 		}}}}).find("browser", "1.0")
+	AssertThat(t, version, EqualTo{"1.0"})
+	AssertThat(t, len(hosts), EqualTo{1})
+	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
+}
+
+func TestFindVersionByPrefix(t *testing.T) {
+	hosts, version := (&Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			Version{Number: "2.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					Host{Name: "browser-2.0"},
+				}},
+			}},
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					Host{Name: "browser-1.0"},
+				}},
+			}},
+		}}}}).find("browser", "1")
+	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
 }
 
 func TestVersionNotFound(t *testing.T) {
-	hosts := (&Browsers{Browsers: []Browser{
+	hosts, version := (&Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
 			Version{Number: "2.0", Regions: []Region{
 				Region{Hosts: Hosts{
@@ -84,11 +105,12 @@ func TestVersionNotFound(t *testing.T) {
 				}},
 			}},
 		}}}}).find("browser", "1.0")
+	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{0})
 }
 
 func TestFindWithExcludes(t *testing.T) {
-	hosts := (&Browsers{Browsers: []Browser{
+	hosts, version := (&Browsers{Browsers: []Browser{
 		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			Version{Number: "1.0", Regions: []Region{
 				Region{Name: "e", Hosts: Hosts{
@@ -99,6 +121,7 @@ func TestFindWithExcludes(t *testing.T) {
 				}},
 			}},
 		}}}}).find("browser", "1.0", "f")
+	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-e-1.0"})
 }

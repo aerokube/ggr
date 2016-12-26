@@ -163,7 +163,7 @@ func route(w http.ResponseWriter, r *http.Request) {
 loop:
 	for {
 		browsers := quota[user]
-		hosts := browsers.find(browser, version)
+		hosts, version := browsers.find(browser, version)
 		if len(hosts) == 0 {
 			http.Error(w, fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version)), http.StatusNotFound)
 			log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
@@ -188,7 +188,7 @@ loop:
 				hosts = append(hosts[:i], hosts[i+1:]...)
 			case seleniumError:
 				excludes = append(excludes, h.region)
-				hosts = browsers.find(browser, version, excludes...)
+				hosts, version = browsers.find(browser, version, excludes...)
 			}
 			log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s] %s\n", id, user, remote, fmtBrowser(browser, version), h.net(), browserErrMsg(resp))
 			if len(hosts) == 0 {
