@@ -187,3 +187,10 @@ func TestConfDirDoesNotExist(t *testing.T) {
 	err := loadQuotaFiles("missing-dir")
 	AssertThat(t, err, Is{Not{nil}})
 }
+
+func TestConcurrentReload(t *testing.T) {
+	go func() {
+		loadQuotaFiles("quota")
+	}()
+	loadQuotaFiles("quota")
+}

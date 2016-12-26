@@ -10,6 +10,9 @@ import (
 	"strings"
 
 	"github.com/facebookgo/grace/gracehttp"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 var (
@@ -22,6 +25,8 @@ var (
 func loadQuotaFiles(quotaDir string) error {
 	log.Printf("Loading configuration files from [%s]\n", quotaDir)
 
+	confLock.Lock()
+	defer confLock.Unlock()
 	glob := fmt.Sprintf("%s%c%s", quotaDir, filepath.Separator, "*.xml")
 	files, _ := filepath.Glob(glob)
 	if len(files) == 0 {
@@ -58,6 +63,14 @@ func init() {
 	if err := loadQuotaFiles(quotaDir); err != nil {
 		log.Fatalf("%v\n", err)
 	}
+	sig := make(chan os.Signal)
+	signal.Notify(sig, syscall.SIGHUP)
+	go func() {
+		for {
+			<-sig
+			loadQuotaFiles(quotaDir)
+		}
+	}()
 }
 
 func main() {

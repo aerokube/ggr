@@ -35,10 +35,11 @@ const (
 )
 
 var (
-	quota  map[string]Browsers = make(map[string]Browsers)
-	routes Routes              = make(Routes)
-	num    uint64
-	lock   sync.Mutex
+	quota    map[string]Browsers = make(map[string]Browsers)
+	routes   Routes              = make(Routes)
+	num      uint64
+	numLock  sync.Mutex
+	confLock sync.RWMutex
 )
 
 type Routes map[string]*Host
@@ -90,8 +91,8 @@ func reply(w http.ResponseWriter, msg map[string]interface{}) {
 }
 
 func serial() uint64 {
-	lock.Lock()
-	defer lock.Unlock()
+	numLock.Lock()
+	defer numLock.Unlock()
 	id := num
 	num++
 	return id
@@ -162,8 +163,10 @@ func route(w http.ResponseWriter, r *http.Request) {
 	count := 0
 loop:
 	for {
+		confLock.RLock()
 		browsers := quota[user]
 		hosts, version := browsers.find(browser, version)
+		confLock.RUnlock()
 		if len(hosts) == 0 {
 			http.Error(w, fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version)), http.StatusNotFound)
 			log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
@@ -285,7 +288,6 @@ func mux() http.Handler {
 		"Selenium Grid Router",
 		auth.HtpasswdFileProvider(users),
 	)
-
 	mux.HandleFunc(pingPath, ping)
 	mux.HandleFunc(errPath, err)
 	mux.HandleFunc(routePath, requireBasicAuth(authenticator, postOnly(route)))
