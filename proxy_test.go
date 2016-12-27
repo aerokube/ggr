@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	. "github.com/aandryashin/matchers"
+	. "github.com/aandryashin/matchers/httpresp"
 	"io"
 )
 
@@ -27,18 +28,6 @@ const (
 	user     = "test"
 	password = "test"
 )
-
-type Code struct {
-	C int
-}
-
-func (m Code) Match(i interface{}) bool {
-	return i.(*http.Response).StatusCode == m.C
-}
-
-func (m Code) String() string {
-	return fmt.Sprintf("response code %v", m.C)
-}
 
 type Body struct {
 	B string
@@ -312,6 +301,79 @@ func TestStartSessionWithJsonSpecChars(t *testing.T) {
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{`{"sessionId":"` + node.sum() + `123"}`}})
+}
+
+func TestStartSessionWithPrefixVersion(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := ioutil.ReadAll(r.Body)
+		r.Body.Close()
+		var sess map[string]map[string]string
+		err := json.Unmarshal(body, &sess)
+		AssertThat(t, err, Is{nil})
+		AssertThat(t, sess["desiredCapabilities"]["version"], EqualTo{"1.0"})
+
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	quota[user] = browsers
+	routes = appendRoutes(routes, &browsers)
+
+	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1"}}`)
+}
+
+func TestStartSessionWithDefaultVersion(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := ioutil.ReadAll(r.Body)
+		r.Body.Close()
+		var sess map[string]map[string]string
+		err := json.Unmarshal(body, &sess)
+		AssertThat(t, err, Is{nil})
+		AssertThat(t, sess["desiredCapabilities"]["version"], EqualTo{"2.0"})
+
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			Version{Number: "1.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+			Version{Number: "2.0", Regions: []Region{
+				Region{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	quota[user] = browsers
+	routes = appendRoutes(routes, &browsers)
+
+	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":""}}`)
 }
 
 func TestStartSessionFail(t *testing.T) {

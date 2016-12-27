@@ -9,6 +9,12 @@
 			"revisionTime": "2016-11-26T17:04:13Z"
 		},
 		{
+			"checksumSHA1": "fmCMhGRY26rHWQf8UA9HVb8cW+Y=",
+			"path": "github.com/aandryashin/matchers/httpresp",
+			"revision": "435295ea180e58dbfa526db1ebab8c801b4c2b75",
+			"revisionTime": "2016-11-26T17:04:13Z"
+		},
+		{
 			"checksumSHA1": "BYME4R7FvA9d2Pne0aXIPIwYyO8=",
 			"path": "github.com/abbot/go-http-auth",
 			"revision": "d45c47bedec736d172957bd394786b76626fa8ac",
