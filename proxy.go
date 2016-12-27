@@ -59,12 +59,20 @@ func (c *caps) capability(k string) string {
 	return ""
 }
 
+func (c *caps) setCapability(k string, v string) {
+	(*c)["desiredCapabilities"].(map[string]interface{})[k] = v
+}
+
 func (c *caps) browser() string {
 	return c.capability("browserName")
 }
 
 func (c *caps) version() string {
 	return c.capability("version")
+}
+
+func (c *caps) setVersion(version string) {
+	c.setCapability("version", version)
 }
 
 func (h *Host) session(c caps) (map[string]interface{}, int) {
@@ -179,6 +187,7 @@ loop:
 			}
 			log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [%d]\n", id, user, remote, fmtBrowser(browser, version), h.net(), count)
 			excludes := make([]string, 0)
+			c.setVersion(version)
 			resp, status := h.session(c)
 			switch status {
 			case browserStarted:
