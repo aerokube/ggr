@@ -30,7 +30,7 @@ You certainly should have ```htpasswd``` utility installed.
 ## Building Docker container
 To build [Docker](http://docker.com/) container install Docker and type:
  ```
- $ go build
+ $ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
  $ docker build -t ggr:latest .
  ```
  This will create an image named ```ggr:latest``` in your local storage.
