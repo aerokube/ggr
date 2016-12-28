@@ -1,12 +1,7 @@
-FROM ubuntu:16.04
+FROM alpine:3.5
 MAINTAINER Ivan Krutov <vania-pooh@vania-pooh.com>
 
-ENV PORT 4444
-ENV USERS_FILE /etc/grid-router/users.htpasswd
-ENV QUOTA_DIRECTORY /etc/grid-router/quota
-
 COPY ggr /usr/bin
-COPY entrypoint.sh /
 
-EXPOSE $PORT
-ENTRYPOINT /entrypoint.sh
+EXPOSE 4444
+ENTRYPOINT ["/usr/bin/ggr", "-port", "4444", "-users", "/etc/grid-router/users.htpasswd", "-quotaDir", "/etc/grid-router/quota"]
