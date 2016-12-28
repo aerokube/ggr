@@ -237,6 +237,9 @@ func proxy(r *http.Request) {
 			}
 			return
 		}
+		log.Printf("[ROUTE_NOT_FOUND] [%s] [%s]\n", remote, proxyPath)
+	} else {
+		log.Printf("[INVALID_URL] [%s] [%s]\n", remote, r.URL.Path)
 	}
 	r.URL.Host = listen
 	r.URL.Path = errPath
