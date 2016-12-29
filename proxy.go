@@ -81,6 +81,7 @@ func (h *Host) session(c caps) (map[string]interface{}, int) {
 	if err != nil {
 		return nil, seleniumError
 	}
+	defer resp.Body.Close()
 	var reply map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&reply)
 	if err != nil {
