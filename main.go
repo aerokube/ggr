@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -30,7 +29,7 @@ func loadQuotaFiles(quotaDir string) error {
 	glob := fmt.Sprintf("%s%c%s", quotaDir, filepath.Separator, "*.xml")
 	files, _ := filepath.Glob(glob)
 	if len(files) == 0 {
-		return errors.New(fmt.Sprintf("no quota XML files found in [%s] - exiting\n", quotaDir))
+		return fmt.Errorf("no quota XML files found in [%s] - exiting", quotaDir)
 	}
 
 	for _, file := range files {
@@ -75,6 +74,6 @@ func init() {
 
 func main() {
 	gracehttp.Serve([]*http.Server{
-		&http.Server{Addr: listen, Handler: mux()},
+		{Addr: listen, Handler: mux()},
 	}...)
 }
