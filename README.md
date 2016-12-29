@@ -34,3 +34,15 @@ To build [Docker](http://docker.com/) container install Docker and type:
  $ docker build -t ggr:latest .
  ```
  This will create an image named ```ggr:latest``` in your local storage.
+
+## Quota Reload and Graceful Restart
+* To **reload quota files** just send **SIGHUP** to process or Docker container:
+```
+# kill -HUP <pid>
+# docker kill -s HUP <container-id-or-name>
+```
+* To **gracefully restart** (without losing connections) send **SIGUSR2**:
+```
+# kill -USR2 <pid>
+# docker kill -s USR2 <container-id-or-name>
+```
