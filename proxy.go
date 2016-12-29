@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -35,13 +34,14 @@ const (
 )
 
 var (
-	quota    map[string]Browsers = make(map[string]Browsers)
-	routes   Routes              = make(Routes)
+	quota           = make(map[string]Browsers)
+	routes   Routes = make(Routes)
 	num      uint64
 	numLock  sync.Mutex
 	confLock sync.RWMutex
 )
 
+// Routes - an MD5 to host map
 type Routes map[string]*Host
 
 type caps map[string]interface{}
@@ -77,7 +77,7 @@ func (c *caps) setVersion(version string) {
 
 func (h *Host) session(c caps) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
-	resp, err := http.Post(h.sessionUrl(), "application/json", bytes.NewReader(b))
+	resp, err := http.Post(h.sessionURL(), "application/json", bytes.NewReader(b))
 	if err != nil {
 		return nil, seleniumError
 	}
@@ -267,10 +267,10 @@ func postOnly(handler http.HandlerFunc) http.HandlerFunc {
 func readConfig(fn string, browsers *Browsers) error {
 	file, err := ioutil.ReadFile(fn)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error reading configuration file %s: %v", fn, err))
+		return fmt.Errorf("error reading configuration file %s: %v", fn, err)
 	}
 	if err := xml.Unmarshal(file, browsers); err != nil {
-		return errors.New(fmt.Sprintf("error parsing configuration file %s: %v", fn, err))
+		return fmt.Errorf("error parsing configuration file %s: %v", fn, err)
 	}
 	return nil
 }

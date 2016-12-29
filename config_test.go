@@ -41,14 +41,14 @@ func TestChooseLast(t *testing.T) {
 
 func TestFindDefaultVersion(t *testing.T) {
 	hosts, version := (&Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					Host{Name: "browser-1.0"},
 				}},
 			}},
-			Version{Number: "", Regions: []Region{
-				Region{Hosts: Hosts{
+			{Number: "", Regions: []Region{
+				{Hosts: Hosts{
 					Host{Name: "browser"},
 				}},
 			}},
@@ -60,14 +60,14 @@ func TestFindDefaultVersion(t *testing.T) {
 
 func TestFindVersion(t *testing.T) {
 	hosts, version := (&Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
-			Version{Number: "2.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			{Number: "2.0", Regions: []Region{
+				{Hosts: Hosts{
 					Host{Name: "browser-2.0"},
 				}},
 			}},
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					Host{Name: "browser-1.0"},
 				}},
 			}},
@@ -79,14 +79,14 @@ func TestFindVersion(t *testing.T) {
 
 func TestFindVersionByPrefix(t *testing.T) {
 	hosts, version := (&Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
-			Version{Number: "2.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			{Number: "2.0", Regions: []Region{
+				{Hosts: Hosts{
 					Host{Name: "browser-2.0"},
 				}},
 			}},
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					Host{Name: "browser-1.0"},
 				}},
 			}},
@@ -98,9 +98,9 @@ func TestFindVersionByPrefix(t *testing.T) {
 
 func TestVersionNotFound(t *testing.T) {
 	hosts, version := (&Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
-			Version{Number: "2.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			{Number: "2.0", Regions: []Region{
+				{Hosts: Hosts{
 					Host{Name: "browser-2.0"},
 				}},
 			}},
@@ -111,12 +111,12 @@ func TestVersionNotFound(t *testing.T) {
 
 func TestFindWithExcludes(t *testing.T) {
 	hosts, version := (&Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Name: "e", Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Name: "e", Hosts: Hosts{
 					Host{Name: "browser-e-1.0"},
 				}},
-				Region{Name: "f", Hosts: Hosts{
+				{Name: "f", Hosts: Hosts{
 					Host{Name: "browser-f-1.0"},
 				}},
 			}},

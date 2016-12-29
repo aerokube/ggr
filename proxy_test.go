@@ -177,10 +177,10 @@ func createSession(capabilities string) (*http.Response, error) {
 }
 
 func createSessionFromReader(body io.Reader) (*http.Response, error) {
-	return doBasicHttpRequest("POST", gridrouter("/wd/hub/session"), body)
+	return doBasicHTTPRequest("POST", gridrouter("/wd/hub/session"), body)
 }
 
-func doBasicHttpRequest(method string, url string, body io.Reader) (*http.Response, error) {
+func doBasicHTTPRequest(method string, url string, body io.Reader) (*http.Response, error) {
 	req, _ := http.NewRequest(method, url, body)
 	req.SetBasicAuth(user, password)
 	client := &http.Client{}
@@ -192,9 +192,9 @@ func TestCreateSessionNoHosts(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					Host{Name: "browser-1.0", Port: 4444, Count: 0},
 				}},
 			}},
@@ -212,9 +212,9 @@ func TestCreateSessionHostDown(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					Host{Name: "browser-1.0", Port: 4444, Count: 1},
 				}},
 			}},
@@ -256,9 +256,9 @@ func TestStartSession(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -287,9 +287,9 @@ func TestStartSessionWithJsonSpecChars(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "{browser}", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "{browser}", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -324,9 +324,9 @@ func TestStartSessionWithPrefixVersion(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -358,14 +358,14 @@ func TestStartSessionWithDefaultVersion(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
-			Version{Number: "2.0", Regions: []Region{
-				Region{Hosts: Hosts{
+			{Number: "2.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -391,9 +391,9 @@ func TestStartSessionFail(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node, node, node, node, node,
 				}},
 			}},
@@ -423,9 +423,9 @@ func TestStartSessionBrowserFail(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node, node, node, node, node,
 				}},
 			}},
@@ -455,9 +455,9 @@ func TestStartSessionBrowserFailUnknownError(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -487,9 +487,9 @@ func TestStartSessionBrowserFailWrongValue(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -519,9 +519,9 @@ func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -549,9 +549,9 @@ func TestDeleteSession(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -582,9 +582,9 @@ func TestProxyRequest(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -617,9 +617,9 @@ func TestProxyJsonRequest(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -627,7 +627,7 @@ func TestProxyJsonRequest(t *testing.T) {
 	quota[user] = browsers
 	routes = appendRoutes(routes, &browsers)
 
-	doBasicHttpRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
+	doBasicHTTPRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
 }
 
 func TestProxyPlainRequest(t *testing.T) {
@@ -647,9 +647,9 @@ func TestProxyPlainRequest(t *testing.T) {
 	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
-		Browser{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			Version{Number: "1.0", Regions: []Region{
-				Region{Hosts: Hosts{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
 					node,
 				}},
 			}},
@@ -657,7 +657,7 @@ func TestProxyPlainRequest(t *testing.T) {
 	quota[user] = browsers
 	routes = appendRoutes(routes, &browsers)
 
-	doBasicHttpRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte("request")))
+	doBasicHTTPRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte("request")))
 }
 
 func TestRequest(t *testing.T) {
