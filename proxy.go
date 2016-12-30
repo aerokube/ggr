@@ -78,10 +78,12 @@ func (c *caps) setVersion(version string) {
 func (h *Host) session(c caps) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
 	resp, err := http.Post(h.sessionURL(), "application/json", bytes.NewReader(b))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, seleniumError
 	}
-	defer resp.Body.Close()
 	var reply map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&reply)
 	if err != nil {
