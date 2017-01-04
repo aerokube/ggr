@@ -76,20 +76,16 @@ func (c *caps) setVersion(version string) {
 	c.setCapability("version", version)
 }
 
-func (h *Host) session(c caps, notify <-chan bool) (map[string]interface{}, int) {
+func (h *Host) session(c caps) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
 	req, err := http.NewRequest("POST", h.sessionURL(), bytes.NewReader(b))
-	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		return nil, seleniumError
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	reqWithContext := req.WithContext(ctx)
-	go func() {
-		<-notify
-		cancel()
-	}()
-	resp, err := http.DefaultClient.Do(reqWithContext)
+	ctx, _ := context.WithTimeout(req.Context(), timeout)
+	req = req.WithContext(ctx)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -203,8 +199,7 @@ loop:
 			log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [%d]\n", id, user, remote, fmtBrowser(browser, version), h.net(), count)
 			excludes := make([]string, 0)
 			c.setVersion(version)
-			notify := w.(http.CloseNotifier).CloseNotify()
-			resp, status := h.session(c, notify)
+			resp, status := h.session(c)
 			switch status {
 			case browserStarted:
 				sess := resp["sessionId"].(string)
