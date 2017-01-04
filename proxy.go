@@ -78,7 +78,7 @@ func (c *caps) setVersion(version string) {
 
 func (h *Host) session(c caps) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
-	req, err := http.NewRequest("POST", h.sessionURL(), bytes.NewReader(b))
+	req, err := http.NewRequest(http.MethodPost, h.sessionURL(), bytes.NewReader(b))
 	if err != nil {
 		return nil, seleniumError
 	}
@@ -266,7 +266,7 @@ func err(w http.ResponseWriter, r *http.Request) {
 
 func postOnly(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
+		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
