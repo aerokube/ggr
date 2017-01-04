@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"context"
 	"github.com/abbot/go-http-auth"
 )
 
@@ -75,9 +76,20 @@ func (c *caps) setVersion(version string) {
 	c.setCapability("version", version)
 }
 
-func (h *Host) session(c caps) (map[string]interface{}, int) {
+func (h *Host) session(c caps, notify <-chan bool) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
-	resp, err := http.Post(h.sessionURL(), "application/json", bytes.NewReader(b))
+	req, err := http.NewRequest("POST", h.sessionURL(), bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		return nil, seleniumError
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	reqWithContext := req.WithContext(ctx)
+	go func() {
+		<-notify
+		cancel()
+	}()
+	resp, err := http.DefaultClient.Do(reqWithContext)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -191,7 +203,8 @@ loop:
 			log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [%d]\n", id, user, remote, fmtBrowser(browser, version), h.net(), count)
 			excludes := make([]string, 0)
 			c.setVersion(version)
-			resp, status := h.session(c)
+			notify := w.(http.CloseNotifier).CloseNotify()
+			resp, status := h.session(c, notify)
 			switch status {
 			case browserStarted:
 				sess := resp["sessionId"].(string)
