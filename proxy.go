@@ -22,7 +22,6 @@ const (
 	browserStarted int = iota
 	browserFailed
 	seleniumError
-	clientCanceled
 )
 
 const (
@@ -89,9 +88,6 @@ func (h *Host) session(ctx context.Context, c caps) (map[string]interface{}, int
 	resp, err := http.DefaultClient.Do(req)
 	if resp != nil {
 		defer resp.Body.Close()
-	}
-	if ctx.Err() == context.Canceled {
-		return nil, clientCanceled
 	}
 	if err != nil {
 		return nil, seleniumError
@@ -204,10 +200,13 @@ loop:
 			excludes := make([]string, 0)
 			c.setVersion(version)
 			resp, status := h.session(r.Context(), c)
-			switch status {
-			case clientCanceled:
+			select {
+			case <-r.Context().Done():
 				log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), count)
 				return
+			default:
+			}
+			switch status {
 			case browserStarted:
 				sess := resp["sessionId"].(string)
 				resp["sessionId"] = h.sum() + sess
