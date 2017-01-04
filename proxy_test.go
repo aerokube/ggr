@@ -14,9 +14,11 @@ import (
 	"sync"
 	"testing"
 
+	"context"
 	. "github.com/aandryashin/matchers"
 	. "github.com/aandryashin/matchers/httpresp"
 	"io"
+	"time"
 )
 
 var (
@@ -374,6 +376,50 @@ func TestStartSessionWithDefaultVersion(t *testing.T) {
 	routes = appendRoutes(routes, &browsers)
 
 	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":""}}`)
+}
+
+func TestClientClosedConnection(t *testing.T) {
+	done := make(chan struct{})
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(10 * time.Second):
+		case <-done:
+		}
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	quota[user] = browsers
+	routes = appendRoutes(routes, &browsers)
+
+	r, _ := http.NewRequest(http.MethodPost, gridrouter("/wd/hub/session"), bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
+	r.SetBasicAuth("test", "test")
+	ctx, cancel := context.WithCancel(r.Context())
+	go func() {
+		resp, _ := http.DefaultClient.Do(r.WithContext(ctx))
+		if resp != nil {
+			defer resp.Body.Close()
+		}
+		close(done)
+	}()
+	<-time.After(50 * time.Millisecond)
+	cancel()
+	<-done
 }
 
 func TestStartSessionFail(t *testing.T) {

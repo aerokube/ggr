@@ -22,6 +22,7 @@ const (
 	browserStarted int = iota
 	browserFailed
 	seleniumError
+	clientCanceled
 )
 
 const (
@@ -76,18 +77,21 @@ func (c *caps) setVersion(version string) {
 	c.setCapability("version", version)
 }
 
-func (h *Host) session(c caps) (map[string]interface{}, int) {
+func (h *Host) session(ctx context.Context, c caps) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
 	req, err := http.NewRequest(http.MethodPost, h.sessionURL(), bytes.NewReader(b))
 	if err != nil {
 		return nil, seleniumError
 	}
-	ctx, _ := context.WithTimeout(req.Context(), timeout)
+	ctx, _ = context.WithTimeout(ctx, timeout)
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if resp != nil {
 		defer resp.Body.Close()
+	}
+	if ctx.Err() == context.Canceled {
+		return nil, clientCanceled
 	}
 	if err != nil {
 		return nil, seleniumError
@@ -199,8 +203,11 @@ loop:
 			log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [%d]\n", id, user, remote, fmtBrowser(browser, version), h.net(), count)
 			excludes := make([]string, 0)
 			c.setVersion(version)
-			resp, status := h.session(c)
+			resp, status := h.session(r.Context(), c)
 			switch status {
+			case clientCanceled:
+				log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), count)
+				return
 			case browserStarted:
 				sess := resp["sessionId"].(string)
 				resp["sessionId"] = h.sum() + sess
@@ -274,6 +281,21 @@ func postOnly(handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func withCloseNotifier(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithCancel(r.Context())
+		go func() {
+			handler(w, r.WithContext(ctx))
+			cancel()
+		}()
+		select {
+		case <-w.(http.CloseNotifier).CloseNotify():
+			cancel()
+		case <-ctx.Done():
+		}
+	}
+}
+
 func readConfig(fn string, browsers *Browsers) error {
 	file, err := ioutil.ReadFile(fn)
 	if err != nil {
@@ -313,7 +335,7 @@ func mux() http.Handler {
 	)
 	mux.HandleFunc(pingPath, ping)
 	mux.HandleFunc(errPath, err)
-	mux.HandleFunc(routePath, requireBasicAuth(authenticator, postOnly(route)))
+	mux.HandleFunc(routePath, requireBasicAuth(authenticator, postOnly(withCloseNotifier(route))))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	return mux
 }
