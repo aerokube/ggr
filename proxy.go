@@ -82,7 +82,8 @@ func (h *Host) session(ctx context.Context, c caps) (map[string]interface{}, int
 	if err != nil {
 		return nil, seleniumError
 	}
-	ctx, _ = context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
