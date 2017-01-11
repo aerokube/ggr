@@ -237,8 +237,8 @@ func proxy(r *http.Request) {
 		sum := r.URL.Path[head:tail]
 		proxyPath := r.URL.Path[:head] + r.URL.Path[tail:]
 		confLock.RLock()
-		defer confLock.RUnlock()
 		h, ok := routes[sum]
+		confLock.RUnlock()
 		if ok {
 			if body, err := ioutil.ReadAll(r.Body); err == nil {
 				r.Body.Close()

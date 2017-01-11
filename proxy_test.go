@@ -264,6 +264,10 @@ func TestStartSession(t *testing.T) {
 			}},
 		}}}}
 	updateQuota(user, browsers)
+	go func() {
+		// To detect race conditions in quota loading when session creating
+		updateQuota(user, browsers)
+	}()
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -656,8 +660,9 @@ func TestProxyJsonRequest(t *testing.T) {
 				}},
 			}},
 		}}}}
+	updateQuota(user, browsers)
 	go func() {
-		// To detect race conditions in quota loading
+		// To detect race conditions in quota loading when proxying request
 		updateQuota(user, browsers)
 	}()
 
@@ -739,8 +744,4 @@ func TestRequestAuthForwarded(t *testing.T) {
 	r.Header.Set("X-Forwarded-For", "proxy")
 	r.SetBasicAuth("user", "password")
 	http.DefaultClient.Do(r)
-}
-
-func TestConcurrentQuotaReadAndWrite(t *testing.T) {
-
 }
