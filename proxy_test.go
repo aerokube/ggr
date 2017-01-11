@@ -201,8 +201,7 @@ func TestCreateSessionNoHosts(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 	AssertThat(t, err, Is{nil})
@@ -221,8 +220,7 @@ func TestCreateSessionHostDown(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 	AssertThat(t, err, Is{nil})
@@ -265,8 +263,7 @@ func TestStartSession(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -296,8 +293,7 @@ func TestStartSessionWithJsonSpecChars(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
 
@@ -333,8 +329,7 @@ func TestStartSessionWithPrefixVersion(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1"}}`)
 }
@@ -372,8 +367,7 @@ func TestStartSessionWithDefaultVersion(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":""}}`)
 }
@@ -404,8 +398,7 @@ func TestClientClosedConnection(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	r, _ := http.NewRequest(http.MethodPost, gridrouter("/wd/hub/session"), bytes.NewReader([]byte(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)))
 	r.SetBasicAuth("test", "test")
@@ -444,8 +437,7 @@ func TestStartSessionFail(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -476,8 +468,7 @@ func TestStartSessionBrowserFail(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -508,8 +499,7 @@ func TestStartSessionBrowserFailUnknownError(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -540,8 +530,7 @@ func TestStartSessionBrowserFailWrongValue(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -572,8 +561,7 @@ func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
@@ -602,8 +590,7 @@ func TestDeleteSession(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	r, _ := http.NewRequest("DELETE", gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
 	r.SetBasicAuth("test", "test")
@@ -635,8 +622,7 @@ func TestProxyRequest(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	r, _ := http.NewRequest("GET", gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
 	r.SetBasicAuth("test", "test")
@@ -670,8 +656,10 @@ func TestProxyJsonRequest(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	go func() {
+		// To detect race conditions in quota loading
+		updateQuota(user, browsers)
+	}()
 
 	doBasicHTTPRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
 }
@@ -700,8 +688,7 @@ func TestProxyPlainRequest(t *testing.T) {
 				}},
 			}},
 		}}}}
-	quota[user] = browsers
-	routes = appendRoutes(routes, &browsers)
+	updateQuota(user, browsers)
 
 	doBasicHTTPRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte("request")))
 }
@@ -752,4 +739,8 @@ func TestRequestAuthForwarded(t *testing.T) {
 	r.Header.Set("X-Forwarded-For", "proxy")
 	r.SetBasicAuth("user", "password")
 	http.DefaultClient.Do(r)
+}
+
+func TestConcurrentQuotaReadAndWrite(t *testing.T) {
+
 }
