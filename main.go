@@ -26,8 +26,6 @@ var (
 func loadQuotaFiles(quotaDir string) error {
 	log.Printf("Loading configuration files from [%s]\n", quotaDir)
 
-	confLock.Lock()
-	defer confLock.Unlock()
 	glob := fmt.Sprintf("%s%c%s", quotaDir, filepath.Separator, "*.xml")
 	files, _ := filepath.Glob(glob)
 	if len(files) == 0 {
@@ -49,9 +47,15 @@ func loadQuotaFile(file string) {
 		log.Printf("Failed to load configuration from [%s]: %v", fileName, err)
 		return
 	}
+	updateQuota(quotaName, browsers)
+	log.Printf("Loaded configuration from [%s]:\n%v\n", file, browsers)
+}
+
+func updateQuota(quotaName string, browsers Browsers) {
+	confLock.Lock()
+	defer confLock.Unlock()
 	quota[quotaName] = browsers
 	routes = appendRoutes(routes, &browsers)
-	log.Printf("Loaded configuration from [%s]:\n%v\n", file, browsers)
 }
 
 func init() {
