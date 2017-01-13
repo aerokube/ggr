@@ -43,6 +43,36 @@ type Host struct {
 	Count  int    `xml:"count,attr"`
 	region string
 }
+type set interface {
+	contains(el string) bool
+	add(el string)
+	size() int
+}
+
+func newSet(data ...string) *setImpl {
+	set := &setImpl{make(map[string]struct{})}
+	for _, el := range data {
+		set.add(el)
+	}
+	return set
+}
+
+type setImpl struct {
+	data map[string]struct{}
+}
+
+func (ss *setImpl) contains(el string) bool {
+	_, ok := ss.data[el]
+	return ok
+}
+
+func (ss *setImpl) add(el string) {
+	ss.data[el] = struct{}{}
+}
+
+func (ss *setImpl) size() int {
+	return len(ss.data)
+}
 
 func (b Browsers) String() string {
 	buf, _ := xml.MarshalIndent(b, "", "  ")
@@ -65,7 +95,7 @@ func (h *Host) sum() string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(h.route())))
 }
 
-func (b *Browsers) find(browser, version string, excludes ...string) (Hosts, string) {
+func (b *Browsers) find(browser, version string, excludedHosts set, excludedRegions set) (Hosts, string, set) {
 	var hosts Hosts
 	for _, b := range b.Browsers {
 		if b.Name == browser {
@@ -77,18 +107,23 @@ func (b *Browsers) find(browser, version string, excludes ...string) (Hosts, str
 					version = v.Number
 				next:
 					for _, r := range v.Regions {
-						for _, e := range excludes {
-							if r.Name == e {
-								continue next
+						if excludedRegions.size() == len(v.Regions) {
+							excludedRegions = newSet()
+						}
+						if excludedRegions.contains(r.Name) {
+							continue next
+						}
+						for _, h := range r.Hosts {
+							if !excludedHosts.contains(h.Name) {
+								hosts = append(hosts, h)
 							}
 						}
-						hosts = append(hosts, r.Hosts...)
 					}
 				}
 			}
 		}
 	}
-	return hosts, version
+	return hosts, version, excludedRegions
 }
 
 func (hosts Hosts) choose() (*Host, int) {

@@ -181,49 +181,48 @@ func route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	count := 0
+	confLock.RLock()
+	browsers := quota[user]
+	excludedHosts := newSet()
+	hosts, version, excludedRegions := browsers.find(browser, version, excludedHosts, newSet())
+	confLock.RUnlock()
+	if len(hosts) == 0 {
+		http.Error(w, fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version)), http.StatusNotFound)
+		log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
+		return
+	}
 loop:
-	for {
-		confLock.RLock()
-		browsers := quota[user]
-		hosts, version := browsers.find(browser, version)
-		confLock.RUnlock()
-		if len(hosts) == 0 {
-			http.Error(w, fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version)), http.StatusNotFound)
-			log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
-			return
+	for h, i := hosts.choose(); ; h, i = hosts.choose() {
+		count++
+		if h == nil {
+			break loop
 		}
-		for h, i := hosts.choose(); ; h, i = hosts.choose() {
-			count++
-			if h == nil {
-				break loop
-			}
-			log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [%d]\n", id, user, remote, fmtBrowser(browser, version), h.net(), count)
-			excludes := make([]string, 0)
-			c.setVersion(version)
-			resp, status := h.session(r.Context(), c)
-			select {
-			case <-r.Context().Done():
-				log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), count)
-				return
-			default:
-			}
-			switch status {
-			case browserStarted:
-				sess := resp["sessionId"].(string)
-				resp["sessionId"] = h.sum() + sess
-				reply(w, resp)
-				log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), sess, count)
-				return
-			case browserFailed:
-				hosts = append(hosts[:i], hosts[i+1:]...)
-			case seleniumError:
-				excludes = append(excludes, h.region)
-				hosts, version = browsers.find(browser, version, excludes...)
-			}
-			log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s] %s\n", id, user, remote, fmtBrowser(browser, version), h.net(), browserErrMsg(resp))
-			if len(hosts) == 0 {
-				break loop
-			}
+		log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [%d]\n", id, user, remote, fmtBrowser(browser, version), h.net(), count)
+		c.setVersion(version)
+		resp, status := h.session(r.Context(), c)
+		select {
+		case <-r.Context().Done():
+			log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), count)
+			return
+		default:
+		}
+		switch status {
+		case browserStarted:
+			sess := resp["sessionId"].(string)
+			resp["sessionId"] = h.sum() + sess
+			reply(w, resp)
+			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), sess, count)
+			return
+		case browserFailed:
+			hosts = append(hosts[:i], hosts[i+1:]...)
+		case seleniumError:
+			excludedHosts.add(h.Name)
+			excludedRegions.add(h.region)
+			hosts, version, excludedRegions = browsers.find(browser, version, excludedHosts, excludedRegions)
+		}
+		log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s] %s\n", id, user, remote, fmtBrowser(browser, version), h.net(), browserErrMsg(resp))
+		if len(hosts) == 0 {
+			break loop
 		}
 	}
 	http.Error(w, jsonErrMsg(fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version), count)), http.StatusInternalServerError)
