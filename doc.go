@@ -4,7 +4,9 @@ Go Grid Router (aka ggr) is a lightweight proxy that routes and proxies Selenium
 Usage
 
 To use Go Grid Router do the following:
+
 1) Install Docker to host
+
 2) Create configuration directory:
   $ mkdir -p /etc/grid-router/quota
 3) Create users.htpasswd file:
