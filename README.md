@@ -3,6 +3,7 @@
 [![Coverage](https://codecov.io/github/aandryashin/ggr/coverage.svg)](https://codecov.io/gh/aandryashin/ggr)
 [![GoReport](https://goreportcard.com/badge/github.com/aandryashin/ggr)](https://goreportcard.com/report/github.com/aandryashin/ggr)
 [![Release](https://img.shields.io/github/release/aandryashin/ggr.svg)](https://github.com/aandryashin/ggr/releases/latest)
+[![GoDoc](https://godoc.org/github.com/aandryashin/ggr?status.svg)](https://godoc.org/github.com/aandryashin/ggr)
 
 This repository contains a [Go](http://golang.org/) implementation of original [Gridrouter](http://github.com/seleniumkit/gridrouter) code.
 
