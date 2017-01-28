@@ -15,7 +15,7 @@ We use [govendor](https://github.com/kardianos/govendor) for dependencies manage
 4. Run compiled binary: ```$GOPATH/bin/ggr```
 
 ## Running
-To run Gridrouter type: ```$ ggr -port 4444 -quotaDir /path/to/quota/directory -users /path/to/.htpasswd```. See [example browsers.xml](https://github.com/aandryashin/ggr/blob/master/quota/browsers.xml) and [example .htpasswd](https://github.com/aandryashin/ggr/blob/master/.htpasswd).
+To run Gridrouter type: ```$ ggr -listen :4444 -quotaDir /path/to/quota/directory -users /path/to/.htpasswd```. See [example browsers.xml](https://github.com/aandryashin/ggr/blob/master/quota/browsers.xml) and [example .htpasswd](https://github.com/aandryashin/ggr/blob/master/.htpasswd).
 
 ## Generating users file
 This implementation is using [htpasswd](https://httpd.apache.org/docs/2.4/misc/password_encryptions.html) files to store authentication data, i.e. password are normally stored in encrypted form. To create such file type:

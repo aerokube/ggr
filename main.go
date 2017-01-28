@@ -16,10 +16,9 @@ import (
 )
 
 var (
-	port     int
+	listen   string
 	quotaDir string
 	users    string
-	listen   string
 	timeout  time.Duration
 )
 
@@ -59,12 +58,11 @@ func updateQuota(quotaName string, browsers Browsers) {
 }
 
 func init() {
-	flag.IntVar(&port, "port", 4444, "port to bind to")
+	flag.StringVar(&listen, "listen", ":4444", "host and port to listen to")
 	flag.StringVar(&quotaDir, "quotaDir", "quota", "quota directory")
 	flag.StringVar(&users, "users", ".htpasswd", "htpasswd auth file path")
 	flag.DurationVar(&timeout, "timeout", 300*time.Second, "session creation timeout in time.Duration format, e.g. 300s or 500ms")
 	flag.Parse()
-	listen = fmt.Sprintf(":%d", port)
 	log.Printf("Users file is [%s]\n", users)
 	if err := loadQuotaFiles(quotaDir); err != nil {
 		log.Fatalf("%v\n", err)
