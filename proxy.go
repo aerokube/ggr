@@ -239,15 +239,17 @@ func proxy(r *http.Request) {
 		h, ok := routes[sum]
 		confLock.RUnlock()
 		if ok {
-			if body, err := ioutil.ReadAll(r.Body); err == nil {
-				r.Body.Close()
-				var msg map[string]interface{}
-				if err := json.Unmarshal(body, &msg); err == nil {
-					delete(msg, "sessionId")
-					body, _ = json.Marshal(msg)
-					r.ContentLength = int64(len(body))
+			if r.Body != nil {
+				if body, err := ioutil.ReadAll(r.Body); err == nil {
+					r.Body.Close()
+					var msg map[string]interface{}
+					if err := json.Unmarshal(body, &msg); err == nil {
+						delete(msg, "sessionId")
+						body, _ = json.Marshal(msg)
+						r.ContentLength = int64(len(body))
+					}
+					r.Body = ioutil.NopCloser(bytes.NewReader(body))
 				}
-				r.Body = ioutil.NopCloser(bytes.NewReader(body))
 			}
 			r.URL.Host = h.net()
 			r.URL.Path = proxyPath
