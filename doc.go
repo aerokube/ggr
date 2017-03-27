@@ -26,7 +26,7 @@ To use Go Grid Router do the following:
   </qa:browsers>
 
 6) Start ggr container:
-  # docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aandryashin/ggr:1.0.0
+  # docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aandryashin/ggr:1.1.0
 7) Access ggr on port 4444 in the same way you do for Selenium Hub but using the following url: http://test:test-password@localhost:4444/wd/hub
 
 Building
