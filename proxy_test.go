@@ -15,10 +15,11 @@ import (
 	"testing"
 
 	"context"
-	. "github.com/aandryashin/matchers"
-	. "github.com/aandryashin/matchers/httpresp"
 	"io"
 	"time"
+
+	. "github.com/aandryashin/matchers"
+	. "github.com/aandryashin/matchers/httpresp"
 )
 
 var (
@@ -744,4 +745,36 @@ func TestRequestAuthForwarded(t *testing.T) {
 	r.Header.Set("X-Forwarded-For", "proxy")
 	r.SetBasicAuth("user", "password")
 	http.DefaultClient.Do(r)
+}
+
+func TestStartSessionProxyHeaders(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		u, _, _ := r.BasicAuth()
+		AssertThat(t, u, EqualTo{user})
+		w.Write([]byte(`{"sessionId":"123"}`))
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{`{"sessionId":"` + node.sum() + `123"}`}})
 }

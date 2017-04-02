@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"context"
+
 	"github.com/abbot/go-http-auth"
 )
 
@@ -76,11 +77,16 @@ func (c *caps) setVersion(version string) {
 	c.setCapability("version", version)
 }
 
-func (h *Host) session(ctx context.Context, c caps) (map[string]interface{}, int) {
+func (h *Host) session(ctx context.Context, header http.Header, c caps) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
 	req, err := http.NewRequest(http.MethodPost, h.sessionURL(), bytes.NewReader(b))
 	if err != nil {
 		return nil, seleniumError
+	}
+	for key, values := range header {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -199,7 +205,7 @@ loop:
 		}
 		log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [%d]\n", id, user, remote, fmtBrowser(browser, version), h.net(), count)
 		c.setVersion(version)
-		resp, status := h.session(r.Context(), c)
+		resp, status := h.session(r.Context(), r.Header, c)
 		select {
 		case <-r.Context().Done():
 			log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), count)
