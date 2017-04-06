@@ -259,8 +259,9 @@ func proxy(r *http.Request) {
 			}
 			r.URL.Host = h.net()
 			r.URL.Path = proxyPath
-			if r.Method == "DELETE" {
-				sess := strings.Split(proxyPath, "/")[sessPart]
+			fragments := strings.Split(proxyPath, "/")
+			if r.Method == "DELETE" && len(fragments) == sessPart+1 {
+				sess := fragments[sessPart]
 				log.Printf("[SESSION_DELETED] [%s] [%s] [%s]\n", remote, h.net(), sess)
 			}
 			return
