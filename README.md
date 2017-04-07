@@ -36,9 +36,10 @@ $ cat /etc/grid-router/quota/test.xml
 </qa:browsers>
 ```
 ***Note***: file name should correspond to user name you added to htpasswd file. For user ```test``` we added on previous steps you should create ```test.xml```.
+
 6) Start Ggr container:
 ```
-# docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aandryashin/ggr:1.1.0
+# docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aandryashin/ggr:1.1.1
 ```
 7) Access Ggr on port 4444 in the same way you do for Selenium Hub but using the following url:
 ```
@@ -97,7 +98,7 @@ Here we define a list of browser names, their versions and default version for e
 3) To specify custom configuration file locations pass additional arguments to Ggr:
 ```
 # ggr -quotaDir /path/to/quota/directory -users /path/to/.htpasswd # Standalone binary
-# docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aandryashin/ggr:1.1.0 -quotaDir /path/to/quota/directory -users /path/to/.htpasswd # Docker container
+# docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aandryashin/ggr:1.1.1 -quotaDir /path/to/quota/directory -users /path/to/.htpasswd # Docker container
 ```
 
 ### Quota Reload and Graceful Restart
