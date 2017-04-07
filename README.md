@@ -1,4 +1,4 @@
-# Go Grid Router Implementation
+# Go Grid Router
 [![Build Status](https://travis-ci.org/aandryashin/ggr.svg?branch=master)](https://travis-ci.org/aandryashin/ggr)
 [![Coverage](https://codecov.io/github/aandryashin/ggr/coverage.svg)](https://codecov.io/gh/aandryashin/ggr)
 [![GoReport](https://goreportcard.com/badge/github.com/aandryashin/ggr)](https://goreportcard.com/report/github.com/aandryashin/ggr)
