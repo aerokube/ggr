@@ -1,9 +1,9 @@
 # Go Grid Router
-[![Build Status](https://travis-ci.org/aandryashin/ggr.svg?branch=master)](https://travis-ci.org/aandryashin/ggr)
-[![Coverage](https://codecov.io/github/aandryashin/ggr/coverage.svg)](https://codecov.io/gh/aandryashin/ggr)
-[![GoReport](https://goreportcard.com/badge/github.com/aandryashin/ggr)](https://goreportcard.com/report/github.com/aandryashin/ggr)
-[![Release](https://img.shields.io/github/release/aandryashin/ggr.svg)](https://github.com/aandryashin/ggr/releases/latest)
-[![GoDoc](https://godoc.org/github.com/aandryashin/ggr?status.svg)](https://godoc.org/github.com/aandryashin/ggr)
+[![Build Status](https://travis-ci.org/aerokube/ggr.svg?branch=master)](https://travis-ci.org/aerokube/ggr)
+[![Coverage](https://codecov.io/github/aerokube/ggr/coverage.svg)](https://codecov.io/gh/aerokube/ggr)
+[![GoReport](https://goreportcard.com/badge/github.com/aerokube/ggr)](https://goreportcard.com/report/github.com/aerokube/ggr)
+[![Release](https://img.shields.io/github/release/aerokube/ggr.svg)](https://github.com/aerokube/ggr/releases/latest)
+[![GoDoc](https://godoc.org/github.com/aerokube/ggr?status.svg)](https://godoc.org/github.com/aerokube/ggr)
 
 Go Grid Router (aka Ggr) is a lightweight active load balancer used to create scalable and highly-available [Selenium](http://seleniumhq.org/) clusters.
 
@@ -39,7 +39,7 @@ $ cat /etc/grid-router/quota/test.xml
 
 6) Start Ggr container:
 ```
-# docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aandryashin/ggr:1.1.1
+# docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aerokube/ggr:1.1.1
 ```
 7) Access Ggr on port 4444 in the same way you do for Selenium Hub but using the following url:
 ```
@@ -98,7 +98,7 @@ Here we define a list of browser names, their versions and default version for e
 3) To specify custom configuration file locations pass additional arguments to Ggr:
 ```
 # ggr -quotaDir /path/to/quota/directory -users /path/to/.htpasswd # Standalone binary
-# docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aandryashin/ggr:1.1.1 -quotaDir /path/to/quota/directory -users /path/to/.htpasswd # Docker container
+# docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aerokube/ggr:1.1.1 -quotaDir /path/to/quota/directory -users /path/to/.htpasswd # Docker container
 ```
 
 ### Quota Reload and Graceful Restart
@@ -129,11 +129,11 @@ $ go get -u github.com/kardianos/govendor
 ```
 4) Get Ggr source:
 ```
-$ go get -d github.com/aandryashin/ggr
+$ go get -d github.com/aerokube/ggr
 ```
 5) Go to project directory:
 ```
-$ cd $GOPATH/src/github.com/aandryashin/ggr
+$ cd $GOPATH/src/github.com/aerokube/ggr
 ```
 6) Checkout dependencies:
 ```
