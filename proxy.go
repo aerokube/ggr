@@ -110,10 +110,10 @@ func (h *Host) session(ctx context.Context, header http.Header, c caps) (map[str
 	return reply, browserStarted
 }
 
-func reply(w http.ResponseWriter, msg map[string]interface{}) {
-	reply, _ := json.Marshal(msg)
+func reply(w http.ResponseWriter, msg map[string]interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(reply)
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(msg)
 }
 
 func serial() uint64 {
@@ -159,14 +159,13 @@ func browserErrMsg(js map[string]interface{}) string {
 	return msg
 }
 
-func jsonErrMsg(msg string) string {
-	message := make(map[string]string)
-	message["message"] = msg
-	value := make(map[string]interface{})
-	value["value"] = message
-	value["status"] = 13
-	result, _ := json.Marshal(value)
-	return string(result)
+func errMsg(msg string) map[string]interface{} {
+	return map[string]interface{}{
+		"value": map[string]string{
+			"message": msg,
+		},
+		"status": 13,
+	}
 }
 
 func route(w http.ResponseWriter, r *http.Request) {
@@ -176,13 +175,13 @@ func route(w http.ResponseWriter, r *http.Request) {
 	var c caps
 	err := json.NewDecoder(r.Body).Decode(&c)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("bad json format: %s", err.Error()), http.StatusBadRequest)
+		reply(w, errMsg(fmt.Sprintf("bad json format: %s", err.Error())), http.StatusBadRequest)
 		log.Printf("[%d] [BAD_JSON] [%s] [%s] [%v]\n", id, user, remote, err)
 		return
 	}
 	browser, version := c.browser(), c.version()
 	if browser == "" {
-		http.Error(w, "browser not set", http.StatusBadRequest)
+		reply(w, errMsg("browser not set"), http.StatusBadRequest)
 		log.Printf("[%d] [BROWSER_NOT_SET] [%s] [%s]\n", id, user, remote)
 		return
 	}
@@ -193,7 +192,7 @@ func route(w http.ResponseWriter, r *http.Request) {
 	hosts, version, excludedRegions := browsers.find(browser, version, excludedHosts, newSet())
 	confLock.RUnlock()
 	if len(hosts) == 0 {
-		http.Error(w, fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version)), http.StatusNotFound)
+		reply(w, errMsg(fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version))), http.StatusNotFound)
 		log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
 		return
 	}
@@ -216,7 +215,7 @@ loop:
 		case browserStarted:
 			sess := resp["sessionId"].(string)
 			resp["sessionId"] = h.sum() + sess
-			reply(w, resp)
+			reply(w, resp, http.StatusOK)
 			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), sess, count)
 			return
 		case browserFailed:
@@ -231,7 +230,7 @@ loop:
 			break loop
 		}
 	}
-	http.Error(w, jsonErrMsg(fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version), count)), http.StatusInternalServerError)
+	reply(w, errMsg(fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version), count)), http.StatusInternalServerError)
 	log.Printf("[%d] [SESSION_NOT_CREATED] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
 }
 
@@ -279,13 +278,13 @@ func ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func err(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "route not found", http.StatusNotFound)
+	reply(w, errMsg("route not found"), http.StatusNotFound)
 }
 
 func postOnly(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			reply(w, errMsg("method not allowed"), http.StatusMethodNotAllowed)
 			return
 		}
 		handler(w, r)

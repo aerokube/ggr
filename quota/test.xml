@@ -1,0 +1,83 @@
+<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
+    <browser name="firefox" defaultVersion="52.0">
+        <version number="52.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="5"/>
+            </region>
+        </version>
+        <version number="51.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="5"/>
+            </region>
+        </version>
+        <version number="50.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="5"/>
+            </region>
+        </version>
+        <version number="49.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="5"/>
+            </region>
+        </version>
+        <version number="48.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="5"/>
+            </region>
+        </version>
+    </browser>
+    <browser name="chrome" defaultVersion="57.0">
+        <version number="57.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="1"/>
+            </region>
+        </version>
+        <version number="56.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="1"/>
+            </region>
+        </version>
+        <version number="55.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="1"/>
+            </region>
+        </version>
+        <version number="54.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="1"/>
+            </region>
+        </version>
+        <version number="53.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="1"/>
+            </region>
+        </version>
+    </browser>
+    <browser name="opera" defaultVersion="44.0">
+        <version number="44.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="1"/>
+            </region>
+        </version>
+        <version number="43.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="1"/>
+            </region>
+        </version>
+        <version number="42.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="1"/>
+            </region>
+        </version>
+        <version number="41.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="1"/>
+            </region>
+        </version>
+        <version number="40.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="1"/>
+            </region>
+        </version>
+    </browser>
+</qa:browsers>
