@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strconv"
-	"strings"
 	"sync"
 	"testing"
 
@@ -31,21 +30,6 @@ const (
 	user     = "test"
 	password = "test"
 )
-
-type Body struct {
-	B string
-}
-
-func (m Body) Match(i interface{}) bool {
-	rsp := i.(*http.Response)
-	body, _ := ioutil.ReadAll(rsp.Body)
-	rsp.Body.Close()
-	return EqualTo{m.B}.Match(strings.TrimSpace(string(body)))
-}
-
-func (m Body) String() string {
-	return fmt.Sprintf("response body %v", m.B)
-}
 
 type Message struct {
 	B string
@@ -98,14 +82,14 @@ func TestPing(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/ping"))
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{"Ok"}})
+	AssertThat(t, rsp, Code{http.StatusOK})
 }
 
 func TestErr(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/err"))
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"route not found"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"route not found"}})
 }
 
 func TestCreateSessionGet(t *testing.T) {
@@ -115,7 +99,7 @@ func TestCreateSessionGet(t *testing.T) {
 	rsp, err := client.Do(req)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusMethodNotAllowed}, Body{"method not allowed"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusMethodNotAllowed}, Message{"method not allowed"}})
 }
 
 func TestUnauthorized(t *testing.T) {
@@ -129,49 +113,49 @@ func TestCreateSessionEmptyBody(t *testing.T) {
 	rsp, err := createSessionFromReader(nil)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Body{"bad json format: EOF"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"bad json format: EOF"}})
 }
 
 func TestCreateSessionBadJson(t *testing.T) {
 	rsp, err := createSession("")
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Body{"bad json format: EOF"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"bad json format: EOF"}})
 }
 
 func TestCreateSessionCapsNotSet(t *testing.T) {
 	rsp, err := createSession("{}")
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Body{"browser not set"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
 }
 
 func TestCreateSessionBrowserNotSet(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{}}`)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Body{"browser not set"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
 }
 
 func TestCreateSessionBadBrowserName(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":false}}`)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Body{"browser not set"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
 }
 
 func TestCreateSessionUnsupportedBrowser(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"mosaic"}}`)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"unsupported browser: mosaic"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"unsupported browser: mosaic"}})
 }
 
 func TestCreateSessionUnsupportedBrowserVersion(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"mosaic", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"unsupported browser: mosaic-1.0"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"unsupported browser: mosaic-1.0"}})
 }
 
 func createSession(capabilities string) (*http.Response, error) {
@@ -232,14 +216,14 @@ func TestSessionEmptyHash(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/wd/hub/session/"))
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"route not found"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"route not found"}})
 }
 
 func TestSessionWrongHash(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/wd/hub/session/012345678901234567890123456789012"))
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Body{"route not found"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"route not found"}})
 }
 
 func TestStartSession(t *testing.T) {
@@ -271,9 +255,10 @@ func TestStartSession(t *testing.T) {
 	}()
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
-
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{`{"sessionId":"` + node.sum() + `123"}`}})
+	var sess map[string]string
+	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
+	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
 }
 
 func TestStartSessionWithJsonSpecChars(t *testing.T) {
@@ -303,7 +288,9 @@ func TestStartSessionWithJsonSpecChars(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{`{"sessionId":"` + node.sum() + `123"}`}})
+	var sess map[string]string
+	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
+	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
 }
 
 func TestStartSessionWithPrefixVersion(t *testing.T) {
@@ -608,7 +595,7 @@ func TestDeleteSession(t *testing.T) {
 func TestProxyRequest(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("response"))
+		w.Write([]byte(`{"value":{"message":"response"}}`))
 	})
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -634,7 +621,7 @@ func TestProxyRequest(t *testing.T) {
 	rsp, err := http.DefaultClient.Do(r)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{"response"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Message{"response"}})
 }
 
 func TestProxyJsonRequest(t *testing.T) {
@@ -776,5 +763,7 @@ func TestStartSessionProxyHeaders(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Body{`{"sessionId":"` + node.sum() + `123"}`}})
+	var sess map[string]string
+	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
+	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
 }
