@@ -1,6 +1,6 @@
 FROM alpine:3.5
-MAINTAINER Ivan Krutov <vania-pooh@vania-pooh.com>
 
+RUN apk add -U tzdata && rm -Rf /var/cache/apk/*
 COPY ggr /usr/bin
 
 EXPOSE 4444
