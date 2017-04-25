@@ -90,7 +90,7 @@ $ htpasswd -b /path/to/existing.htpasswd username password
 ...
 </qa:browsers>
 ```
-Here we define a list of browser names, their versions and default version for each browser. Each version has one or more regions (in cloud term, i.e. data centers). Every region contains on or more hosts. Each host defined in XML should have Selenium listening on specified port. The XML namespace is needed to be fully compatible with [original](http://github.com/seleniumkit/gridrouter) Java GridRouter implementation.
+Here we define a list of browser names, their versions and default version for each browser. Each version has one or more regions (in cloud term, i.e. data centers). Every region contains one or more hosts. Each host defined in XML should have Selenium listening on specified port. The XML namespace is needed to be fully compatible with [original](http://github.com/seleniumkit/gridrouter) Java GridRouter implementation.
 
 ### Configuration File Locations
 1) Default users file locations are: ```.htpasswd``` for standalone binary and ```/etc/grid-router/users.htpasswd``` for Docker image.
