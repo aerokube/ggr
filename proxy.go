@@ -273,11 +273,16 @@ func proxy(r *http.Request) {
 	r.URL.Path = errPath
 }
 
-func ping(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Ok\n"))
+func ping(w http.ResponseWriter, _ *http.Request) {
+	confLock.RLock()
+	defer confLock.RUnlock()
+	json.NewEncoder(w).Encode(struct {
+		Uptime         string `json:"uptime"`
+		LastReloadTime string `json:"lastReloadTime"`
+	}{time.Since(startTime).String(), lastReloadTime.String()})
 }
 
-func err(w http.ResponseWriter, r *http.Request) {
+func err(w http.ResponseWriter, _ *http.Request) {
 	reply(w, errMsg("route not found"), http.StatusNotFound)
 }
 

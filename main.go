@@ -20,6 +20,9 @@ var (
 	quotaDir string
 	users    string
 	timeout  time.Duration
+
+	startTime      = time.Now()
+	lastReloadTime = time.Now()
 )
 
 func loadQuotaFiles(quotaDir string) error {
@@ -55,6 +58,7 @@ func updateQuota(quotaName string, browsers Browsers) {
 	defer confLock.Unlock()
 	quota[quotaName] = browsers
 	routes = appendRoutes(routes, &browsers)
+	lastReloadTime = time.Now()
 }
 
 func init() {
