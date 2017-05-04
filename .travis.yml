@@ -9,13 +9,25 @@ services:
 
 script:
   - go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg .
-  - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build  
+  - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build 
+  - gox -os "linux darwin windows" -arch "amd64" -output "dist/{{.Dir}}_{{.OS}}_{{.Arch}}"
 
 before_install:
   - go get -u github.com/kardianos/govendor
   - govendor sync
+  
+install:
+  - govendor sync
+  - go get -u github.com/mitchellh/gox # cross compile
 
 deploy:
+  - provider: releases
+    api-key: $GITHUB_TOKEN
+    file_glob: true
+    file: dist/*
+    skip_cleanup: true
+    on:
+      tags: true
   - provider: script
     script: travis/docker-push.sh latest
     skip_cleanup: true
