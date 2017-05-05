@@ -345,7 +345,7 @@ func mux() http.Handler {
 	)
 	mux.HandleFunc(pingPath, ping)
 	mux.HandleFunc(errPath, err)
-	mux.HandleFunc(routePath, requireBasicAuth(authenticator, postOnly(withCloseNotifier(route))))
+	mux.HandleFunc(routePath, withCloseNotifier(requireBasicAuth(authenticator, postOnly(route))))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	return mux
 }
