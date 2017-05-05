@@ -83,6 +83,17 @@ func TestPing(t *testing.T) {
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusOK})
+	AssertThat(t, rsp.Body, Is{Not{nil}})
+
+	var data map[string]string
+	bt, readErr := ioutil.ReadAll(rsp.Body)
+	AssertThat(t, readErr, Is{nil})
+	jsonErr := json.Unmarshal(bt, &data)
+	AssertThat(t, jsonErr, Is{nil})
+	_, hasUptime := data["uptime"]
+	AssertThat(t, hasUptime, Is{true})
+	_, hasLastReloadTime := data["lastReloadTime"]
+	AssertThat(t, hasLastReloadTime, Is{true})
 }
 
 func TestErr(t *testing.T) {
