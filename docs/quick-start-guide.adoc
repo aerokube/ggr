@@ -1,0 +1,50 @@
+== Quick Start Guide
+
+To use Go Grid Router do the following:
+
+. Install http://docker.com/[Docker] to host
+. Create configuration directory:
++
+----
+$ mkdir -p /etc/grid-router/quota
+----
+. Create ```users.htpasswd``` file:
++
+----
+$ htpasswd -bc /etc/grid-router/users.htpasswd test test-password
+----
+. Start Selenium standalone server on port 4445:
++
+----
+$ java -jar selenium-server-standalone.jar -port 4445
+----
+. Create quota file (use correct browser name and version):
++
+----
+$ cat /etc/grid-router/quota/test.xml
+<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
+<browser name="firefox" defaultVersion="45.0">
+    <version number="45.0">
+        <region name="1">
+            <host name="localhost" port="4445" count="1"/>
+        </region>
+    </version>
+</browser>
+</qa:browsers>
+----
++
+NOTE: File name should correspond to user name you added to `htpasswd` file. For user ```test``` we added on previous steps you should create ```test.xml```.
+. Start Ggr container:
++
+----
+# docker run -d --name \
+    ggr -v /etc/grid-router/:/etc/grid-router:ro \
+    --net host aerokube/ggr:1.1.1
+----
+. Access Ggr on port 4444 in the same way you do for Selenium Hub but using the following url:
++
+----
+http://test:test-password@localhost:4444/wd/hub
+----
+
+

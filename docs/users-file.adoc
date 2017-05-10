@@ -1,0 +1,14 @@
+== Creating Users File
+Ggr is using https://httpd.apache.org/docs/2.4/misc/password_encryptions.html[htpasswd] files to store authentication data. Passwords are stored in encrypted form. To create such file type:
+
+. Ensure you have ```htpasswd``` utility installed (e.g. from ```apache2-utils``` package on Ubuntu).
+. Create a new users file...
++
+----
+$ htpasswd -bc /path/to/new.htpasswd username password
+----
+\... or update an existing one:
++
+----
+$ htpasswd -b /path/to/existing.htpasswd username password
+----

@@ -1,0 +1,31 @@
+== Creating Quota Files
+
+. Quota files define available browsers for each user. All quota files should be placed to the same directory. 
+. For user ```username``` quota file should be named ```username.xml```.
+. Each quota file contains the following XML:
++
+----
+<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
+<browser name="firefox" defaultVersion="45.0">
+    <version number="45.0">
+        <region name="1">
+            <host name="host1.example.com" port="4444" count="1"/>
+            <host name="host2.example.com" port="4444" count="1"/>
+            ...
+        </region>
+        <region name="2">
+            ...
+        </region>
+    </version>
+    <version number="46.0">
+        ...
+    </version>    
+</browser>
+<browser name="firefox" defaultVersion="45.0">
+    ...
+</browser>
+...
+</qa:browsers>
+----
++
+Here we define a list of browser names, their versions and default version for each browser. Each version has one or more regions (in cloud term, i.e. data centers). Every region contains one or more hosts. Each host defined in XML should have Selenium listening on specified port. The XML namespace is needed to be fully compatible with http://github.com/seleniumkit/gridrouter[original] Java GridRouter implementation.
