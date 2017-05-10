@@ -1,0 +1,18 @@
+== Configuration File Locations
+
+. Default users file locations are: ```.htpasswd``` for standalone binary and ```/etc/grid-router/users.htpasswd``` for Docker image.
+. Default quota directory location is ```quota``` for standalone binary and ```/etc/grid-router/quota``` for Docker image. This is why just attaching ```/etc/grid-router``` to container as read-only volume is enough.
+. To specify custom configuration file locations pass additional arguments to Ggr:
++
+[source,bash,subs="attributes+"]
+----
+# ggr -quotaDir /path/to/quota/directory \ 
+    -users /path/to/.htpasswd <1>
+# docker run -d --name ggr \
+    -v /etc/grid-router/:/etc/grid-router:ro \
+    --net host aerokube/ggr:1.1.1 \
+    -quotaDir /path/to/quota/directory \
+    -users /path/to/.htpasswd <2>
+----
+<1> Use with standalone Selenoid binary
+<2> Use with Selenoid packed in Docker container
