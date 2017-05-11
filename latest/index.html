@@ -517,7 +517,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2017-05-10</span>
+<span id="revdate">2017-05-11</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -534,6 +534,11 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_quota_reload_and_graceful_restart">2.3. Quota Reload and Graceful Restart</a></li>
 <li><a href="#_how_it_works">2.4. How it Works</a></li>
 <li><a href="#_log_files">2.5. Log Files</a></li>
+</ul>
+</li>
+<li><a href="#_contributing_development">3. Contributing &amp; Development</a>
+<ul class="sectlevel2">
+<li><a href="#_documentation">3.1. Documentation</a></li>
 </ul>
 </li>
 </ul>
@@ -933,11 +938,110 @@ Use only one of these commands depending on whether you have Docker installed.
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_contributing_development"><a class="anchor" href="#_contributing_development"></a>3. Contributing &amp; Development</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To build Ggr:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Install <a href="https://golang.org/doc/install">Golang</a></p>
+</li>
+<li>
+<p>Setup <code>$GOPATH</code> <a href="https://github.com/golang/go/wiki/GOPATH">properly</a></p>
+</li>
+<li>
+<p>Install <a href="https://github.com/kardianos/govendor">govendor</a>:</p>
+<div class="literalblock">
+<div class="content">
+<pre>$ go get -u github.com/kardianos/govendor</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Get Ggr source:</p>
+<div class="literalblock">
+<div class="content">
+<pre>$ go get -d github.com/aerokube/ggr</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Go to project directory:</p>
+<div class="literalblock">
+<div class="content">
+<pre>$ cd $GOPATH/src/github.com/aerokube/ggr</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Checkout dependencies:</p>
+<div class="literalblock">
+<div class="content">
+<pre>$ govendor sync</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Build source:</p>
+<div class="literalblock">
+<div class="content">
+<pre>$ go build</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Run Ggr:</p>
+<div class="literalblock">
+<div class="content">
+<pre>$ ./ggr --help</pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>To build <a href="http://docker.com/">Docker</a> container type:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="bash">$ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
+$ docker build -t ggr:latest .</code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_documentation"><a class="anchor" href="#_documentation"></a>3.1. Documentation</h3>
+<div class="paragraph">
+<p>Locally can be generated with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="bash">$ docker run --rm -v `pwd`/docs/:/documents/      \
+    asciidoctor/docker-asciidoctor                \
+    asciidoctor -D /documents/output/ index.adoc</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-05-10 19:59:00 UTC
+Last updated 2017-05-11 11:56:26 UTC
 </div>
 </div>
 </body>
