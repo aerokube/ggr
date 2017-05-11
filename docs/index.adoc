@@ -25,3 +25,5 @@ include::quota-files.adoc[leveloffset=+1]
 include::quota-reload.adoc[leveloffset=+1]
 include::how-it-works.adoc[leveloffset=+1]
 include::log-files.adoc[leveloffset=+1]
+
+include::contributing.adoc[]
