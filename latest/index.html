@@ -534,6 +534,7 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_quota_reload_and_graceful_restart">2.3. Quota Reload and Graceful Restart</a></li>
 <li><a href="#_how_it_works">2.4. How it Works</a></li>
 <li><a href="#_log_files">2.5. Log Files</a></li>
+<li><a href="#_ggr_cli_flags">2.6. Ggr CLI Flags</a></li>
 </ul>
 </li>
 <li><a href="#_contributing_development">3. Contributing &amp; Development</a>
@@ -936,6 +937,45 @@ Use only one of these commands depending on whether you have Docker installed.
 </tbody>
 </table>
 </div>
+<div class="sect2">
+<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.6. Ggr CLI Flags</h3>
+<div class="paragraph">
+<p>The following flags are supported by <code><code>ggr</code></code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code>  -listen string
+    	host and port to listen to (default ":4444")
+  -quotaDir string
+    	quota directory (default "quota")
+  -timeout duration
+    	session creation timeout in time.Duration format, e.g. 300s or 500ms (default 5m0s)
+  -users string
+    	htpasswd auth file path (default ".htpasswd")
+  -version
+    	show version and exit</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code>$ ./ggr -quotaDir /my/custom/quota/dir</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When using Ggr inside Docker container these flags are passed like the following:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="bash"># docker run -d --name \
+    ggr -v /etc/grid-router/:/etc/grid-router:ro \
+    --net host aerokube/ggr:1.1.1
+    -quotaDir /my/custom/quota/dir</code></pre>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -1041,7 +1081,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-05-13 09:29:46 UTC
+Last updated 2017-05-13 10:18:01 UTC
 </div>
 </div>
 </body>
