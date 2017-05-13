@@ -82,7 +82,7 @@ func init() {
 }
 
 func main() {
-	gracehttp.Serve([]*http.Server{
+	log.Fatal(gracehttp.Serve([]*http.Server{
 		{Addr: listen, Handler: mux()},
-	}...)
+	}...))
 }
