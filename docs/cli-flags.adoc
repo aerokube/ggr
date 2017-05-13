@@ -1,0 +1,30 @@
+== Ggr CLI Flags
+
+The following flags are supported by ```ggr``` command:
+```
+  -listen string
+    	host and port to listen to (default ":4444")
+  -quotaDir string
+    	quota directory (default "quota")
+  -timeout duration
+    	session creation timeout in time.Duration format, e.g. 300s or 500ms (default 5m0s)
+  -users string
+    	htpasswd auth file path (default ".htpasswd")
+  -version
+    	show version and exit
+```
+For example:
+```
+$ ./ggr -quotaDir /my/custom/quota/dir
+```
+When using Ggr inside Docker container these flags are passed like the following:
+
+
+[source,bash,subs="attributes+"]
+----
+# docker run -d --name \
+    ggr -v /etc/grid-router/:/etc/grid-router:ro \
+    --net host aerokube/ggr:1.1.1
+    -quotaDir /my/custom/quota/dir
+----
+

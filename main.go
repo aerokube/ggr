@@ -23,6 +23,10 @@ var (
 
 	startTime      = time.Now()
 	lastReloadTime = time.Now()
+
+	version     bool
+	gitRevision string = "HEAD"
+	buildStamp  string = "unknown"
 )
 
 func loadQuotaFiles(quotaDir string) error {
@@ -61,12 +65,22 @@ func updateQuota(quotaName string, browsers Browsers) {
 	lastReloadTime = time.Now()
 }
 
+func showVersion() {
+	fmt.Printf("Git Revision: %s\n", gitRevision)
+	fmt.Printf("UTC Build Time: %s\n", buildStamp)
+}
+
 func init() {
 	flag.StringVar(&listen, "listen", ":4444", "host and port to listen to")
 	flag.StringVar(&quotaDir, "quotaDir", "quota", "quota directory")
 	flag.StringVar(&users, "users", ".htpasswd", "htpasswd auth file path")
 	flag.DurationVar(&timeout, "timeout", 300*time.Second, "session creation timeout in time.Duration format, e.g. 300s or 500ms")
+	flag.BoolVar(&version, "version", false, "show version and exit")
 	flag.Parse()
+	if version {
+		showVersion()
+		os.Exit(0)
+	}
 	log.Printf("Users file is [%s]\n", users)
 	if err := loadQuotaFiles(quotaDir); err != nil {
 		log.Fatalf("%v\n", err)
