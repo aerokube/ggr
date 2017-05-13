@@ -213,8 +213,26 @@ loop:
 		}
 		switch status {
 		case browserStarted:
-			sess := resp["sessionId"].(string)
-			resp["sessionId"] = h.sum() + sess
+			sess, ok := resp["sessionId"].(string)
+			if !ok {
+				protocolError := func() {
+					reply(w, errMsg("protocol error"), http.StatusBadGateway)
+					log.Printf("[%d] [BAD_RESPONSE] [%s] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version), h.net())
+				}
+				value, ok := resp["value"]
+				if !ok {
+					protocolError()
+					return
+				}
+				sess, ok := value.(map[string]interface{})["sessionId"].(string)
+				if !ok {
+					protocolError()
+					return
+				}
+				resp["value"].(map[string]interface{})["sessionId"] = h.sum() + sess
+			} else {
+				resp["sessionId"] = h.sum() + sess
+			}
 			reply(w, resp, http.StatusOK)
 			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), sess, count)
 			return
