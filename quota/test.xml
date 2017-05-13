@@ -1,5 +1,10 @@
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
-    <browser name="firefox" defaultVersion="52.0">
+    <browser name="firefox" defaultVersion="53.0">
+        <version number="53.0">
+            <region name="local">
+                <host name="localhost" port="5555" count="5"/>
+            </region>
+        </version>
         <version number="52.0">
             <region name="local">
                 <host name="localhost" port="5555" count="5"/>
