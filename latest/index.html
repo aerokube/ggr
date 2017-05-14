@@ -517,7 +517,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2017-05-13</span>
+<span id="revdate">2017-05-14</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -533,8 +533,13 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_creating_quota_files">2.2. Creating Quota Files</a></li>
 <li><a href="#_quota_reload_and_graceful_restart">2.3. Quota Reload and Graceful Restart</a></li>
 <li><a href="#_how_it_works">2.4. How it Works</a></li>
-<li><a href="#_log_files">2.5. Log Files</a></li>
-<li><a href="#_ggr_cli_flags">2.6. Ggr CLI Flags</a></li>
+<li><a href="#_using_multiple_ggr_instances">2.5. Using Multiple Ggr Instances</a>
+<ul class="sectlevel3">
+<li><a href="#_why_ggr_is_stateless">2.5.1. Why Ggr is Stateless</a></li>
+</ul>
+</li>
+<li><a href="#_log_files">2.6. Log Files</a></li>
+<li><a href="#_ggr_cli_flags">2.7. Ggr CLI Flags</a></li>
 </ul>
 </li>
 <li><a href="#_contributing_development">3. Contributing &amp; Development</a>
@@ -785,7 +790,56 @@ Use only one of these commands depending on whether you have Docker installed.
 </div>
 </div>
 <div class="sect2">
-<h3 id="_log_files"><a class="anchor" href="#_log_files"></a>2.5. Log Files</h3>
+<h3 id="_using_multiple_ggr_instances"><a class="anchor" href="#_using_multiple_ggr_instances"></a>2.5. Using Multiple Ggr Instances</h3>
+<div class="paragraph">
+<p>In order to obtain reliable Selenium cluster you need to install multiple Ggr instances behind reliable load balancer such as <a href="https://aws.amazon.com/elasticloadbalancing/">AWS Elastic Load Balancing</a> or <a href="http://keepalived.org/">Keepalived</a>. To check Ggr instance health use <code>/ping</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Request</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="bash">$ curl -s http://example.com:4444/ping</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Result</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="javascript">{<span class="key"><span class="delimiter">&quot;</span><span class="content">uptime</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">2m46.854829503s</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">lastReloadTime</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">2017-05-12 12:33:06.322038542 +0300 MSK</span><span class="delimiter">&quot;</span></span>}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It returns <code>200 OK</code> when Ggr operates normally. Additionally server uptime and last quota reload time are returned in JSON format.</p>
+</div>
+<div class="sect3">
+<h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.5.1. Why Ggr is Stateless</h4>
+<div class="paragraph">
+<p>Selenium uses an HTTP-based protocol. That means every action in Selenium, e.g. launching browser or taking screenshot is a separate HTTP request. When multiple instances of Ggr are handling requests behind load balancer every request can be routed to any of these instances. Here&#8217;s how it works.</p>
+</div>
+<div class="paragraph">
+<div class="title">Multiple Ggr Instances Working Together</div>
+<p><span class="image"><img src="img/multiple-ggr.png" alt="ui"></span></p>
+</div>
+<div class="paragraph">
+<p>On the picture above there is one SLB, two instances of Ggr and one Selenium hub. Every Selenium session consists of two stages: creating new session and other requests. When you request a new session you get its identifier called session ID. You must always use this session ID in consequent requests so Selenium applies these requests to correct browser process.</p>
+</div>
+<div class="paragraph">
+<p>For example let&#8217;s assume that new session request is routed to <code>Ggr 1</code> (black arrows). This Ggr randomly chooses a hub <code>hub1.example.com</code> and creates a new session on it. This hub returns some session identifier marked as <code>ID</code> on the picture. <code>Ggr 1</code> in its turn knows that session was created on <code>hub1.example.com</code> and extends the session ID by adding an MD5 sum <code>S</code> of hub hostname. This is why it returns to user new longer session with identifier <code>S+ID</code> just by concatenating two strings. Every Ggr instance during startup creates an in-memory map - storing host names and their MD5 sums. When consequent request for the same session <code>S+ID</code> arrives e.g. to <code>Ggr 2</code> (red arrows) it extracts <code>S</code> from extended session ID and finds hub hostname in its map. Then it removes <code>S</code> from request session identifier and simply proxies this request to hub corresponding to <code>S</code>.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+Because of stateless Ggr architecture you can use an unlimited number of Ggr instances behind load balancer. In order to work properly it is very important to have exactly the same XML quota files on every Ggr instance. Otherwise some Ggr instances will return <code>404</code> error when a request with unknown host <code>S</code> arrives.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_log_files"><a class="anchor" href="#_log_files"></a>2.6. Log Files</h3>
 <div class="paragraph">
 <p>A typical log file looks like the following:</p>
 </div>
@@ -938,7 +992,7 @@ Use only one of these commands depending on whether you have Docker installed.
 </table>
 </div>
 <div class="sect2">
-<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.6. Ggr CLI Flags</h3>
+<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.7. Ggr CLI Flags</h3>
 <div class="paragraph">
 <p>The following flags are supported by <code><code>ggr</code></code> command:</p>
 </div>
@@ -1081,7 +1135,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-05-13 10:18:01 UTC
+Last updated 2017-05-14 14:20:39 UTC
 </div>
 </div>
 </body>
