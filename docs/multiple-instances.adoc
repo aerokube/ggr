@@ -1,0 +1,28 @@
+== Using Multiple Ggr Instances
+In order to obtain reliable Selenium cluster you need to install multiple Ggr instances behind reliable load balancer such as https://aws.amazon.com/elasticloadbalancing/[AWS Elastic Load Balancing] or http://keepalived.org/[Keepalived]. To check Ggr instance health use `/ping`:
+
+.Request
+[source,bash]
+----
+$ curl -s http://example.com:4444/ping
+----
+
+.Result
+[source,javascript]
+----
+{"uptime":"2m46.854829503s","lastReloadTime":"2017-05-12 12:33:06.322038542 +0300 MSK"}
+----
+
+It returns `200 OK` when Ggr operates normally. Additionally server uptime and last quota reload time are returned in JSON format.
+
+=== Why Ggr is Stateless
+Selenium uses an HTTP-based protocol. That means every action in Selenium, e.g. launching browser or taking screenshot is a separate HTTP request. When multiple instances of Ggr are handling requests behind load balancer every request can be routed to any of these instances. Here's how it works.
+
+.Multiple Ggr Instances Working Together
+image:img/multiple-ggr.png[ui]
+
+On the picture above there is one SLB, two instances of Ggr and one Selenium hub. Every Selenium session consists of two stages: creating new session and other requests. When you request a new session you get its identifier called session ID. You must always use this session ID in consequent requests so Selenium applies these requests to correct browser process.
+
+For example let's assume that new session request is routed to `Ggr 1` (black arrows). This Ggr randomly chooses a hub `hub1.example.com` and creates a new session on it. This hub returns some session identifier marked as `ID` on the picture. `Ggr 1` in its turn knows that session was created on `hub1.example.com` and extends the session ID by adding an MD5 sum `S` of hub hostname. This is why it returns to user new longer session with identifier `S+ID` just by concatenating two strings. Every Ggr instance during startup creates an in-memory map - storing host names and their MD5 sums. When consequent request for the same session `S+ID` arrives e.g. to `Ggr 2` (red arrows) it extracts `S` from extended session ID and finds hub hostname in its map. Then it removes `S` from request session identifier and simply proxies this request to hub corresponding to `S`.
+
+IMPORTANT: Because of stateless Ggr architecture you can use an unlimited number of Ggr instances behind load balancer. In order to work properly it is very important to have exactly the same XML quota files on every Ggr instance. Otherwise some Ggr instances will return `404` error when a request with unknown host `S` arrives.
