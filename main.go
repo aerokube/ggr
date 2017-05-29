@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/facebookgo/grace/gracehttp"
 	"os"
 	"os/signal"
 	"syscall"
@@ -96,7 +95,5 @@ func init() {
 }
 
 func main() {
-	log.Fatal(gracehttp.Serve([]*http.Server{
-		{Addr: listen, Handler: mux()},
-	}...))
+    log.Fatal(http.ListenAndServe(listen, mux()))
 }

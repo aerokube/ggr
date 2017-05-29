@@ -7,9 +7,3 @@
 ```
 +
 NOTE: Use only one of these commands depending on whether you have Docker installed.
-* To **gracefully restart** (without losing connections) send **SIGUSR2**:
-+
-```
-# kill -USR2 <pid>
-# docker kill -s USR2 <container-id-or-name>
-```
