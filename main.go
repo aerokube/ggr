@@ -105,7 +105,7 @@ func main() {
 		Addr:    listen,
 		Handler: mux(),
 	}
-	go server.ListenAndServe()
+	go log.Fatal(server.ListenAndServe())
 
 	<-stop
 
