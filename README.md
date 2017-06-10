@@ -39,7 +39,7 @@ $ cat /etc/grid-router/quota/test.xml
 
 6) Start Ggr container:
 ```
-# docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aerokube/ggr:1.1.1
+# docker run -d --name ggr -v /etc/grid-router/:/etc/grid-router:ro --net host aerokube/ggr:latest-release
 ```
 7) Access Ggr on port 4444 in the same way you do for Selenium Hub but using the following url:
 ```

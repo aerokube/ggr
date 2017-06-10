@@ -24,7 +24,7 @@ When using Ggr inside Docker container these flags are passed like the following
 ----
 # docker run -d --name \
     ggr -v /etc/grid-router/:/etc/grid-router:ro \
-    --net host aerokube/ggr:1.1.1
+    --net host aerokube/ggr:latest-release
     -quotaDir /my/custom/quota/dir
 ----
 
