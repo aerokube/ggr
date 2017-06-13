@@ -39,6 +39,22 @@ func TestChooseLast(t *testing.T) {
 	AssertThat(t, index, EqualTo{2})
 }
 
+func TestChoosingAllHosts(t *testing.T) {
+	//NOTE: the same weights for all hosts are important!
+	hosts := Hosts{Host{Name: "first", Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
+	chosenHosts := make(map[string] struct{})
+	for i := 0; i < 100; i++ {
+		host, _ := hosts.choose()
+		chosenHosts[host.Name] = struct{}{}
+	}
+	_, firstIsPresent := chosenHosts["first"]
+	AssertThat(t, firstIsPresent, Is{true})
+	_, midIsPresent := chosenHosts["mid"]
+	AssertThat(t, midIsPresent, Is{true})
+	_, lastIsPresent := chosenHosts["last"]
+	AssertThat(t, lastIsPresent, Is{true})
+}
+
 var (
 	browsersWithMultipleVersions = &Browsers{Browsers: []Browser{
 		{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
