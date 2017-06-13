@@ -135,7 +135,7 @@ func (hosts Hosts) choose() (*Host, int) {
 		r := rand.Intn(total)
 		for i, host := range hosts {
 			r -= host.Count
-			if r <= 0 {
+			if r < 0 {
 				return &hosts[i], i
 			}
 		}
