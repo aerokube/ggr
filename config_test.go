@@ -22,19 +22,19 @@ func TestNothingToChoose(t *testing.T) {
 }
 
 func TestChooseFirst(t *testing.T) {
-	host, index := Hosts{Host{Name: "first", Count: 2}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}.choose()
+	host, index := Hosts{Host{Name: "first", Count: 1}, Host{Name: "mid", Count: 0}, Host{Name: "last", Count: 0}}.choose()
 	AssertThat(t, host.Name, EqualTo{"first"})
 	AssertThat(t, index, EqualTo{0})
 }
 
 func TestChooseMid(t *testing.T) {
-	host, index := Hosts{Host{Name: "first", Count: 1}, Host{Name: "mid", Count: 2}, Host{Name: "last", Count: 1}}.choose()
+	host, index := Hosts{Host{Name: "first", Count: 0}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 0}}.choose()
 	AssertThat(t, host.Name, EqualTo{"mid"})
 	AssertThat(t, index, EqualTo{1})
 }
 
 func TestChooseLast(t *testing.T) {
-	host, index := Hosts{Host{Name: "first", Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 2}}.choose()
+	host, index := Hosts{Host{Name: "first", Count: 0}, Host{Name: "mid", Count: 0}, Host{Name: "last", Count: 1}}.choose()
 	AssertThat(t, host.Name, EqualTo{"last"})
 	AssertThat(t, index, EqualTo{2})
 }
@@ -187,4 +187,17 @@ func TestConcurrentReload(t *testing.T) {
 		loadQuotaFiles("quota")
 	}()
 	loadQuotaFiles("quota")
+}
+
+func TestChoosingAllHosts(t *testing.T) {
+	//NOTE: the same weights for all hosts are important!
+	hosts := Hosts{Host{Name: "first", Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
+	chosenHosts := make(map[string]int)
+	for i := 0; i < 100; i++ {
+		host, _ := hosts.choose()
+		chosenHosts[host.Name]++
+	}
+	AssertThat(t, chosenHosts["first"] > 0, Is{true})
+	AssertThat(t, chosenHosts["mid"] > 0, Is{true})
+	AssertThat(t, chosenHosts["last"] > 0, Is{true})
 }
