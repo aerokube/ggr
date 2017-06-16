@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -36,6 +37,11 @@ const (
 )
 
 var (
+	httpClient *http.Client = &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 	quota           = make(map[string]Browsers)
 	routes   Routes = make(Routes)
 	num      uint64
@@ -92,12 +98,21 @@ func (h *Host) session(ctx context.Context, header http.Header, c caps) (map[str
 	defer cancel()
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
 	if err != nil {
 		return nil, seleniumError
+	}
+	location := resp.Header.Get("Location")
+	if location != "" {
+		l, err := url.Parse(location)
+		if err != nil {
+			return nil, seleniumError
+		}
+		fragments := strings.Split(l.Path, "/")
+		return map[string]interface{}{"sessionId": fragments[len(fragments)-1]}, browserStarted
 	}
 	var reply map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&reply)
