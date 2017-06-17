@@ -111,9 +111,10 @@ func main() {
 
 	<-stop
 
+	log.Printf("[SHUTTING_DOWN] [%s]\n", gracefulPeriod)
 	ctx, cancel := context.WithTimeout(context.Background(), gracefulPeriod)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("graceful shutdown: %v\n", err)
+		log.Fatalf("Failed to gracefully shutdown server: %v\n", err)
 	}
 }
