@@ -71,6 +71,11 @@ func showVersion() {
 	fmt.Printf("UTC Build Time: %s\n", buildStamp)
 }
 
+func fileExists(p string) bool {
+	_, err := os.Stat(p)
+	return !os.IsNotExist(err)
+}
+
 func init() {
 	flag.StringVar(&listen, "listen", ":4444", "host and port to listen to")
 	flag.StringVar(&quotaDir, "quotaDir", "quota", "quota directory")
@@ -82,6 +87,9 @@ func init() {
 	if version {
 		showVersion()
 		os.Exit(0)
+	}
+	if !fileExists(users) {
+		log.Fatalf("Users file [%s] does not exist\n", users)
 	}
 	log.Printf("Users file is [%s]\n", users)
 	if err := loadQuotaFiles(quotaDir); err != nil {
