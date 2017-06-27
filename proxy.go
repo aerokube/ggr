@@ -239,7 +239,7 @@ loop:
 					protocolError()
 					return
 				}
-				sess, ok := value.(map[string]interface{})["sessionId"].(string)
+				sess, ok = value.(map[string]interface{})["sessionId"].(string)
 				if !ok {
 					protocolError()
 					return
