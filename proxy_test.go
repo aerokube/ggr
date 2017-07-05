@@ -476,7 +476,7 @@ func TestStartSessionBrowserFail(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 5 attempt(s)"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 5 attempt(s), last host error was: Browser startup failure..."}})
 }
 
 func TestStartSessionBrowserFailUnknownError(t *testing.T) {
