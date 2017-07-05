@@ -211,6 +211,7 @@ func route(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
 		return
 	}
+	lastHostError := ""
 loop:
 	for h, i := hosts.choose(); ; h, i = hosts.choose() {
 		count++
@@ -258,12 +259,18 @@ loop:
 			excludedRegions.add(h.region)
 			hosts, version, excludedRegions = browsers.find(browser, version, excludedHosts, excludedRegions)
 		}
-		log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s] %s\n", id, user, remote, fmtBrowser(browser, version), h.net(), browserErrMsg(resp))
+		errMsg := browserErrMsg(resp)
+		log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s] %s\n", id, user, remote, fmtBrowser(browser, version), h.net(), errMsg)
+		lastHostError = errMsg
 		if len(hosts) == 0 {
 			break loop
 		}
 	}
-	reply(w, errMsg(fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version), count)), http.StatusInternalServerError)
+	notCreatedMsg := fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version), count)
+	if len(lastHostError) > 0 {
+		notCreatedMsg = fmt.Sprintf("%s, last host error was: %s", notCreatedMsg, lastHostError)
+	}
+	reply(w, errMsg(notCreatedMsg), http.StatusInternalServerError)
 	log.Printf("[%d] [SESSION_NOT_CREATED] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
 }
 

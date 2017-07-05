@@ -242,30 +242,61 @@ func TestStartSession(t *testing.T) {
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"sessionId":"123"}`))
 	}))
+
+	browsersProvider := func(node Host) Browsers {
+		return Browsers{Browsers: []Browser{
+			{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+				{Number: "1.0", Regions: []Region{
+					{Hosts: Hosts{
+						node,
+					}},
+				}},
+			}}}}
+	}
+
+	testStartSession(t, mux, browsersProvider, "browser", "1.0")
+
+}
+
+func TestStartSessionWithLocationHeader(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Location", "http://host.example.com/session/123")
+	}))
+
+	browsersProvider := func(node Host) Browsers {
+		return Browsers{Browsers: []Browser{
+			{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+				{Number: "1.0", Regions: []Region{
+					{Hosts: Hosts{
+						node,
+					}},
+				}},
+			}}}}
+	}
+
+	testStartSession(t, mux, browsersProvider, "browser", "1.0")
+}
+
+func testStartSession(t *testing.T, mux *http.ServeMux, browsersProvider func(Host) Browsers, browserName string, version string) {
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
 
 	host, port := hostportnum(selenium.URL)
 	node := Host{Name: host, Port: port, Count: 1}
+	browsers := browsersProvider(node)
 
 	test.Lock()
 	defer test.Unlock()
 
-	browsers := Browsers{Browsers: []Browser{
-		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			{Number: "1.0", Regions: []Region{
-				{Hosts: Hosts{
-					node,
-				}},
-			}},
-		}}}}
 	updateQuota(user, browsers)
 	go func() {
 		// To detect race conditions in quota loading when session creating
 		updateQuota(user, browsers)
 	}()
 
-	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
+	rsp, err := createSession(fmt.Sprintf(`{"desiredCapabilities":{"browserName":"%s", "version":"%s"}}`, browserName, version))
+
 	AssertThat(t, err, Is{nil})
 	var sess map[string]string
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
@@ -277,31 +308,19 @@ func TestStartSessionWithJsonSpecChars(t *testing.T) {
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"sessionId":"123"}`))
 	}))
-	selenium := httptest.NewServer(mux)
-	defer selenium.Close()
 
-	host, port := hostportnum(selenium.URL)
-	node := Host{Name: host, Port: port, Count: 1}
-
-	test.Lock()
-	defer test.Unlock()
-
-	browsers := Browsers{Browsers: []Browser{
-		{Name: "{browser}", DefaultVersion: "1.0", Versions: []Version{
-			{Number: "1.0", Regions: []Region{
-				{Hosts: Hosts{
-					node,
+	browsersProvider := func(node Host) Browsers {
+		return Browsers{Browsers: []Browser{
+			{Name: "{browser}", DefaultVersion: "1.0", Versions: []Version{
+				{Number: "1.0", Regions: []Region{
+					{Hosts: Hosts{
+						node,
+					}},
 				}},
-			}},
-		}}}}
-	updateQuota(user, browsers)
+			}}}}
+	}
 
-	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
-
-	AssertThat(t, err, Is{nil})
-	var sess map[string]string
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
-	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
+	testStartSession(t, mux, browsersProvider, "{browser}", "1.0")
 }
 
 func TestStartSessionWithPrefixVersion(t *testing.T) {
@@ -476,7 +495,7 @@ func TestStartSessionBrowserFail(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 5 attempt(s)"}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 5 attempt(s), last host error was: Browser startup failure..."}})
 }
 
 func TestStartSessionBrowserFailUnknownError(t *testing.T) {
