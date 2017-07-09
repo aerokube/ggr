@@ -112,7 +112,7 @@ func (h *Host) session(ctx context.Context, header http.Header, c caps) (map[str
 			return nil, seleniumError
 		}
 		fragments := strings.Split(l.Path, "/")
-		return map[string]interface{}{"sessionId": fragments[len(fragments)-1]}, browserStarted
+		return map[string]interface{}{"sessionId": fragments[len(fragments)-1], "status": 0}, browserStarted
 	}
 	var reply map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&reply)

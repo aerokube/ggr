@@ -298,7 +298,7 @@ func testStartSession(t *testing.T, mux *http.ServeMux, browsersProvider func(Ho
 	rsp, err := createSession(fmt.Sprintf(`{"desiredCapabilities":{"browserName":"%s", "version":"%s"}}`, browserName, version))
 
 	AssertThat(t, err, Is{nil})
-	var sess map[string]string
+	var sess map[string]interface{}
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
 	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
 }
