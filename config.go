@@ -38,10 +38,12 @@ type Region struct {
 
 // Host - just a hostname
 type Host struct {
-	Name   string `xml:"name,attr"`
-	Port   int    `xml:"port,attr"`
-	Count  int    `xml:"count,attr"`
-	region string
+	Name     string `xml:"name,attr"`
+	Port     int    `xml:"port,attr"`
+	Count    int    `xml:"count,attr"`
+	Username string `xml:"username,attr,omitempty"`
+	Password string `xml:"password,attr,omitempty"`
+	region   string
 }
 type set interface {
 	contains(el string) bool

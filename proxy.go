@@ -94,6 +94,9 @@ func (h *Host) session(ctx context.Context, header http.Header, c caps) (map[str
 			req.Header.Add(key, value)
 		}
 	}
+	if h.Username != "" && h.Password != "" {
+		req.SetBasicAuth(h.Username, h.Password)
+	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	req = req.WithContext(ctx)
