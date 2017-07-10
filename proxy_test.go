@@ -323,6 +323,33 @@ func TestStartSessionWithJsonSpecChars(t *testing.T) {
 	testStartSession(t, mux, browsersProvider, "{browser}", "1.0")
 }
 
+func TestStartSessionWithOverriddenBasicAuth(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+		if ok && username == "test" && password == "test-password" {
+			w.Write([]byte(`{"sessionId":"123"}`))
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+	}))
+
+	browsersProvider := func(node Host) Browsers {
+		node.Username = "test"
+		node.Password = "test-password"
+		return Browsers{Browsers: []Browser{
+			{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+				{Number: "1.0", Regions: []Region{
+					{Hosts: Hosts{
+						node,
+					}},
+				}},
+			}}}}
+	}
+
+	testStartSession(t, mux, browsersProvider, "browser", "1.0")
+}
+
 func TestStartSessionWithPrefixVersion(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
