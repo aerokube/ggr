@@ -29,3 +29,18 @@
 ----
 +
 Here we define a list of browser names, their versions and default version for each browser. Each version has one or more regions (in cloud term, i.e. data centers). Every region contains one or more hosts. Each host defined in XML should have Selenium listening on specified port. The XML namespace is needed to be fully compatible with http://github.com/seleniumkit/gridrouter[original] Java GridRouter implementation.
+
+=== Working with External Selenium Services
+
+Although Ggr is mainly used for creating your own Selenium cluster you can also configure it to obtain some browsers in external Selenium services such as http://saucelabs.com/[Saucelabs], http://browserstack.com/[BrowserStack] or https://testingbot.com/[TestingBot]. These services always require username and password to be specified. Credentials should be set for each browser version in respective quota file:
+----
+<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
+<browser name="firefox" defaultVersion="45.0">
+    <version number="45.0">
+        <region name="1">
+            <host name="ondemand.saucelabs.com" port="4444" count="1" username="test-user" password="my-password"/>
+        </region>
+    </version>
+</browser>
+</qa:browsers>
+----
