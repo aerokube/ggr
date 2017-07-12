@@ -517,7 +517,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2017-07-10</span>
+<span id="revdate">2017-07-12</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -530,7 +530,11 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_configuration">2. Configuration</a>
 <ul class="sectlevel2">
 <li><a href="#_creating_users_file">2.1. Creating Users File</a></li>
-<li><a href="#_creating_quota_files">2.2. Creating Quota Files</a></li>
+<li><a href="#_creating_quota_files">2.2. Creating Quota Files</a>
+<ul class="sectlevel3">
+<li><a href="#_working_with_external_selenium_services">2.2.1. Working with External Selenium Services</a></li>
+</ul>
+</li>
 <li><a href="#_quota_reload_and_graceful_restart">2.3. Quota Reload and Graceful Restart</a></li>
 <li><a href="#_how_it_works">2.4. How it Works</a></li>
 <li><a href="#_using_multiple_ggr_instances">2.5. Using Multiple Ggr Instances</a>
@@ -734,6 +738,25 @@ File name should correspond to user name you added to <code>htpasswd</code> file
 </div>
 </li>
 </ol>
+</div>
+<div class="sect3">
+<h4 id="_working_with_external_selenium_services"><a class="anchor" href="#_working_with_external_selenium_services"></a>2.2.1. Working with External Selenium Services</h4>
+<div class="paragraph">
+<p>Although Ggr is mainly used for creating your own Selenium cluster you can also configure it to obtain some browsers in external Selenium services such as <a href="http://saucelabs.com/">Saucelabs</a>, <a href="http://browserstack.com/">BrowserStack</a> or <a href="https://testingbot.com/">TestingBot</a>. These services always require username and password to be specified. Credentials should be set for each browser version in respective quota file:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>&lt;qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"&gt;
+&lt;browser name="firefox" defaultVersion="45.0"&gt;
+    &lt;version number="45.0"&gt;
+        &lt;region name="1"&gt;
+            &lt;host name="ondemand.saucelabs.com" port="4444" count="1" username="test-user" password="my-password"/&gt;
+        &lt;/region&gt;
+    &lt;/version&gt;
+&lt;/browser&gt;
+&lt;/qa:browsers&gt;</pre>
+</div>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -1126,7 +1149,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-07-10 18:44:47 UTC
+Last updated 2017-07-12 06:01:02 UTC
 </div>
 </div>
 </body>
