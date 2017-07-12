@@ -103,8 +103,56 @@ func TestErr(t *testing.T) {
 	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"route not found"}})
 }
 
+func TestGetHostUnauthorized(t *testing.T) {
+	rsp, err := http.Get(gridrouter("/host/some-id"))
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
+func TestGetExistingHost(t *testing.T) {
+	correctHost := Host{Name: "example.com", Port: 4444, Count: 1}
+	host := testGetHost(t, correctHost.sum() + "123", http.StatusOK)
+	AssertThat(t, host, Not{nil})
+	AssertThat(t, *host, EqualTo{correctHost})
+}
+
+func TestGetMissingHost(t *testing.T) {
+	const missingMD5Sum = "c83ffc064eb27be6124bce2a117d61bb"
+	testGetHost(t, missingMD5Sum + "123", http.StatusNotFound)
+}
+
+func TestGetHostBadSessionId(t *testing.T) {
+	testGetHost(t, "bad-session-id", http.StatusBadRequest)
+}
+
+func testGetHost(t *testing.T, sessionId string, statusCode int) *Host {
+	
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					Host{Name: "example.com", Port: 4444, Count: 1, Username: "test", Password: "test"},
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	rsp, err := doBasicHTTPRequest(http.MethodPost, gridrouter(fmt.Sprintf("/host/%s", sessionId)), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{statusCode})
+	if statusCode != http.StatusOK {
+		return nil
+	}
+	var host Host
+	json.NewDecoder(rsp.Body).Decode(&host)
+	return &host
+}
+
 func TestCreateSessionGet(t *testing.T) {
-	req, _ := http.NewRequest("GET", gridrouter("/wd/hub/session"), nil)
+	req, _ := http.NewRequest(http.MethodGet, gridrouter("/wd/hub/session"), nil)
 	req.SetBasicAuth("test", "test")
 	client := &http.Client{}
 	rsp, err := client.Do(req)
@@ -175,7 +223,7 @@ func createSession(capabilities string) (*http.Response, error) {
 }
 
 func createSessionFromReader(body io.Reader) (*http.Response, error) {
-	return doBasicHTTPRequest("POST", gridrouter("/wd/hub/session"), body)
+	return doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session"), body)
 }
 
 func doBasicHTTPRequest(method string, url string, body io.Reader) (*http.Response, error) {
@@ -764,7 +812,7 @@ func TestDeleteSession(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	r, _ := http.NewRequest("DELETE", gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
+	r, _ := http.NewRequest(http.MethodDelete, gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
 	r.SetBasicAuth("test", "test")
 	rsp, err := http.DefaultClient.Do(r)
 
@@ -796,7 +844,7 @@ func TestProxyRequest(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	r, _ := http.NewRequest("GET", gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
+	r, _ := http.NewRequest(http.MethodGet, gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
 	r.SetBasicAuth("test", "test")
 	rsp, err := http.DefaultClient.Do(r)
 
@@ -834,7 +882,7 @@ func TestProxyJsonRequest(t *testing.T) {
 		updateQuota(user, browsers)
 	}()
 
-	doBasicHTTPRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
+	doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
 }
 
 func TestProxyPlainRequest(t *testing.T) {
@@ -863,7 +911,7 @@ func TestProxyPlainRequest(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	doBasicHTTPRequest("POST", gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte("request")))
+	doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte("request")))
 }
 
 func TestRequest(t *testing.T) {
@@ -873,7 +921,7 @@ func TestRequest(t *testing.T) {
 		AssertThat(t, remote, EqualTo{"127.0.0.1"})
 	}))
 
-	r, _ := http.NewRequest("GET", srv.URL, nil)
+	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
 	http.DefaultClient.Do(r)
 }
 
@@ -884,7 +932,7 @@ func TestRequestAuth(t *testing.T) {
 		AssertThat(t, remote, EqualTo{"127.0.0.1"})
 	}))
 
-	r, _ := http.NewRequest("GET", srv.URL, nil)
+	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
 	r.SetBasicAuth("user", "password")
 	http.DefaultClient.Do(r)
 }
@@ -896,7 +944,7 @@ func TestRequestForwarded(t *testing.T) {
 		AssertThat(t, remote, EqualTo{"proxy"})
 	}))
 
-	r, _ := http.NewRequest("GET", srv.URL, nil)
+	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
 	r.Header.Set("X-Forwarded-For", "proxy")
 	http.DefaultClient.Do(r)
 }
@@ -908,7 +956,7 @@ func TestRequestAuthForwarded(t *testing.T) {
 		AssertThat(t, remote, EqualTo{"proxy"})
 	}))
 
-	r, _ := http.NewRequest("GET", srv.URL, nil)
+	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
 	r.Header.Set("X-Forwarded-For", "proxy")
 	r.SetBasicAuth("user", "password")
 	http.DefaultClient.Do(r)

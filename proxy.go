@@ -29,10 +29,12 @@ const (
 const (
 	pingPath  string = "/ping"
 	errPath   string = "/err"
+	hostPath  string = "/host/"
 	routePath string = "/wd/hub/session"
 	proxyPath string = routePath + "/"
 	head      int    = len(proxyPath)
-	tail      int    = head + 32
+	md5SumLength int = 32
+	tail      int    = head + md5SumLength
 	sessPart  int    = 4 // /wd/hub/session/{various length session}
 )
 
@@ -329,6 +331,27 @@ func err(w http.ResponseWriter, _ *http.Request) {
 	reply(w, errMsg("route not found"), http.StatusNotFound)
 }
 
+func host(w http.ResponseWriter, r *http.Request) {
+	confLock.RLock()
+	defer confLock.RUnlock()
+	head := len(hostPath)
+	tail := head + md5SumLength
+	path := r.URL.Path
+	if len(path) < tail {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("invalid session ID"))
+		return
+	}
+	sum := path[head:tail]
+	h, ok := routes[sum]
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("unknown host"))
+		return			
+	}
+	json.NewEncoder(w).Encode(Host{Name: h.Name, Port: h.Port, Count: h.Count})
+}
+
 func postOnly(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -393,6 +416,7 @@ func mux() http.Handler {
 	)
 	mux.HandleFunc(pingPath, ping)
 	mux.HandleFunc(errPath, err)
+	mux.HandleFunc(hostPath, requireBasicAuth(authenticator, host))
 	mux.HandleFunc(routePath, withCloseNotifier(requireBasicAuth(authenticator, postOnly(route))))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	return mux
