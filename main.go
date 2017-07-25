@@ -25,10 +25,17 @@ var (
 	startTime      = time.Now()
 	lastReloadTime = time.Now()
 
+	authenticationMethod string
+	userNameField string
+	passwordField string
+
 	version     bool
 	gitRevision string = "HEAD"
 	buildStamp  string = "unknown"
 )
+
+const basicAuthentication string = "basic"
+const capabilitiesBasedAuthentication string = "capabilities"
 
 func loadQuotaFiles(quotaDir string) error {
 	log.Printf("Loading configuration files from [%s]\n", quotaDir)
@@ -83,7 +90,21 @@ func init() {
 	flag.DurationVar(&timeout, "timeout", 300*time.Second, "session creation timeout in time.Duration format, e.g. 300s or 500ms")
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
 	flag.BoolVar(&version, "version", false, "show version and exit")
+
+	flag.StringVar(&authenticationMethod, "authentication-method", basicAuthentication, fmt.Sprintf("How users should be authenticated. Possible choices are: %s,%s", basicAuthentication, capabilitiesBasedAuthentication ))
+	flag.StringVar(&userNameField, "username-field", "user", "Name of the field in the capabilities that users must put their username into.")
+	flag.StringVar(&passwordField, "password-field", "password", "Name of the field in the capabilities that users must put their password into.")
 	flag.Parse()
+
+	switch authenticationMethod {
+	case basicAuthentication:
+	case capabilitiesBasedAuthentication:
+		break;
+	default:
+		log.Fatalf("Authentication method [%s] is not valid\n", authenticationMethod)
+		os.Exit(1);
+	}
+
 	if version {
 		showVersion()
 		os.Exit(0)

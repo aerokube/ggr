@@ -666,6 +666,84 @@ func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
 	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
 }
 
+func TestStartSessionCapabilitiesAuthentication(t *testing.T) {
+
+	authenticationMethod = capabilitiesBasedAuthentication;
+	srv = httptest.NewServer(mux());
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"value":{"sessionId":"123"}}`))
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "{browser}", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	rsp, err := createSessionWithoutAuthentication(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0", "user":"test","password":"test"  }}`)
+
+	AssertThat(t, err, Is{nil})
+	var value map[string]interface{}
+	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&value}})
+	AssertThat(t, value["value"].(map[string]interface{})["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
+}
+
+func TestStartSessionCapabilitiesAuthenticationBadPassword(t *testing.T) {
+
+	authenticationMethod = capabilitiesBasedAuthentication;
+	srv = httptest.NewServer(mux());
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"value":{"sessionId":"123"}}`))
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "{browser}", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	rsp, _ := createSessionWithoutAuthentication(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0", "user":"test","password":"BAD-PASSWORD"  }}`)
+	AssertThat(t, rsp,  AllOf{Code{http.StatusUnauthorized}})
+}
+
+func createSessionWithoutAuthentication(capabilities string) (*http.Response, error) {
+	body := bytes.NewReader([]byte(capabilities))
+	return doHTTPRequestWithouAuthentication(http.MethodPost, gridrouter("/wd/hub/session"), body)
+}
+
+func doHTTPRequestWithouAuthentication(method string, url string, body io.Reader) (*http.Response, error) {
+	req, _ := http.NewRequest(method, url, body)
+	client := &http.Client{}
+	return client.Do(req)
+}
+
 func TestStartSessionFailJSONWireProtocol(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {

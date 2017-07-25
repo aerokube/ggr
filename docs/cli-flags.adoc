@@ -2,12 +2,18 @@
 
 The following flags are supported by ```ggr``` command:
 ```
+  -authentication-method string
+        How users should be authenticated. Possible choices are: basic, capabilities
   -listen string
     	host and port to listen to (default ":4444")
+  -password-field string
+        Name of the field in the capabilities that users must put their password into.
   -quotaDir string
     	quota directory (default "quota")
   -timeout duration
     	session creation timeout in time.Duration format, e.g. 300s or 500ms (default 5m0s)
+  -username-field string
+        Name of the field in the capabilities that users must put their username into.
   -users string
     	htpasswd auth file path (default ".htpasswd")
   -version
