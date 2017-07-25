@@ -3,19 +3,19 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "24CmI1XvvB42B1pV1OhLKecZo2s=",
+			"checksumSHA1": "s8z/bbXTuUvC+gfJBgJ4Jk4k3Oc=",
 			"path": "github.com/aandryashin/matchers",
 			"revision": "5eb67beb188b5076812683a96c13bef79d970fd8",
 			"revisionTime": "2016-07-29T13:19:23Z"
 		},
 		{
-			"checksumSHA1": "6hdqb2Z8iZf/1PcwVAC3e/m6n+E=",
+			"checksumSHA1": "HW6VDC2PRssjIeGiKxYxWNy8Zb4=",
 			"path": "github.com/aandryashin/matchers/httpresp",
 			"revision": "5eb67beb188b5076812683a96c13bef79d970fd8",
 			"revisionTime": "2016-07-29T13:19:23Z"
 		},
 		{
-			"checksumSHA1": "eQlujIDTWnRJjOrfDHYZVznvnew=",
+			"checksumSHA1": "TKKc/+hZZZWr0qkQ/xC9uy7aXJU=",
 			"path": "github.com/abbot/go-http-auth",
 			"revision": "d45c47bedec736d172957bd394786b76626fa8ac",
 			"revisionTime": "2016-12-24T19:38:27Z"
@@ -39,5 +39,5 @@
 			"revisionTime": "2017-01-14T04:22:49Z"
 		}
 	],
-	"rootPath": "github.com/aerokube/ggr"
+	"rootPath": "github.com/adrichem/ggr"
 }

@@ -77,6 +77,14 @@ func (c *caps) browser() string {
 	return c.capability("browserName")
 }
 
+func (c *caps) user() string {
+	return c.capability(userNameField)
+}
+
+func (c *caps) password() string {
+	return c.capability(passwordField)
+}
+
 func (c *caps) version() string {
 	return c.capability("version")
 }
@@ -408,16 +416,66 @@ func requireBasicAuth(authenticator *auth.BasicAuth, handler func(http.ResponseW
 	})
 }
 
+func requireCapabilitiesBasedAuth(authenticator *auth.BasicAuth, handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		//See https://stackoverflow.com/questions/23070876/reading-body-of-http-request-without-modifying-request-state
+		buf, _ := ioutil.ReadAll(r.Body)
+		rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
+		rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
+		r.Body = rdr2 // OK since rdr2 implements the io.ReadCloser interface
+
+		var c caps
+		err := json.NewDecoder(rdr1).Decode(&c)
+		remote :=  r.Header.Get("X-Forwarded-For")
+		if remote == "" {
+			remote, _, _ = net.SplitHostPort(r.RemoteAddr)
+		}
+
+		if err != nil {
+			reply(w, errMsg(fmt.Sprintf("bad json format: %s", err.Error())), http.StatusBadRequest)
+			log.Printf("[%d] [BAD_JSON] [%s] [%s] [%v]\n", 0,"", "", remote, err)
+			return
+		}
+		user := c.user()
+		password := c.password()
+		if(len(user) == 0 ) {
+			reply(w, errMsg("bad json format: username or password missing"), http.StatusBadRequest)
+			log.Printf("[%d] [BAD_JSON] [%s] [%s] [%v]\n", 0,"", "", remote, "")
+			return
+		}
+
+		//Promote the request to use Basic Authentication and delegate the rest to the handler
+		r.SetBasicAuth(user,password)
+		delegate := requireBasicAuth(authenticator, handler)
+		delegate(w,r)
+	};
+}
+
+func WithSuitableAuthentication(handler func(http.ResponseWriter, *http.Request) )  func(http.ResponseWriter, *http.Request) {
+	var theHandler func(http.ResponseWriter, *http.Request) = handler
+	authenticator := auth.NewBasicAuthenticator( "Selenium Grid Router",auth.HtpasswdFileProvider(users))
+
+	switch(authenticationMethod){
+		case capabilitiesBasedAuthentication:
+			theHandler = requireCapabilitiesBasedAuth(authenticator, handler);
+		case basicAuthentication:
+			theHandler =  requireBasicAuth(authenticator, handler)
+		default:
+
+		}
+
+	return theHandler;
+}
+
+
+
 func mux() http.Handler {
 	mux := http.NewServeMux()
-	authenticator := auth.NewBasicAuthenticator(
-		"Selenium Grid Router",
-		auth.HtpasswdFileProvider(users),
-	)
 	mux.HandleFunc(pingPath, ping)
 	mux.HandleFunc(errPath, err)
-	mux.HandleFunc(hostPath, requireBasicAuth(authenticator, host))
-	mux.HandleFunc(routePath, withCloseNotifier(requireBasicAuth(authenticator, postOnly(route))))
+	mux.HandleFunc(hostPath, WithSuitableAuthentication(host))
+	mux.HandleFunc(routePath, withCloseNotifier(WithSuitableAuthentication(postOnly(route))))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	return mux
 }
