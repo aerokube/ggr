@@ -111,14 +111,14 @@ func TestGetHostUnauthorized(t *testing.T) {
 
 func TestGetExistingHost(t *testing.T) {
 	correctHost := Host{Name: "example.com", Port: 4444, Count: 1}
-	host := testGetHost(t, correctHost.sum() + "123", http.StatusOK)
+	host := testGetHost(t, correctHost.sum()+"123", http.StatusOK)
 	AssertThat(t, host, Not{nil})
 	AssertThat(t, *host, EqualTo{correctHost})
 }
 
 func TestGetMissingHost(t *testing.T) {
 	const missingMD5Sum = "c83ffc064eb27be6124bce2a117d61bb"
-	testGetHost(t, missingMD5Sum + "123", http.StatusNotFound)
+	testGetHost(t, missingMD5Sum+"123", http.StatusNotFound)
 }
 
 func TestGetHostBadSessionId(t *testing.T) {
@@ -126,7 +126,7 @@ func TestGetHostBadSessionId(t *testing.T) {
 }
 
 func testGetHost(t *testing.T, sessionId string, statusCode int) *Host {
-	
+
 	test.Lock()
 	defer test.Unlock()
 
@@ -994,4 +994,127 @@ func TestStartSessionProxyHeaders(t *testing.T) {
 	var sess map[string]string
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
 	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
+}
+
+func TestStartSessionGuest(t *testing.T) {
+	guestAccessAllowed = true
+
+	dummyMux := http.NewServeMux()
+	dummyMux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"value":{"sessionId":"123"}}`))
+	}))
+	selenium := httptest.NewServer(dummyMux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "{browser}", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(guestUserName, browsers)
+
+	rsp, err := createSessionWithoutAuthentication(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
+	AssertThat(t, err, Is{nil})
+	var value map[string]interface{}
+	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&value}})
+	AssertThat(t, value["value"].(map[string]interface{})["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
+}
+
+func TestStartSessionGuestFailNoQuota(t *testing.T) {
+	guestAccessAllowed = true
+
+	dummyMux := http.NewServeMux()
+	dummyMux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"value":{"sessionId":"123"}}`))
+	}))
+	selenium := httptest.NewServer(dummyMux)
+	defer selenium.Close()
+
+	test.Lock()
+	delete(quota, guestUserName)
+	defer test.Unlock()
+
+	rsp, err := createSessionWithoutAuthentication(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusUnauthorized}, Message{"Guest access is unavailable."}})
+
+}
+
+func TestStartSessionGuestAndCorrectBasicAuth(t *testing.T) {
+	guestAccessAllowed = true
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"sessionId":"123"}`))
+	}))
+
+	browsersProvider := func(node Host) Browsers {
+		return Browsers{Browsers: []Browser{
+			{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+				{Number: "1.0", Regions: []Region{
+					{Hosts: Hosts{
+						node,
+					}},
+				}},
+			}}}}
+	}
+
+	testStartSession(t, mux, browsersProvider, "browser", "1.0")
+}
+
+func TestStartSessionGuestModeAndWrongBasicAuth(t *testing.T) {
+	guestAccessAllowed = true
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"sessionId":"123"}`))
+	}))
+
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	body := bytes.NewReader([]byte(fmt.Sprintf(`{"desiredCapabilities":{"browserName":"%s", "version":"%s"}}`, "browser", "1.0")))
+	req, _ := http.NewRequest(http.MethodPost, gridrouter("/wd/hub/session"), body)
+	req.SetBasicAuth(user, "BAD"+password)
+	client := &http.Client{}
+	rsp, err := client.Do(req)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp.StatusCode, Is{http.StatusUnauthorized})
+}
+
+func createSessionWithoutAuthentication(capabilities string) (*http.Response, error) {
+	body := bytes.NewReader([]byte(capabilities))
+	return doHTTPRequestWithoutAuthentication(http.MethodPost, gridrouter("/wd/hub/session"), body)
+}
+
+func doHTTPRequestWithoutAuthentication(method string, url string, body io.Reader) (*http.Response, error) {
+	req, _ := http.NewRequest(method, url, body)
+	client := &http.Client{}
+	return client.Do(req)
 }

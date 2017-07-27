@@ -2,6 +2,10 @@
 
 The following flags are supported by ```ggr``` command:
 ```
+  -guests-allowed
+    	Allow guest (unauthenticated) users to access the grid (default false)
+  -guests-quota
+    	Which quota file to use for guests (default "guest")
   -listen string
     	host and port to listen to (default ":4444")
   -quotaDir string
