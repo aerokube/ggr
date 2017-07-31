@@ -27,15 +27,15 @@ const (
 )
 
 const (
-	pingPath  string = "/ping"
-	errPath   string = "/err"
-	hostPath  string = "/host/"
-	routePath string = "/wd/hub/session"
-	proxyPath string = routePath + "/"
-	head      int    = len(proxyPath)
-	md5SumLength int = 32
-	tail      int    = head + md5SumLength
-	sessPart  int    = 4 // /wd/hub/session/{various length session}
+	pingPath     string = "/ping"
+	errPath      string = "/err"
+	hostPath     string = "/host/"
+	routePath    string = "/wd/hub/session"
+	proxyPath    string = routePath + "/"
+	head         int    = len(proxyPath)
+	md5SumLength int    = 32
+	tail         int    = head + md5SumLength
+	sessPart     int    = 4 // /wd/hub/session/{various length session}
 )
 
 var (
@@ -145,7 +145,11 @@ func serial() uint64 {
 }
 
 func info(r *http.Request) (user, remote string) {
-	user = "unknown"
+	if guestAccessAllowed {
+		user = guestUserName
+	} else {
+		user = "unknown"
+	}
 	if u, _, ok := r.BasicAuth(); ok {
 		user = u
 	}
@@ -211,6 +215,7 @@ func route(w http.ResponseWriter, r *http.Request) {
 	excludedHosts := newSet()
 	hosts, version, excludedRegions := browsers.find(browser, version, excludedHosts, newSet())
 	confLock.RUnlock()
+
 	if len(hosts) == 0 {
 		reply(w, errMsg(fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version))), http.StatusNotFound)
 		log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
@@ -347,7 +352,7 @@ func host(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("unknown host"))
-		return			
+		return
 	}
 	json.NewEncoder(w).Encode(Host{Name: h.Name, Port: h.Port, Count: h.Count})
 }
@@ -408,6 +413,28 @@ func requireBasicAuth(authenticator *auth.BasicAuth, handler func(http.ResponseW
 	})
 }
 
+func WithSuitableAuthentication(authenticator *auth.BasicAuth, handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !guestAccessAllowed {
+			//All requests require authentication
+			requireBasicAuth(authenticator, handler)(w, r)
+		} else if _, _, basicAuthPresent := r.BasicAuth(); !basicAuthPresent {
+			//Run the handler as unauthenticated user
+			confLock.RLock()
+			_, ok := quota[guestUserName]
+			confLock.RUnlock()
+			if !ok {
+				reply(w, errMsg("Guest access is unavailable."), http.StatusUnauthorized)
+			} else {
+				handler(w, r)
+			}
+		} else {
+			//Run the handler using basic authentication
+			requireBasicAuth(authenticator, handler)(w, r)
+		}
+	}
+}
+
 func mux() http.Handler {
 	mux := http.NewServeMux()
 	authenticator := auth.NewBasicAuthenticator(
@@ -416,8 +443,8 @@ func mux() http.Handler {
 	)
 	mux.HandleFunc(pingPath, ping)
 	mux.HandleFunc(errPath, err)
-	mux.HandleFunc(hostPath, requireBasicAuth(authenticator, host))
-	mux.HandleFunc(routePath, withCloseNotifier(requireBasicAuth(authenticator, postOnly(route))))
+	mux.HandleFunc(hostPath, WithSuitableAuthentication(authenticator, host))
+	mux.HandleFunc(routePath, withCloseNotifier(WithSuitableAuthentication(authenticator, postOnly(route))))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	return mux
 }
