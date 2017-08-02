@@ -117,11 +117,15 @@ func main() {
 		Addr:    listen,
 		Handler: mux(),
 	}
+	e := make(chan error)
 	go func() {
-		log.Fatal(server.ListenAndServe())
+		e <- server.ListenAndServe()
 	}()
-
-	<-stop
+	select {
+	case err := <-e:
+		log.Fatal(err)
+	case <-stop:
+	}
 
 	log.Printf("[SHUTTING_DOWN] [%s]\n", gracefulPeriod)
 	ctx, cancel := context.WithTimeout(context.Background(), gracefulPeriod)
