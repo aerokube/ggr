@@ -265,7 +265,7 @@ loop:
 		case browserFailed:
 			hosts = append(hosts[:i], hosts[i+1:]...)
 		case seleniumError:
-			excludedHosts.add(h.Name)
+			excludedHosts.add(h.net())
 			excludedRegions.add(h.region)
 			hosts, version, excludedRegions = browsers.find(browser, version, excludedHosts, excludedRegions)
 		}
