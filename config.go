@@ -116,7 +116,7 @@ func (b *Browsers) find(browser, version string, excludedHosts set, excludedRegi
 							continue next
 						}
 						for _, h := range r.Hosts {
-							if !excludedHosts.contains(h.Name) {
+							if !excludedHosts.contains(h.net()) {
 								hosts = append(hosts, h)
 							}
 						}

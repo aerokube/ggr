@@ -542,6 +542,53 @@ func TestStartSessionFail(t *testing.T) {
 	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
 }
 
+func TestStartSessionFailMultiRegion(t *testing.T) {
+	node := []Host{
+		Host{Name: "localhost", Port: 9991, Count: 1},
+		Host{Name: "localhost", Port: 9992, Count: 1},
+		Host{Name: "localhost", Port: 9993, Count: 1},
+		Host{Name: "localhost", Port: 9994, Count: 1},
+		Host{Name: "localhost", Port: 9995, Count: 1},
+		Host{Name: "localhost", Port: 9996, Count: 1},
+		Host{Name: "localhost", Port: 9997, Count: 1},
+		Host{Name: "localhost", Port: 9998, Count: 1},
+		Host{Name: "localhost", Port: 9999, Count: 1},
+	}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				Region{
+					Name: "us-west-1",
+					Hosts: Hosts{
+						node[0], node[1], node[2],
+					},
+				},
+				Region{
+					Name: "us-west-2",
+					Hosts: Hosts{
+						node[3], node[4], node[5],
+					},
+				},
+				Region{
+					Name: "us-west-3",
+					Hosts: Hosts{
+						node[6], node[7], node[8],
+					},
+				},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 9 attempt(s)"}})
+}
+
 func TestStartSessionBrowserFail(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {

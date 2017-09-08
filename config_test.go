@@ -63,10 +63,10 @@ var (
 		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			{Number: "1.0", Regions: []Region{
 				{Name: "e", Hosts: Hosts{
-					Host{Name: "browser-e-1.0"},
+					Host{Name: "browser-e-1.0", Port: 4444},
 				}},
 				{Name: "f", Hosts: Hosts{
-					Host{Name: "browser-f-1.0"},
+					Host{Name: "browser-f-1.0", Port: 4444},
 				}},
 			}},
 		}}}}
@@ -113,7 +113,7 @@ func TestFindWithExcludedRegionsExhausted(t *testing.T) {
 }
 
 func TestFindWithExcludedHosts(t *testing.T) {
-	hosts, version, _ := browsersWithMultipleRegions.find("browser", "1.0", newSet("browser-e-1.0"), newSet())
+	hosts, version, _ := browsersWithMultipleRegions.find("browser", "1.0", newSet("browser-e-1.0:4444"), newSet())
 	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-f-1.0"})
