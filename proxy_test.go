@@ -19,6 +19,8 @@ import (
 
 	. "github.com/aandryashin/matchers"
 	. "github.com/aandryashin/matchers/httpresp"
+	"golang.org/x/net/websocket"
+	"strings"
 )
 
 var (
@@ -149,6 +151,90 @@ func testGetHost(t *testing.T, sessionId string, statusCode int) *Host {
 	var host Host
 	json.NewDecoder(rsp.Body).Decode(&host)
 	return &host
+}
+
+func TestProxyScreenVNCProtocol(t *testing.T) {
+
+	test.Lock()
+	defer test.Unlock()
+
+	const testData = "vnc-data"
+	server := testTcpServer(testData)
+	defer server.Close()
+
+	vncHost := Host{Name: "example.com", Port: 4444, Count: 1, VNC: fmt.Sprintf("vnc://%s", server.Addr().String())}
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					vncHost,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	testDataReceived(vncHost, testData, t)
+}
+
+func testDataReceived(host Host, correctData string, t *testing.T) {
+	sessionId := host.sum() + "123"
+
+	origin := "http://localhost/"
+	u := fmt.Sprintf("ws://%s/vnc/%s", srv.Listener.Addr(), sessionId)
+	ws, err := websocket.Dial(u, "", origin)
+	AssertThat(t, err, Is{nil})
+
+	var data = make([]byte, len(correctData))
+	_, err = ws.Read(data)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, strings.TrimSpace(string(data)), EqualTo{correctData})
+}
+
+func testTcpServer(data string) net.Listener {
+	l, _ := net.Listen("tcp", "127.0.0.1:0")
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				continue
+			}
+			defer conn.Close()
+			io.WriteString(conn, data)
+			return
+		}
+	}()
+	return l
+}
+
+func TestProxyScreenWebSocketsProtocol(t *testing.T) {
+
+	test.Lock()
+	defer test.Unlock()
+
+	const testData = "ws-data"
+	mux := http.NewServeMux()
+	mux.Handle("/vnc/", websocket.Handler(func(wsconn *websocket.Conn) {
+		wsconn.Write([]byte(testData))
+	}))
+
+	wsServer := httptest.NewServer(mux)
+	defer wsServer.Close()
+
+	wsHost := Host{Name: "example.com", Port: 4444, Count: 1, VNC: fmt.Sprintf("ws://%s/vnc", wsServer.Listener.Addr().String())}
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					wsHost,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	testDataReceived(wsHost, testData, t)
+
 }
 
 func TestCreateSessionGet(t *testing.T) {

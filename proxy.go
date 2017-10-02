@@ -18,6 +18,8 @@ import (
 	"context"
 
 	"github.com/abbot/go-http-auth"
+	"golang.org/x/net/websocket"
+	"io"
 )
 
 const (
@@ -27,15 +29,19 @@ const (
 )
 
 const (
-	pingPath     string = "/ping"
-	errPath      string = "/err"
-	hostPath     string = "/host/"
-	routePath    string = "/wd/hub/session"
-	proxyPath    string = routePath + "/"
-	head         int    = len(proxyPath)
-	md5SumLength int    = 32
-	tail         int    = head + md5SumLength
-	sessPart     int    = 4 // /wd/hub/session/{various length session}
+	pingPath       string = "/ping"
+	errPath        string = "/err"
+	hostPath       string = "/host/"
+	routePath      string = "/wd/hub/session"
+	proxyPath      string = routePath + "/"
+	vncPath        string = "/vnc/"
+	head           int    = len(proxyPath)
+	md5SumLength   int    = 32
+	tail           int    = head + md5SumLength
+	sessPart       int    = 4 // /wd/hub/session/{various length session}
+	defaultVNCPort string = "5900"
+	vncScheme      string = "vnc"
+	wsScheme       string = "ws"
 )
 
 var (
@@ -398,13 +404,38 @@ func appendRoutes(routes Routes, config *Browsers) Routes {
 		for _, v := range b.Versions {
 			for _, r := range v.Regions {
 				for i, h := range r.Hosts {
-					r.Hosts[i].region = r.Name
-					routes[h.sum()] = &r.Hosts[i]
+					host := r.Hosts[i]
+					host.region = r.Name
+					host.vncInfo = createVNCInfo(host)
+					routes[h.sum()] = &host
 				}
 			}
 		}
 	}
 	return routes
+}
+
+func createVNCInfo(h Host) *vncInfo {
+	vncUrl := h.VNC
+	if vncUrl != "" {
+		u, err := url.Parse(vncUrl)
+		if err != nil {
+			log.Printf("[INVALID_HOST_VNC_URL] [%s] [%s]\n", fmt.Sprintf("%s:%s", h.Name, h.Port), vncUrl)
+			return nil
+		}
+		if u.Scheme != vncScheme && u.Scheme != wsScheme {
+			log.Printf("[UNSUPPORTED_HOST_VNC_SCHEME] [%s] [%s]\n", fmt.Sprintf("%s:%s", h.Name, h.Port), vncUrl)
+			return nil
+		}
+		vncInfo := vncInfo{
+			Scheme: u.Scheme,
+			Path:   u.Path,
+		}
+		vncInfo.Scheme = u.Scheme
+		vncInfo.Host, vncInfo.Port, _ = net.SplitHostPort(u.Host)
+		return &vncInfo
+	}
+	return nil
 }
 
 func requireBasicAuth(authenticator *auth.BasicAuth, handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
@@ -435,6 +466,78 @@ func WithSuitableAuthentication(authenticator *auth.BasicAuth, handler func(http
 	}
 }
 
+func vnc(wsconn *websocket.Conn) {
+	defer wsconn.Close()
+	confLock.RLock()
+	defer confLock.RUnlock()
+	sessionId := strings.Split(wsconn.Request().URL.Path, "/")[2]
+	head := len(vncPath)
+	tail := head + md5SumLength
+	path := wsconn.Request().URL.Path
+	if len(path) < tail {
+		log.Printf("[INVALID_VNC_REQUEST_URL] [%s]\n", wsconn.Request().URL.Path)
+		return
+	}
+	sum := path[head:tail]
+	h, ok := routes[sum]
+	if ok {
+		vncInfo := h.vncInfo
+		scheme := vncScheme
+		host := h.Name
+		port := defaultVNCPort
+		path := ""
+		if vncInfo != nil {
+			scheme = vncInfo.Scheme
+			host = vncInfo.Host
+			port = vncInfo.Port
+			path = vncInfo.Path
+		}
+		switch scheme {
+		case vncScheme: proxyVNC(wsconn, sessionId, host, port)
+		case wsScheme: proxyWebSockets(wsconn, sessionId, host, port, path)
+		default: {
+			log.Printf("[UNSUPPORTED_HOST_VNC_SCHEME] [%s]\n", scheme)
+			return
+		}
+		}
+	} else {
+		log.Printf("[UNKNOWN_VNC_HOST] [%s]\n", sum)
+	}
+
+}
+
+func proxyVNC(wsconn *websocket.Conn, sessionId string, host string, port string) {
+	var d net.Dialer
+	address := fmt.Sprintf("%s:%s", host, port)
+	conn, err := d.DialContext(wsconn.Request().Context(), "tcp", address)
+	proxyConn(wsconn, conn, err, sessionId, address)
+}
+
+func proxyWebSockets(wsconn *websocket.Conn, sessionId string, host string, port string, path string) {
+	origin := "http://localhost/"
+	u := fmt.Sprintf("ws://%s:%s%s/%s", host, port, path, sessionId)
+	//TODO: consider context from wsconn
+	conn, err := websocket.Dial(u, "", origin)
+	proxyConn(wsconn, conn, err, sessionId, u)
+}
+
+func proxyConn(wsconn *websocket.Conn, conn net.Conn, err error, sessionId string, address string) {
+	log.Printf("[PROXYING_TO_VNC] [%s] [%s]\n", sessionId, address)
+	if err != nil {
+		log.Printf("[VNC_ERROR] [%s] [%s] [%v]\n", sessionId, address, err)
+		return
+	}
+	defer conn.Close()
+	wsconn.PayloadType = websocket.BinaryFrame
+	go func() {
+		io.Copy(wsconn, conn)
+		wsconn.Close()
+		log.Printf("[VNC_SESSION_CLOSED] [%s] [%s]\n", sessionId, address)
+	}()
+	io.Copy(conn, wsconn)
+	log.Printf("[VNC_CLIENT_DISCONNECTED] [%s] [%s]\n", sessionId, address)
+}
+
 func mux() http.Handler {
 	mux := http.NewServeMux()
 	authenticator := auth.NewBasicAuthenticator(
@@ -446,5 +549,6 @@ func mux() http.Handler {
 	mux.HandleFunc(hostPath, WithSuitableAuthentication(authenticator, host))
 	mux.HandleFunc(routePath, withCloseNotifier(WithSuitableAuthentication(authenticator, postOnly(route))))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
+	mux.Handle(vncPath, websocket.Handler(vnc))
 	return mux
 }

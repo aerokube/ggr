@@ -37,6 +37,12 @@
 			"path": "golang.org/x/net/context",
 			"revision": "f2499483f923065a842d38eb4c7f1927e6fc6e6d",
 			"revisionTime": "2017-01-14T04:22:49Z"
+		},
+		{
+			"checksumSHA1": "7EZyXN0EmZLgGxZxK01IJua4c8o=",
+			"path": "golang.org/x/net/websocket",
+			"revision": "f2499483f923065a842d38eb4c7f1927e6fc6e6d",
+			"revisionTime": "2017-01-14T04:22:49Z"
 		}
 	],
 	"rootPath": "github.com/aerokube/ggr"
