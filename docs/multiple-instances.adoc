@@ -10,10 +10,10 @@ $ curl -s http://example.com:4444/ping
 .Result
 [source,javascript]
 ----
-{"uptime":"2m46.854829503s","lastReloadTime":"2017-05-12 12:33:06.322038542 +0300 MSK"}
+{"uptime":"2m46.854829503s","lastReloadTime":"2017-05-12 12:33:06.322038542 +0300 MSK","numRequests":42}
 ----
 
-It returns `200 OK` when Ggr operates normally. Additionally server uptime and last quota reload time are returned in JSON format.
+It returns `200 OK` when Ggr operates normally. Additionally server uptime, last quota reload time and overall number of session requests from service startup are returned in JSON format.
 
 === Why Ggr is Stateless
 Selenium uses an HTTP-based protocol. That means every action in Selenium, e.g. launching browser or taking screenshot is a separate HTTP request. When multiple instances of Ggr are handling requests behind load balancer every request can be routed to any of these instances. Here's how it works.

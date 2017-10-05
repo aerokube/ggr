@@ -53,7 +53,7 @@ var (
 	quota           = make(map[string]Browsers)
 	routes   Routes = make(Routes)
 	num      uint64
-	numLock  sync.Mutex
+	numLock  sync.RWMutex
 	confLock sync.RWMutex
 )
 
@@ -148,6 +148,12 @@ func serial() uint64 {
 	id := num
 	num++
 	return id
+}
+
+func getSerial() uint64 {
+	numLock.RLock()
+	defer numLock.RUnlock()
+	return num
 }
 
 func info(r *http.Request) (user, remote string) {
@@ -335,7 +341,8 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 	json.NewEncoder(w).Encode(struct {
 		Uptime         string `json:"uptime"`
 		LastReloadTime string `json:"lastReloadTime"`
-	}{time.Since(startTime).String(), lastReloadTime.String()})
+		NumRequests    uint64 `json:"numRequests"`
+	}{time.Since(startTime).String(), lastReloadTime.String(), getSerial()})
 }
 
 func err(w http.ResponseWriter, _ *http.Request) {
@@ -493,12 +500,15 @@ func vnc(wsconn *websocket.Conn) {
 			path = vncInfo.Path
 		}
 		switch scheme {
-		case vncScheme: proxyVNC(wsconn, sessionId, host, port)
-		case wsScheme: proxyWebSockets(wsconn, sessionId, host, port, path)
-		default: {
-			log.Printf("[UNSUPPORTED_HOST_VNC_SCHEME] [%s]\n", scheme)
-			return
-		}
+		case vncScheme:
+			proxyVNC(wsconn, sessionId, host, port)
+		case wsScheme:
+			proxyWebSockets(wsconn, sessionId, host, port, path)
+		default:
+			{
+				log.Printf("[UNSUPPORTED_HOST_VNC_SCHEME] [%s]\n", scheme)
+				return
+			}
 		}
 	} else {
 		log.Printf("[UNKNOWN_VNC_HOST] [%s]\n", sum)
