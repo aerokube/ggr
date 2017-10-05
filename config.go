@@ -43,8 +43,18 @@ type Host struct {
 	Count    int    `xml:"count,attr"`
 	Username string `xml:"username,attr,omitempty"`
 	Password string `xml:"password,attr,omitempty"`
+	VNC      string `xml:"vnc,attr,omitempty"`
 	region   string
+	vncInfo  *vncInfo
 }
+
+type vncInfo struct {
+	Scheme string
+	Host   string
+	Port   string
+	Path   string
+}
+
 type set interface {
 	contains(el string) bool
 	add(el string)
