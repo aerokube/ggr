@@ -818,11 +818,11 @@ Use only one of these commands depending on whether you have Docker installed.
 <div class="listingblock">
 <div class="title">Result</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript">{<span class="key"><span class="delimiter">&quot;</span><span class="content">uptime</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">2m46.854829503s</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">lastReloadTime</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">2017-05-12 12:33:06.322038542 +0300 MSK</span><span class="delimiter">&quot;</span></span>}</code></pre>
+<pre class="CodeRay highlight"><code data-lang="javascript">{<span class="key"><span class="delimiter">&quot;</span><span class="content">uptime</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">2m46.854829503s</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">lastReloadTime</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">2017-05-12 12:33:06.322038542 +0300 MSK</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">numRequests</span><span class="delimiter">&quot;</span></span>:<span class="integer">42</span>}</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>It returns <code>200 OK</code> when Ggr operates normally. Additionally server uptime and last quota reload time are returned in JSON format.</p>
+<p>It returns <code>200 OK</code> when Ggr operates normally. Additionally server uptime, last quota reload time and overall number of session requests from service startup are returned in JSON format.</p>
 </div>
 <div class="sect3">
 <h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.5.1. Why Ggr is Stateless</h4>
@@ -1172,7 +1172,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-10-05 12:27:30 UTC
+Last updated 2017-10-05 13:28:59 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
