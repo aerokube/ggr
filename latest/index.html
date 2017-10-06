@@ -517,7 +517,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2017-10-05</span>
+<span id="revdate">2017-10-06</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -532,7 +532,8 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_creating_users_file">2.1. Creating Users File</a></li>
 <li><a href="#_creating_quota_files">2.2. Creating Quota Files</a>
 <ul class="sectlevel3">
-<li><a href="#_working_with_external_selenium_services">2.2.1. Working with External Selenium Services</a></li>
+<li><a href="#_proxying_vnc_traffic">2.2.1. Proxying VNC Traffic</a></li>
+<li><a href="#_working_with_external_selenium_services">2.2.2. Working with External Selenium Services</a></li>
 </ul>
 </li>
 <li><a href="#_quota_reload_and_graceful_restart">2.3. Quota Reload and Graceful Restart</a></li>
@@ -741,7 +742,66 @@ File name should correspond to user name you added to <code>htpasswd</code> file
 </ol>
 </div>
 <div class="sect3">
-<h4 id="_working_with_external_selenium_services"><a class="anchor" href="#_working_with_external_selenium_services"></a>2.2.1. Working with External Selenium Services</h4>
+<h4 id="_proxying_vnc_traffic"><a class="anchor" href="#_proxying_vnc_traffic"></a>2.2.1. Proxying VNC Traffic</h4>
+<div class="paragraph">
+<p>Sometimes for debugging purposes you need to see the screen of the browser where your test is being executed. The simplest way to do that is to install a <a href="https://en.wikipedia.org/wiki/Virtual_Network_Computing">VNC</a> server to browser host. Default TCP port for VNC protocol is <code>5900</code>. Ggr can proxy the VNC traffic from multiple hosts and makes it accessible on a <a href="https://en.wikipedia.org/wiki/WebSocket">WebSocket</a>. For example having the running session ID you can get the VNC traffic by accessing the following endpoint:</p>
+</div>
+<div class="listingblock">
+<div class="title">Typical VNC traffic URL</div>
+<div class="content">
+<pre>ws://ggr-host.example.com:4444/vnc/&lt;session-id&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Browser VNC clients like <a href="https://github.com/novnc/noVNC">noVNC</a> work with such URLs out of the box. By default having an XML host entry like this&#8230;&#8203;</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>&lt;host name="host1.example.com" port="4444" count="1"/&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>&#8230;&#8203;Ggr proxies all traffic from <code>host1.example.com:5900</code>. You can customize this by adding an optional <code>vnc</code> attribute to a host:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>&lt;host name="host1.example.com" port="4444" count="1" vnc="vnc://host1.example.com:6900"/&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Two notations are supported in <code>vnc</code> attribute:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>If the remote server has a VNC server listening on dedicated TCP port you should use <code>vnc://</code> protocol and specify only host and port:</p>
+<div class="literalblock">
+<div class="content">
+<pre>vnc://my-vnc-host.example.com:5900</pre>
+</div>
+</div>
+</li>
+<li>
+<p>If the remote server also returns VNC traffic on a web socket (which is a case for <a href="http://aerokube.com/selenoid/latest/#_live_browser_screen">Selenoid</a>) - then you should specify a <code>ws://</code> URL without trailing <code>&lt;session-id&gt;</code> value:</p>
+<div class="literalblock">
+<div class="content">
+<pre>ws://my-selenoid-host.example.com/vnc</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Having this URL Ggr will append session ID and proxy VNC traffic from:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>ws://my-selenoid-host.example.com/vnc/&lt;session-id&gt;</pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_working_with_external_selenium_services"><a class="anchor" href="#_working_with_external_selenium_services"></a>2.2.2. Working with External Selenium Services</h4>
 <div class="paragraph">
 <p>Although Ggr is mainly used for creating your own Selenium cluster you can also configure it to obtain some browsers in external Selenium services such as <a href="http://saucelabs.com/">Saucelabs</a>, <a href="http://browserstack.com/">BrowserStack</a> or <a href="https://testingbot.com/">TestingBot</a>. These services always require username and password to be specified. Credentials should be set for each browser version in respective quota file:</p>
 </div>
@@ -1172,7 +1232,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-10-05 13:28:59 UTC
+Last updated 2017-10-06 04:04:52 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
