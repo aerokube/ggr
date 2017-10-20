@@ -18,6 +18,7 @@ $ htpasswd -bc /etc/grid-router/users.htpasswd test test-password
 ----
 $ java -jar selenium-server-standalone.jar -port 4445
 ----
+NOTE: We are showing Selenium server command here because it is a well-known example. We recommend you to use http://aerokube.com/selenoid/latest/[Selenoid] instead - it is more efficient.  
 . Create quota file (use correct browser name and version):
 +
 ----
