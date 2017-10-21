@@ -6,6 +6,7 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/aerokube/ggr.svg)](https://hub.docker.com/r/aerokube/ggr)
 
 Go Grid Router (aka Ggr) is a lightweight active load balancer used to create scalable and highly-available [Selenium](http://seleniumhq.org/) clusters.
+![Ggr Animatiob](docs/img/ggr-animation.gif)
 
 ## Quick Start Guide
 To use Go Grid Router do the following:
