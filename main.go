@@ -23,6 +23,7 @@ var (
 	gracefulPeriod     time.Duration
 	guestAccessAllowed bool
 	guestUserName      string
+	verbose            bool
 
 	startTime      = time.Now()
 	lastReloadTime = time.Now()
@@ -32,7 +33,7 @@ var (
 	buildStamp  string = "unknown"
 )
 
-func loadQuotaFiles(quotaDir string) error {
+func loadQuotaFiles(quotaDir string, verbose bool) error {
 	log.Printf("Loading configuration files from [%s]\n", quotaDir)
 
 	glob := fmt.Sprintf("%s%c%s", quotaDir, filepath.Separator, "*.xml")
@@ -42,12 +43,12 @@ func loadQuotaFiles(quotaDir string) error {
 	}
 
 	for _, file := range files {
-		loadQuotaFile(file)
+		loadQuotaFile(file, verbose)
 	}
 	return nil
 }
 
-func loadQuotaFile(file string) {
+func loadQuotaFile(file string, verbose bool) {
 	fileName := filepath.Base(file)
 	quotaName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 	var browsers Browsers
@@ -57,7 +58,9 @@ func loadQuotaFile(file string) {
 		return
 	}
 	updateQuota(quotaName, browsers)
-	log.Printf("Loaded configuration from [%s]:\n%v\n", file, browsers)
+	if verbose {
+		log.Printf("Loaded configuration from [%s]:\n%v\n", file, browsers)
+	}
 }
 
 func updateQuota(quotaName string, browsers Browsers) {
@@ -87,6 +90,7 @@ func init() {
 	flag.DurationVar(&timeout, "timeout", 300*time.Second, "session creation timeout in time.Duration format, e.g. 300s or 500ms")
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
 	flag.BoolVar(&version, "version", false, "show version and exit")
+	flag.BoolVar(&verbose, "verbose", false, "enable verbose mode")
 	flag.Parse()
 	if version {
 		showVersion()
@@ -96,7 +100,7 @@ func init() {
 		log.Fatalf("Users file [%s] does not exist\n", users)
 	}
 	log.Printf("Users file is [%s]\n", users)
-	if err := loadQuotaFiles(quotaDir); err != nil {
+	if err := loadQuotaFiles(quotaDir, verbose); err != nil {
 		log.Fatalf("%v\n", err)
 	}
 	sig := make(chan os.Signal)
@@ -104,7 +108,7 @@ func init() {
 	go func() {
 		for {
 			<-sig
-			loadQuotaFiles(quotaDir)
+			loadQuotaFiles(quotaDir, verbose)
 		}
 	}()
 }
