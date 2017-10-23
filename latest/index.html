@@ -1073,6 +1073,10 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <td class="tableblock halign-left valign-top"><p class="tableblock">Session ID does not contain information about host where it was created</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PROXYING_TO_VNC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Starting to proxy VNC traffic</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">ROUTE_NOT_FOUND</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Trying to proxy session to unknown host. Usually means quota files inconsistency between multiple Ggr instances.</p></td>
 </tr>
@@ -1099,6 +1103,18 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">UNSUPPORTED_BROWSER</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Requested browser name and version is not present in quota</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VNC_CLIENT_DISCONNECTED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client disconnected from VNC API</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VNC_ERROR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An error occurred when trying to proxy VNC traffic</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VNC_SESSION_CLOSED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client closed VNC session</p></td>
 </tr>
 </tbody>
 </table>
@@ -1251,7 +1267,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-10-23 16:57:18 UTC
+Last updated 2017-10-23 17:44:05 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
