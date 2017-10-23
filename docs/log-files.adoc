@@ -37,6 +37,7 @@ The following statuses are available:
 | BROWSER_NOT_SET | Browser name is not present or empty string 
 | CLIENT_DISCONNECTED | User disconnected and doing session attempts was interrupted 
 | INVALID_URL | Session ID does not contain information about host where it was created 
+| PROXYING_TO_VNC | Starting to proxy VNC traffic 
 | ROUTE_NOT_FOUND | Trying to proxy session to unknown host. Usually means quota files inconsistency between multiple Ggr instances. 
 | SESSION_ATTEMPTED | New user request for session arrived 
 | SESSION_CREATED | A new session was created and returned to user 
@@ -44,4 +45,7 @@ The following statuses are available:
 | SESSION_FAILED | Session attempt on specified host failed 
 | SESSION_NOT_CREATED | Attempts to create a new session on all hosts failed. An error was returned to user. 
 | UNSUPPORTED_BROWSER | Requested browser name and version is not present in quota 
+| VNC_CLIENT_DISCONNECTED | Client disconnected from VNC API 
+| VNC_ERROR | An error occurred when trying to proxy VNC traffic 
+| VNC_SESSION_CLOSED | Client closed VNC session
 |===
