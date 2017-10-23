@@ -178,15 +178,15 @@ func TestParseConfig(t *testing.T) {
 }
 
 func TestConfDirDoesNotExist(t *testing.T) {
-	err := loadQuotaFiles("missing-dir")
+	err := loadQuotaFiles("missing-dir", true)
 	AssertThat(t, err, Is{Not{nil}})
 }
 
 func TestConcurrentReload(t *testing.T) {
 	go func() {
-		loadQuotaFiles("quota")
+		loadQuotaFiles("quota", true)
 	}()
-	loadQuotaFiles("quota")
+	loadQuotaFiles("quota", true)
 }
 
 func TestChoosingAllHosts(t *testing.T) {
