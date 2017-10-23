@@ -33,7 +33,7 @@ var (
 	buildStamp  string = "unknown"
 )
 
-func loadQuotaFiles(quotaDir string, verbose bool) error {
+func loadQuotaFiles(quotaDir string) error {
 	log.Printf("Loading configuration files from [%s]\n", quotaDir)
 
 	glob := fmt.Sprintf("%s%c%s", quotaDir, filepath.Separator, "*.xml")
@@ -43,12 +43,12 @@ func loadQuotaFiles(quotaDir string, verbose bool) error {
 	}
 
 	for _, file := range files {
-		loadQuotaFile(file, verbose)
+		loadQuotaFile(file)
 	}
 	return nil
 }
 
-func loadQuotaFile(file string, verbose bool) {
+func loadQuotaFile(file string) {
 	fileName := filepath.Base(file)
 	quotaName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 	var browsers Browsers
@@ -100,7 +100,7 @@ func init() {
 		log.Fatalf("Users file [%s] does not exist\n", users)
 	}
 	log.Printf("Users file is [%s]\n", users)
-	if err := loadQuotaFiles(quotaDir, verbose); err != nil {
+	if err := loadQuotaFiles(quotaDir); err != nil {
 		log.Fatalf("%v\n", err)
 	}
 	sig := make(chan os.Signal)
@@ -108,7 +108,7 @@ func init() {
 	go func() {
 		for {
 			<-sig
-			loadQuotaFiles(quotaDir, verbose)
+			loadQuotaFiles(quotaDir)
 		}
 	}()
 }
