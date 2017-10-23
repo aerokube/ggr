@@ -9,6 +9,10 @@ import (
 	. "github.com/aandryashin/matchers"
 )
 
+func init() {
+	verbose = true
+}
+
 func TestEmptyListOfHosts(t *testing.T) {
 	host, index := Hosts{}.choose()
 	AssertThat(t, host, Is{(*Host)(nil)})
@@ -178,15 +182,15 @@ func TestParseConfig(t *testing.T) {
 }
 
 func TestConfDirDoesNotExist(t *testing.T) {
-	err := loadQuotaFiles("missing-dir", true)
+	err := loadQuotaFiles("missing-dir")
 	AssertThat(t, err, Is{Not{nil}})
 }
 
 func TestConcurrentReload(t *testing.T) {
 	go func() {
-		loadQuotaFiles("quota", true)
+		loadQuotaFiles("quota")
 	}()
-	loadQuotaFiles("quota", true)
+	loadQuotaFiles("quota")
 }
 
 func TestChoosingAllHosts(t *testing.T) {
