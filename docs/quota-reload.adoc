@@ -1,4 +1,4 @@
-== Quota Reload and Graceful Restart
+== Quota Reloading
 * To **reload quota files** just send **SIGHUP** to process or Docker container:
 +
 ```
