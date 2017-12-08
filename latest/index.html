@@ -541,9 +541,10 @@ table.CodeRay td.code>pre{padding:0}
 <ul class="sectlevel3">
 <li><a href="#_proxying_vnc_traffic">2.2.1. Proxying VNC Traffic</a></li>
 <li><a href="#_working_with_external_selenium_services">2.2.2. Working with External Selenium Services</a></li>
+<li><a href="#_guest_quota">2.2.3. Guest Quota</a></li>
 </ul>
 </li>
-<li><a href="#_quota_reload_and_graceful_restart">2.3. Quota Reload and Graceful Restart</a></li>
+<li><a href="#_quota_reloading">2.3. Quota Reloading</a></li>
 <li><a href="#_how_it_works">2.4. How it Works</a></li>
 <li><a href="#_using_multiple_ggr_instances">2.5. Using Multiple Ggr Instances</a>
 <ul class="sectlevel3">
@@ -838,9 +839,23 @@ File name should correspond to user name you added to <code>htpasswd</code> file
 </div>
 </div>
 </div>
+<div class="sect3">
+<h4 id="_guest_quota"><a class="anchor" href="#_guest_quota"></a>2.2.3. Guest Quota</h4>
+<div class="paragraph">
+<p>By default every quota file corresponds to a user. In some cases you may need to give anonymous (guest) access to some users. This is very useful to maintain a sandbox where users can debug their tests without disturbing other tests. Guest quota is enabled using Ggr flags:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>$ ./ggr -guests-allowed -guest-quota test &lt;the-rest-of-the-flags...&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With these flags specified any browsers declared in <code>test.xml</code> file will be accessible without password.</p>
+</div>
+</div>
 </div>
 <div class="sect2">
-<h3 id="_quota_reload_and_graceful_restart"><a class="anchor" href="#_quota_reload_and_graceful_restart"></a>2.3. Quota Reload and Graceful Restart</h3>
+<h3 id="_quota_reloading"><a class="anchor" href="#_quota_reloading"></a>2.3. Quota Reloading</h3>
 <div class="ulist">
 <ul>
 <li>
@@ -1259,7 +1274,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-12-08 17:27:52 UTC
+Last updated 2017-12-08 19:23:55 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
