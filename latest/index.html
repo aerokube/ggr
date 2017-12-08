@@ -524,7 +524,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2017-10-23</span>
+<span id="revdate">2017-12-08</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -1179,14 +1179,6 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <p>Setup <code>$GOPATH</code> <a href="https://github.com/golang/go/wiki/GOPATH">properly</a></p>
 </li>
 <li>
-<p>Install <a href="https://github.com/kardianos/govendor">govendor</a>:</p>
-<div class="literalblock">
-<div class="content">
-<pre>$ go get -u github.com/kardianos/govendor</pre>
-</div>
-</div>
-</li>
-<li>
 <p>Get Ggr source:</p>
 <div class="literalblock">
 <div class="content">
@@ -1206,7 +1198,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <p>Checkout dependencies:</p>
 <div class="literalblock">
 <div class="content">
-<pre>$ govendor sync</pre>
+<pre>$ go get -u github.com/golang/dep/cmd/dep &amp;&amp; dep ensure</pre>
 </div>
 </div>
 </li>
@@ -1267,7 +1259,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-10-23 17:44:05 UTC
+Last updated 2017-12-08 17:27:52 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
