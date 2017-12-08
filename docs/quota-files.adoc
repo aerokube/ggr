@@ -74,3 +74,11 @@ Although Ggr is mainly used for creating your own Selenium cluster you can also 
 </browser>
 </qa:browsers>
 ----
+
+=== Guest Quota
+
+By default every quota file corresponds to a user. In some cases you may need to give anonymous (guest) access to some users. This is very useful to maintain a sandbox where users can debug their tests without disturbing other tests. Guest quota is enabled using Ggr flags:
+
+    $ ./ggr -guests-allowed -guest-quota test <the-rest-of-the-flags...>
+
+With these flags specified any browsers declared in `test.xml` file will be accessible without password.
