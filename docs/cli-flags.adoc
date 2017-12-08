@@ -2,9 +2,11 @@
 
 The following flags are supported by ```ggr``` command:
 ```
+  -graceful-period duration
+    	graceful shutdown period in time.Duration format, e.g. 300s or 500ms (default 5m0s)
   -guests-allowed
-    	Allow guest (unauthenticated) users to access the grid (default false)
-  -guests-quota
+    	Allow guest (unauthenticated) users to access the grid
+  -guests-quota string
     	Which quota file to use for guests (default "guest")
   -listen string
     	host and port to listen to (default ":4444")
@@ -14,6 +16,8 @@ The following flags are supported by ```ggr``` command:
     	session creation timeout in time.Duration format, e.g. 300s or 500ms (default 5m0s)
   -users string
     	htpasswd auth file path (default ".htpasswd")
+  -verbose
+    	enable verbose mode
   -version
     	show version and exit
 ```
