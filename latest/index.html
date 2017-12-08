@@ -1141,9 +1141,11 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code>  -guests-allowed
-    	Allow guest (unauthenticated) users to access the grid (default false)
-  -guests-quota
+<pre class="CodeRay highlight"><code>  -graceful-period duration
+    	graceful shutdown period in time.Duration format, e.g. 300s or 500ms (default 5m0s)
+  -guests-allowed
+    	Allow guest (unauthenticated) users to access the grid
+  -guests-quota string
     	Which quota file to use for guests (default "guest")
   -listen string
     	host and port to listen to (default ":4444")
@@ -1153,6 +1155,8 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
     	session creation timeout in time.Duration format, e.g. 300s or 500ms (default 5m0s)
   -users string
     	htpasswd auth file path (default ".htpasswd")
+  -verbose
+    	enable verbose mode
   -version
     	show version and exit</code></pre>
 </div>
@@ -1274,7 +1278,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-12-08 19:23:55 UTC
+Last updated 2017-12-08 19:28:11 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
