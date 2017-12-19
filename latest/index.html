@@ -545,15 +545,16 @@ table.CodeRay td.code>pre{padding:0}
 </ul>
 </li>
 <li><a href="#_quota_reloading">2.3. Quota Reloading</a></li>
-<li><a href="#_how_it_works">2.4. How it Works</a></li>
-<li><a href="#_using_multiple_ggr_instances">2.5. Using Multiple Ggr Instances</a>
+<li><a href="#_proxying_session_video">2.4. Proxying Session Video</a></li>
+<li><a href="#_how_it_works">2.5. How it Works</a></li>
+<li><a href="#_using_multiple_ggr_instances">2.6. Using Multiple Ggr Instances</a>
 <ul class="sectlevel3">
-<li><a href="#_why_ggr_is_stateless">2.5.1. Why Ggr is Stateless</a></li>
-<li><a href="#_getting_host_by_session_id">2.5.2. Getting Host by Session ID</a></li>
+<li><a href="#_why_ggr_is_stateless">2.6.1. Why Ggr is Stateless</a></li>
+<li><a href="#_getting_host_by_session_id">2.6.2. Getting Host by Session ID</a></li>
 </ul>
 </li>
-<li><a href="#_log_files">2.6. Log Files</a></li>
-<li><a href="#_ggr_cli_flags">2.7. Ggr CLI Flags</a></li>
+<li><a href="#_log_files">2.7. Log Files</a></li>
+<li><a href="#_ggr_cli_flags">2.8. Ggr CLI Flags</a></li>
 </ul>
 </li>
 <li><a href="#_contributing_development">3. Contributing &amp; Development</a>
@@ -883,7 +884,36 @@ Use only one of these commands depending on whether you have Docker installed.
 </div>
 </div>
 <div class="sect2">
-<h3 id="_how_it_works"><a class="anchor" href="#_how_it_works"></a>2.4. How it Works</h3>
+<h3 id="_proxying_session_video"><a class="anchor" href="#_proxying_session_video"></a>2.4. Proxying Session Video</h3>
+<div class="paragraph">
+<p>Ggr gives you an ability to view Selenium session videos captured directly from browser screen.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Video files are expected to be stored on the hub hosts specified in quota files and accessible via the following URL:</p>
+<div class="literalblock">
+<div class="content">
+<pre>http://hub-host.example.com:4444/video/&lt;real-session-id&gt;.mp4</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This API for example is supported by <a href="http://aerokube.com/selenoid/latest">Selenoid</a>.</p>
+</div>
+</li>
+<li>
+<p>To download video file via Ggr just use the same request but with the session ID returned to test:</p>
+<div class="literalblock">
+<div class="content">
+<pre>http://ggr-host.example.com:4444/video/&lt;test-session-id&gt;.mp4</pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_how_it_works"><a class="anchor" href="#_how_it_works"></a>2.5. How it Works</h3>
 <div class="paragraph">
 <p>See the full history in our article - <strong>Selenium testing: a new hope</strong>:</p>
 </div>
@@ -899,7 +929,7 @@ Use only one of these commands depending on whether you have Docker installed.
 </div>
 </div>
 <div class="sect2">
-<h3 id="_using_multiple_ggr_instances"><a class="anchor" href="#_using_multiple_ggr_instances"></a>2.5. Using Multiple Ggr Instances</h3>
+<h3 id="_using_multiple_ggr_instances"><a class="anchor" href="#_using_multiple_ggr_instances"></a>2.6. Using Multiple Ggr Instances</h3>
 <div class="paragraph">
 <p>In order to obtain reliable Selenium cluster you need to install multiple Ggr instances behind reliable load balancer such as <a href="https://aws.amazon.com/elasticloadbalancing/">AWS Elastic Load Balancing</a> or <a href="http://keepalived.org/">Keepalived</a>. To check Ggr instance health use <code>/ping</code>:</p>
 </div>
@@ -919,7 +949,7 @@ Use only one of these commands depending on whether you have Docker installed.
 <p>It returns <code>200 OK</code> when Ggr operates normally. Additionally server uptime, last quota reload time and overall number of session requests from service startup are returned in JSON format.</p>
 </div>
 <div class="sect3">
-<h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.5.1. Why Ggr is Stateless</h4>
+<h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.6.1. Why Ggr is Stateless</h4>
 <div class="paragraph">
 <p>Selenium uses an HTTP-based protocol. That means every action in Selenium, e.g. launching browser or taking screenshot is a separate HTTP request. When multiple instances of Ggr are handling requests behind load balancer every request can be routed to any of these instances. Here&#8217;s how it works.</p>
 </div>
@@ -947,7 +977,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect3">
-<h4 id="_getting_host_by_session_id"><a class="anchor" href="#_getting_host_by_session_id"></a>2.5.2. Getting Host by Session ID</h4>
+<h4 id="_getting_host_by_session_id"><a class="anchor" href="#_getting_host_by_session_id"></a>2.6.2. Getting Host by Session ID</h4>
 <div class="paragraph">
 <p>Sometimes you may want to get real hostname behind Ggr that is executing browser session. This can be done using session ID:</p>
 </div>
@@ -966,7 +996,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect2">
-<h3 id="_log_files"><a class="anchor" href="#_log_files"></a>2.6. Log Files</h3>
+<h3 id="_log_files"><a class="anchor" href="#_log_files"></a>2.7. Log Files</h3>
 <div class="paragraph">
 <p>A typical log file looks like the following:</p>
 </div>
@@ -1076,6 +1106,10 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <td class="tableblock halign-left valign-top"><p class="tableblock">User request does not contain valid Selenium data</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BAD_RESPONSE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Upstream server returned data using unknown JSON protocol</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">BROWSER_NOT_SET</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Browser name is not present or empty string</p></td>
 </tr>
@@ -1084,12 +1118,28 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <td class="tableblock halign-left valign-top"><p class="tableblock">User disconnected and doing session attempts was interrupted</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INVALID_HOST_VNC_URL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Failed to parse VNC host URL specified in quota configuration</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INVALID_VNC_REQUEST_URL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VNC request URL do not contain enough information to determine upstream host</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INVALID_VIDEO_REQUEST_URL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Video request URL do not contain enough information to determine upstream host</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">INVALID_URL</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Session ID does not contain information about host where it was created</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">PROXYING_TO_VNC</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Starting to proxy VNC traffic</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PROXYING_VIDEO</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Starting to proxy video from upstream host</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">ROUTE_NOT_FOUND</p></td>
@@ -1116,8 +1166,24 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <td class="tableblock halign-left valign-top"><p class="tableblock">Attempts to create a new session on all hosts failed. An error was returned to user.</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SHUTTING_DOWN</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Server is shutting down and waiting graceful shutdown timeout for currently proxied requests to finish</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">UNKNOWN_VNC_HOST</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requested to proxy VNC to host not present in quota</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">UNKNOWN_VIDEO_HOST</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requested to proxy video to host not present in quota</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">UNSUPPORTED_BROWSER</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Requested browser name and version is not present in quota</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">UNSUPPORTED_HOST_VNC_SCHEME</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Invalid URL protocol specified for host in quota VNC configuration (should be vnc:// or ws://)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">VNC_CLIENT_DISCONNECTED</p></td>
@@ -1135,7 +1201,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </table>
 </div>
 <div class="sect2">
-<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.7. Ggr CLI Flags</h3>
+<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.8. Ggr CLI Flags</h3>
 <div class="paragraph">
 <p>The following flags are supported by <code><code>ggr</code></code> command:</p>
 </div>
@@ -1278,7 +1344,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-12-19 15:33:04 UTC
+Last updated 2017-12-19 18:07:04 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
