@@ -35,6 +35,7 @@ const (
 	routePath      string = "/wd/hub/session"
 	proxyPath      string = routePath + "/"
 	vncPath        string = "/vnc/"
+	videoPath      string = "/video/"
 	head           int    = len(proxyPath)
 	md5SumLength   int    = 32
 	tail           int    = head + md5SumLength
@@ -477,12 +478,11 @@ func vnc(wsconn *websocket.Conn) {
 	defer wsconn.Close()
 	confLock.RLock()
 	defer confLock.RUnlock()
-	sessionId := strings.Split(wsconn.Request().URL.Path, "/")[2]
 	head := len(vncPath)
 	tail := head + md5SumLength
 	path := wsconn.Request().URL.Path
 	if len(path) < tail {
-		log.Printf("[INVALID_VNC_REQUEST_URL] [%s]\n", wsconn.Request().URL.Path)
+		log.Printf("[INVALID_VNC_REQUEST_URL] [%s]\n", path)
 		return
 	}
 	sum := path[head:tail]
@@ -499,6 +499,7 @@ func vnc(wsconn *websocket.Conn) {
 			port = vncInfo.Port
 			path = vncInfo.Path
 		}
+		sessionId := strings.Split(wsconn.Request().URL.Path, "/")[2]
 		switch scheme {
 		case vncScheme:
 			proxyVNC(wsconn, sessionId, host, port)
@@ -548,6 +549,33 @@ func proxyConn(wsconn *websocket.Conn, conn net.Conn, err error, sessionId strin
 	log.Printf("[VNC_CLIENT_DISCONNECTED] [%s] [%s]\n", sessionId, address)
 }
 
+func video(w http.ResponseWriter, r *http.Request) {
+	confLock.RLock()
+	defer confLock.RUnlock()
+
+	head := len(videoPath)
+	tail := head + md5SumLength
+	path := r.URL.Path
+	if len(path) < tail {
+		log.Printf("[INVALID_VIDEO_REQUEST_URL] [%s]\n", path)
+		reply(w, errMsg("invalid video request URL"), http.StatusNotFound)
+		return
+	}
+	sum := path[head:tail]
+	sessionId := path[tail:]
+	h, ok := routes[sum]
+	if ok {
+		(&httputil.ReverseProxy{Director: func(r *http.Request) {
+			r.URL.Scheme = "http"
+			r.URL.Host = h.net()
+			r.URL.Path = fmt.Sprintf("/video/%s.mp4", sessionId)
+		}}).ServeHTTP(w, r)
+	} else {
+		log.Printf("[UNKNOWN_VIDEO_HOST] [%s]\n", sum)
+		reply(w, errMsg("unknown video host"), http.StatusNotFound)
+	}
+}
+
 func mux() http.Handler {
 	mux := http.NewServeMux()
 	authenticator := auth.NewBasicAuthenticator(
@@ -560,5 +588,6 @@ func mux() http.Handler {
 	mux.HandleFunc(routePath, withCloseNotifier(WithSuitableAuthentication(authenticator, postOnly(route))))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	mux.Handle(vncPath, websocket.Handler(vnc))
+	mux.HandleFunc(videoPath, WithSuitableAuthentication(authenticator, video))
 	return mux
 }

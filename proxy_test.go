@@ -239,6 +239,54 @@ func TestProxyScreenWebSocketsProtocol(t *testing.T) {
 
 }
 
+func TestProxyVideoFileWithoutAuth(t *testing.T) {
+	rsp, err := http.Get(gridrouter("/video/123.mp4"))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
+func TestProxyVideoFile(t *testing.T) {
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/video/123.mp4", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	fileServer := httptest.NewServer(mux)
+	defer fileServer.Close()
+
+	host, port := hostportnum(fileServer.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	sessionId := node.sum() + "123"
+
+	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionId)), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusOK})
+
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/video/missing-file"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusNotFound})
+
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/video/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusNotFound})
+}
+
 func TestCreateSessionGet(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, gridrouter("/wd/hub/session"), nil)
 	req.SetBasicAuth("test", "test")
