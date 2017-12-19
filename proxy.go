@@ -569,6 +569,7 @@ func video(w http.ResponseWriter, r *http.Request) {
 			r.URL.Scheme = "http"
 			r.URL.Host = h.net()
 			r.URL.Path = fmt.Sprintf("/video/%s.mp4", sessionId)
+			log.Printf("[PROXYING_VIDEO] [%s] [%s]\n", sessionId, r.URL)
 		}}).ServeHTTP(w, r)
 	} else {
 		log.Printf("[UNKNOWN_VIDEO_HOST] [%s]\n", sum)

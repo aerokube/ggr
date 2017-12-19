@@ -1,0 +1,13 @@
+== Proxying Session Video
+
+Ggr gives you an ability to view Selenium session videos captured directly from browser screen.
+
+. Video files are expected to be stored on the hub hosts specified in quota files and accessible via the following URL:
+
+    http://hub-host.example.com:4444/video/<real-session-id>.mp4
+
++
+This API for example is supported by http://aerokube.com/selenoid/latest[Selenoid].
+. To download video file via Ggr just use the same request but with the session ID returned to test:
+
+     http://ggr-host.example.com:4444/video/<test-session-id>.mp4
