@@ -12,6 +12,8 @@ This API for example is supported by http://aerokube.com/selenoid/latest[Selenoi
 
      $ curl -o video-file.mp4 http://ggr-host.example.com:4444/video/<test-session-id>
 
++
+NOTE: Notice that session ID for hub host (aka `real-session-id`) and for Ggr (aka `test-session-id`) differ - the latter is longer because it contains information about hub host. Trying to use shorter session ID will not work.
 . To delete video file via Ggr just change HTTP method to DELETE:
 
     $ curl -X DELETE http://ggr-host.example.com:4444/video/<test-session-id>
