@@ -35,6 +35,10 @@ $ cat /etc/grid-router/quota/test.xml
 ----
 +
 NOTE: File name should correspond to user name you added to `htpasswd` file. For user ```test``` we added on previous steps you should create ```test.xml```.
++
+NOTE: For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost". 
+link:++https://docs.docker.com/docker-for-mac/networking/#use-cases-and-workarounds++[Docker for Mac - Networking].
++
 . Start Ggr container:
 +
 ----
