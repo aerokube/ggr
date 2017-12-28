@@ -921,6 +921,18 @@ Use only one of these commands depending on whether you have Docker installed.
 <pre>$ curl -o video-file.mp4 http://ggr-host.example.com:4444/video/&lt;test-session-id&gt;</pre>
 </div>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Notice that session ID for hub host (aka <code>real-session-id</code>) and for Ggr (aka <code>test-session-id</code>) differ - the latter is longer because it contains information about hub host. Trying to use shorter session ID will not work.
+</td>
+</tr>
+</table>
+</div>
 </li>
 <li>
 <p>To delete video file via Ggr just change HTTP method to DELETE:</p>
@@ -1365,7 +1377,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2017-12-28 14:13:52 UTC
+Last updated 2017-12-28 14:47:13 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
