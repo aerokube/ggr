@@ -74,6 +74,7 @@ func hostportnum(u string) (string, int) {
 func init() {
 	srv = httptest.NewServer(mux())
 	listen = hostport(srv.URL)
+	gitRevision = "test-revision"
 }
 
 func gridrouter(p string) string {
@@ -98,6 +99,9 @@ func TestPing(t *testing.T) {
 	AssertThat(t, hasLastReloadTime, Is{true})
 	_, hasNumRequests := data["numRequests"]
 	AssertThat(t, hasNumRequests, Is{true})
+	version, hasVersion := data["version"]
+	AssertThat(t, hasVersion, Is{true})
+	AssertThat(t, version, EqualTo{"test-revision"})
 }
 
 func TestErr(t *testing.T) {
