@@ -68,7 +68,7 @@ Although Ggr is mainly used for creating your own Selenium cluster you can also 
 <browser name="firefox" defaultVersion="45.0">
     <version number="45.0">
         <region name="1">
-            <host name="ondemand.saucelabs.com" port="4444" count="1" username="test-user" password="my-password"/>
+            <host name="hub.browserstack.com" port="443" count="1" username="test-user" password="my-password" scheme="https" />
         </region>
     </version>
 </browser>

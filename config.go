@@ -44,6 +44,7 @@ type Host struct {
 	Username string `xml:"username,attr,omitempty"`
 	Password string `xml:"password,attr,omitempty"`
 	VNC      string `xml:"vnc,attr,omitempty"`
+	Scheme   string `xml:"scheme,attr,omitempty"`
 	region   string
 	vncInfo  *vncInfo
 }
@@ -96,7 +97,11 @@ func (h *Host) net() string {
 }
 
 func (h *Host) route() string {
-	return "http://" + h.net()
+	scheme := h.Scheme
+	if scheme == "" {
+		scheme = "http"
+	}
+	return scheme + "://" + h.net()
 }
 
 func (h *Host) sessionURL() string {
