@@ -23,36 +23,36 @@ import (
 )
 
 const (
-	browserStarted int = iota
+	browserStarted = iota
 	browserFailed
 	seleniumError
 )
 
 const (
-	pingPath       string = "/ping"
-	errPath        string = "/err"
-	hostPath       string = "/host/"
-	routePath      string = "/wd/hub/session"
-	proxyPath      string = routePath + "/"
-	vncPath        string = "/vnc/"
-	videoPath      string = "/video/"
-	head           int    = len(proxyPath)
-	md5SumLength   int    = 32
-	tail           int    = head + md5SumLength
-	sessPart       int    = 4 // /wd/hub/session/{various length session}
-	defaultVNCPort string = "5900"
-	vncScheme      string = "vnc"
-	wsScheme       string = "ws"
+	pingPath       = "/ping"
+	errPath        = "/err"
+	hostPath       = "/host/"
+	routePath      = "/wd/hub/session"
+	proxyPath      = routePath + "/"
+	vncPath        = "/vnc/"
+	videoPath      = "/video/"
+	head           = len(proxyPath)
+	md5SumLength   = 32
+	tail           = head + md5SumLength
+	sessPart       = 4 // /wd/hub/session/{various length session}
+	defaultVNCPort = "5900"
+	vncScheme      = "vnc"
+	wsScheme       = "ws"
 )
 
 var (
-	httpClient *http.Client = &http.Client{
+	httpClient = &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 	}
-	quota           = make(map[string]Browsers)
-	routes   Routes = make(Routes)
+	quota    = make(map[string]Browsers)
+	routes   = make(Routes)
 	num      uint64
 	numLock  sync.RWMutex
 	confLock sync.RWMutex
@@ -81,7 +81,11 @@ func (c *caps) setCapability(k string, v string) {
 }
 
 func (c *caps) browser() string {
-	return c.capability("browserName")
+	browserName := c.capability("browserName")
+	if browserName != "" {
+		return browserName
+	}
+	return c.capability("deviceName")
 }
 
 func (c *caps) version() string {
