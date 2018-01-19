@@ -439,11 +439,18 @@ func TestStartSession(t *testing.T) {
 						node,
 					}},
 				}},
+			}},
+			{Name: "someDevice", DefaultVersion: "2.0", Versions: []Version{
+				{Number: "2.0", Regions: []Region{
+					{Hosts: Hosts{
+						node,
+					}},
+				}},
 			}}}}
 	}
 
 	testStartSession(t, mux, browsersProvider, "browser", "1.0")
-
+	testStartSessionCustomCaps(t, mux, browsersProvider, `{"desiredCapabilities":{"deviceName":"someDevice", "version":"2.0"}}`)
 }
 
 func TestStartSessionWithLocationHeader(t *testing.T) {
@@ -466,7 +473,7 @@ func TestStartSessionWithLocationHeader(t *testing.T) {
 	testStartSession(t, mux, browsersProvider, "browser", "1.0")
 }
 
-func testStartSession(t *testing.T, mux *http.ServeMux, browsersProvider func(Host) Browsers, browserName string, version string) {
+func testStartSessionCustomCaps(t *testing.T, mux *http.ServeMux, browsersProvider func(Host) Browsers, capsJson string) {
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
 
@@ -483,12 +490,16 @@ func testStartSession(t *testing.T, mux *http.ServeMux, browsersProvider func(Ho
 		updateQuota(user, browsers)
 	}()
 
-	rsp, err := createSession(fmt.Sprintf(`{"desiredCapabilities":{"browserName":"%s", "version":"%s"}}`, browserName, version))
+	rsp, err := createSession(capsJson)
 
 	AssertThat(t, err, Is{nil})
 	var sess map[string]interface{}
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
 	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
+}
+
+func testStartSession(t *testing.T, mux *http.ServeMux, browsersProvider func(Host) Browsers, browserName string, version string) {
+	testStartSessionCustomCaps(t, mux, browsersProvider, fmt.Sprintf(`{"desiredCapabilities":{"browserName":"%s", "version":"%s"}}`, browserName, version))
 }
 
 func TestStartSessionWithJsonSpecChars(t *testing.T) {
