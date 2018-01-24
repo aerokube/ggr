@@ -32,6 +32,7 @@ const (
 	pingPath       = "/ping"
 	errPath        = "/err"
 	hostPath       = "/host/"
+	quotaPath      = "/quota"
 	routePath      = "/wd/hub/session"
 	proxyPath      = routePath + "/"
 	vncPath        = "/vnc/"
@@ -343,6 +344,7 @@ func proxy(r *http.Request) {
 func ping(w http.ResponseWriter, _ *http.Request) {
 	confLock.RLock()
 	defer confLock.RUnlock()
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(struct {
 		Uptime         string `json:"uptime"`
 		LastReloadTime string `json:"lastReloadTime"`
@@ -373,7 +375,20 @@ func host(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("unknown host"))
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Host{Name: h.Name, Port: h.Port, Count: h.Count})
+}
+
+func quotaInfo(w http.ResponseWriter, r *http.Request) {
+	confLock.RLock()
+	defer confLock.RUnlock()
+	id := serial()
+	user, remote := info(r)
+	log.Printf("[%d] [QUOTA_INFO_REQUESTED] [%s] [%s]\n", id, user, remote)
+	browsers := quota[user]
+	w.Header().Set("Content-Type", "application/json")
+	// NOTE: intentionally not removing username \ password fields from returned XML to not complicate things (can be done later if needed)
+	json.NewEncoder(w).Encode(browsers.Browsers)
 }
 
 func postOnly(handler http.HandlerFunc) http.HandlerFunc {
@@ -591,6 +606,7 @@ func mux() http.Handler {
 	mux.HandleFunc(pingPath, ping)
 	mux.HandleFunc(errPath, err)
 	mux.HandleFunc(hostPath, WithSuitableAuthentication(authenticator, host))
+	mux.HandleFunc(quotaPath, WithSuitableAuthentication(authenticator, quotaInfo))
 	mux.HandleFunc(routePath, withCloseNotifier(WithSuitableAuthentication(authenticator, postOnly(route))))
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	mux.Handle(vncPath, websocket.Handler(vnc))

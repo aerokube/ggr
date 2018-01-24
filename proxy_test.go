@@ -159,6 +159,36 @@ func testGetHost(t *testing.T, sessionId string, statusCode int) *Host {
 	return &host
 }
 
+func TestGetQuotaInfoUnauthorized(t *testing.T) {
+	rsp, err := http.Get(gridrouter("/quota"))
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
+func TestGetQuotaInfo(t *testing.T) {
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					Host{Name: "example.com", Port: 4444, Count: 1, Username: "test", Password: "test"},
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	rsp, err := doBasicHTTPRequest(http.MethodPost, gridrouter("/quota"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusOK})
+
+	var fetchedBrowsers []Browser
+	err = json.NewDecoder(rsp.Body).Decode(&fetchedBrowsers)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, fetchedBrowsers, EqualTo{browsers.Browsers})
+}
+
 func TestProxyScreenVNCProtocol(t *testing.T) {
 
 	test.Lock()
