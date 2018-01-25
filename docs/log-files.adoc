@@ -43,6 +43,7 @@ The following statuses are available:
 | INVALID_URL | Session ID does not contain information about host where it was created 
 | PROXYING_TO_VNC | Starting to proxy VNC traffic 
 | PROXYING_VIDEO | Starting to proxy video from upstream host 
+| QUOTA_INFO_REQUESTED | Quota information request arrived 
 | ROUTE_NOT_FOUND | Trying to proxy session to unknown host. Usually means quota files inconsistency between multiple Ggr instances. 
 | SESSION_ATTEMPTED | New user request for session arrived 
 | SESSION_CREATED | A new session was created and returned to user 

@@ -82,3 +82,11 @@ By default every quota file corresponds to a user. In some cases you may need to
     $ ./ggr -guests-allowed -guest-quota test <the-rest-of-the-flags...>
 
 With these flags specified any browsers declared in `test.xml` file will be accessible without password.
+
+=== Fetching Quota Information
+
+You may want to show lists of available browsers in the user interface. To fetch this information from Ggr just use the following request:
+
+    $ curl -s http://test:test-password@example.com:4444/quota
+    
+This request returns quota file contents as JSON for specified user.
