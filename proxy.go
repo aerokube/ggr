@@ -324,6 +324,7 @@ func proxy(r *http.Request) {
 					r.Body = ioutil.NopCloser(bytes.NewReader(body))
 				}
 			}
+			r.Host = h.net()
 			r.URL.Host = h.net()
 			r.URL.Path = proxyPath
 			fragments := strings.Split(proxyPath, "/")
