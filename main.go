@@ -25,6 +25,10 @@ var (
 	guestUserName      string
 	verbose            bool
 
+	ssl                bool
+	certFile           string
+	pemFile            string
+
 	startTime      = time.Now()
 	lastReloadTime = time.Now()
 
@@ -91,6 +95,9 @@ func init() {
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
 	flag.BoolVar(&version, "version", false, "show version and exit")
 	flag.BoolVar(&verbose, "verbose", false, "enable verbose mode")
+	flag.BoolVar(&ssl, "ssl", false, "enable ssl mode")
+	flag.StringVar(&certFile, "certFile", "", "cert file to use on ssl")
+	flag.StringVar(&pemFile, "pemFile", "", "pem file to use on ssl")
 	flag.Parse()
 	if version {
 		showVersion()
@@ -98,6 +105,12 @@ func init() {
 	}
 	if !fileExists(users) {
 		log.Fatalf("Users file [%s] does not exist\n", users)
+	}
+	if ssl && !fileExists(certFile) {
+		log.Fatalf("certFile file [%s] does not exist\n", certFile)
+	}
+	if ssl && !fileExists(pemFile) {
+		log.Fatalf("pemFile file [%s] does not exist\n", pemFile)
 	}
 	log.Printf("Users file is [%s]\n", users)
 	if err := loadQuotaFiles(quotaDir); err != nil {
@@ -123,7 +136,11 @@ func main() {
 	}
 	e := make(chan error)
 	go func() {
-		e <- server.ListenAndServe()
+		if ssl {
+			e <- server.ListenAndServeTLS(certFile, pemFile)
+		} else {
+			e <- server.ListenAndServe()
+		}
 	}()
 	select {
 	case err := <-e:
