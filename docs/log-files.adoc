@@ -37,6 +37,7 @@ The following statuses are available:
 | BAD_RESPONSE | Upstream server returned data using unknown JSON protocol 
 | BROWSER_NOT_SET | Browser name is not present or empty string 
 | CLIENT_DISCONNECTED | User disconnected and doing session attempts was interrupted 
+| INIT | Server initialization messages 
 | INVALID_HOST_VNC_URL | Failed to parse VNC host URL specified in quota configuration 
 | INVALID_VNC_REQUEST_URL | VNC request URL do not contain enough information to determine upstream host 
 | INVALID_VIDEO_REQUEST_URL | Video request URL do not contain enough information to determine upstream host 

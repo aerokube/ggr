@@ -218,13 +218,13 @@ func route(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&c)
 	if err != nil {
 		reply(w, errMsg(fmt.Sprintf("bad json format: %s", err.Error())), http.StatusBadRequest)
-		log.Printf("[%d] [BAD_JSON] [%s] [%s] [%v]\n", id, user, remote, err)
+		log.Printf("[%d] [%.2fs] [BAD_JSON] [%s] [%s] [-] [-] [-] [-] [%v]\n", id, secondsSince(start), user, remote, err)
 		return
 	}
 	browser, version := c.browser(), c.version()
 	if browser == "" {
 		reply(w, errMsg("browser not set"), http.StatusBadRequest)
-		log.Printf("[%d] [BROWSER_NOT_SET] [%s] [%s]\n", id, user, remote)
+		log.Printf("[%d] [%.2fs] [BROWSER_NOT_SET] [%s] [%s] [-] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote)
 		return
 	}
 	count := 0
@@ -236,7 +236,7 @@ func route(w http.ResponseWriter, r *http.Request) {
 
 	if len(hosts) == 0 {
 		reply(w, errMsg(fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version))), http.StatusNotFound)
-		log.Printf("[%d] [UNSUPPORTED_BROWSER] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
+		log.Printf("[%d] [%.2fs] [UNSUPPORTED_BROWSER] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version))
 		return
 	}
 	lastHostError := ""
@@ -246,12 +246,12 @@ loop:
 		if h == nil {
 			break loop
 		}
-		log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [%d]\n", id, user, remote, fmtBrowser(browser, version), h.net(), count)
+		log.Printf("[%d] [%.2fs] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.net(), count)
 		c.setVersion(version)
 		resp, status := h.session(r.Context(), r.Header, c)
 		select {
 		case <-r.Context().Done():
-			log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), count)
+			log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.net(), count)
 			return
 		default:
 		}
@@ -261,7 +261,7 @@ loop:
 			if !ok {
 				protocolError := func() {
 					reply(w, errMsg("protocol error"), http.StatusBadGateway)
-					log.Printf("[%d] [BAD_RESPONSE] [%s] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version), h.net())
+					log.Printf("[%d] [%.2fs] [BAD_RESPONSE] [%s] [%s] [%s] [%s] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.net())
 				}
 				value, ok := resp["value"]
 				if !ok {
@@ -278,7 +278,7 @@ loop:
 				resp["sessionId"] = h.sum() + sess
 			}
 			reply(w, resp, http.StatusOK)
-			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d]\n", id, float64(time.Now().Sub(start).Seconds()), user, remote, fmtBrowser(browser, version), h.net(), sess, count)
+			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.net(), sess, count)
 			return
 		case browserFailed:
 			hosts = append(hosts[:i], hosts[i+1:]...)
@@ -288,7 +288,7 @@ loop:
 			hosts, version, excludedRegions = browsers.find(browser, version, excludedHosts, excludedRegions)
 		}
 		errMsg := browserErrMsg(resp)
-		log.Printf("[%d] [SESSION_FAILED] [%s] [%s] [%s] [%s] %s\n", id, user, remote, fmtBrowser(browser, version), h.net(), errMsg)
+		log.Printf("[%d] [%.2fs] [SESSION_FAILED] [%s] [%s] [%s] [%s] [-] [%d] [%s]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.net(), count, errMsg)
 		lastHostError = errMsg
 		if len(hosts) == 0 {
 			break loop
@@ -299,10 +299,15 @@ loop:
 		notCreatedMsg = fmt.Sprintf("%s, last host error was: %s", notCreatedMsg, lastHostError)
 	}
 	reply(w, errMsg(notCreatedMsg), http.StatusInternalServerError)
-	log.Printf("[%d] [SESSION_NOT_CREATED] [%s] [%s] [%s]\n", id, user, remote, fmtBrowser(browser, version))
+	log.Printf("[%d] [%.2fs] [SESSION_NOT_CREATED] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version))
+}
+
+func secondsSince(start time.Time) float64 {
+	return float64(time.Now().Sub(start).Seconds())
 }
 
 func proxy(r *http.Request) {
+	id := serial()
 	_, remote := info(r)
 	r.URL.Scheme = "http"
 	if len(r.URL.Path) > tail {
@@ -330,13 +335,13 @@ func proxy(r *http.Request) {
 			fragments := strings.Split(proxyPath, "/")
 			if r.Method == "DELETE" && len(fragments) == sessPart+1 {
 				sess := fragments[sessPart]
-				log.Printf("[SESSION_DELETED] [%s] [%s] [%s]\n", remote, h.net(), sess)
+				log.Printf("[%d] [-] [SESSION_DELETED] [-] [%s] [-] [%s] [%s] [-] [-]\n", id, remote, h.net(), sess)
 			}
 			return
 		}
-		log.Printf("[ROUTE_NOT_FOUND] [%s] [%s]\n", remote, proxyPath)
+		log.Printf("[%d] [-] [ROUTE_NOT_FOUND] [-] [%s] [%s] [-] [-] [-] [-]\n", id, remote, proxyPath)
 	} else {
-		log.Printf("[INVALID_URL] [%s] [%s]\n", remote, r.URL.Path)
+		log.Printf("[%d] [-] [INVALID_URL] [-] [%s] [%s] [-] [-] [-] [-]\n", id, remote, r.URL.Path)
 	}
 	r.URL.Host = listen
 	r.URL.Path = errPath
@@ -361,6 +366,9 @@ func err(w http.ResponseWriter, _ *http.Request) {
 func host(w http.ResponseWriter, r *http.Request) {
 	confLock.RLock()
 	defer confLock.RUnlock()
+
+	id := serial()
+	user, remote := info(r)
 	head := len(hostPath)
 	tail := head + md5SumLength
 	path := r.URL.Path
@@ -376,6 +384,7 @@ func host(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("unknown host"))
 		return
 	}
+	log.Printf("[%d] [-] [HOST_INFO_REQUESTED] [%s] [%s] [-] [%s] [%s] [-] [-]\n", id, user, remote, h.Name, sum)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Host{Name: h.Name, Port: h.Port, Count: h.Count})
 }
@@ -385,7 +394,7 @@ func quotaInfo(w http.ResponseWriter, r *http.Request) {
 	defer confLock.RUnlock()
 	id := serial()
 	user, remote := info(r)
-	log.Printf("[%d] [QUOTA_INFO_REQUESTED] [%s] [%s]\n", id, user, remote)
+	log.Printf("[%d] [-] [QUOTA_INFO_REQUESTED] [%s] [%s] [-] [-] [-] [-] [-]\n", id, user, remote)
 	browsers := quota[user]
 	w.Header().Set("Content-Type", "application/json")
 	// NOTE: intentionally not removing username \ password fields from returned XML to not complicate things (can be done later if needed)
@@ -449,11 +458,11 @@ func createVNCInfo(h Host) *vncInfo {
 	if vncUrl != "" {
 		u, err := url.Parse(vncUrl)
 		if err != nil {
-			log.Printf("[INVALID_HOST_VNC_URL] [%s] [%s]\n", fmt.Sprintf("%s:%s", h.Name, h.Port), vncUrl)
+			log.Printf("[-] [-] [INVALID_HOST_VNC_URL] [-] [-] [%s] [%s] [-] [-] [-]\n", vncUrl, fmt.Sprintf("%s:%s", h.Name, h.Port))
 			return nil
 		}
 		if u.Scheme != vncScheme && u.Scheme != wsScheme {
-			log.Printf("[UNSUPPORTED_HOST_VNC_SCHEME] [%s] [%s]\n", fmt.Sprintf("%s:%s", h.Name, h.Port), vncUrl)
+			log.Printf("[-] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [%s] [-] [-] [-]\n", vncUrl, fmt.Sprintf("%s:%s", h.Name, h.Port))
 			return nil
 		}
 		vncInfo := vncInfo{
@@ -499,11 +508,13 @@ func vnc(wsconn *websocket.Conn) {
 	defer wsconn.Close()
 	confLock.RLock()
 	defer confLock.RUnlock()
+
+	id := serial()
 	head := len(vncPath)
 	tail := head + md5SumLength
 	path := wsconn.Request().URL.Path
 	if len(path) < tail {
-		log.Printf("[INVALID_VNC_REQUEST_URL] [%s]\n", path)
+		log.Printf("[%d] [-] [INVALID_VNC_REQUEST_URL] [-] [-] [%s] [-] [-] [-] [-]\n", id, path)
 		return
 	}
 	sum := path[head:tail]
@@ -523,40 +534,40 @@ func vnc(wsconn *websocket.Conn) {
 		sessionId := strings.Split(wsconn.Request().URL.Path, "/")[2]
 		switch scheme {
 		case vncScheme:
-			proxyVNC(wsconn, sessionId, host, port)
+			proxyVNC(id, wsconn, sessionId, host, port)
 		case wsScheme:
-			proxyWebSockets(wsconn, sessionId, host, port, path)
+			proxyWebSockets(id, wsconn, sessionId, host, port, path)
 		default:
 			{
-				log.Printf("[UNSUPPORTED_HOST_VNC_SCHEME] [%s]\n", scheme)
+				log.Printf("[%d] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [-] [-] [-] [-]\n", id, scheme)
 				return
 			}
 		}
 	} else {
-		log.Printf("[UNKNOWN_VNC_HOST] [%s]\n", sum)
+		log.Printf("[%d] [-] [UNKNOWN_VNC_HOST] [-] [-] [-] [-] [%s] [-] [-]\n", id, sum)
 	}
 
 }
 
-func proxyVNC(wsconn *websocket.Conn, sessionId string, host string, port string) {
+func proxyVNC(id uint64, wsconn *websocket.Conn, sessionId string, host string, port string) {
 	var d net.Dialer
 	address := fmt.Sprintf("%s:%s", host, port)
 	conn, err := d.DialContext(wsconn.Request().Context(), "tcp", address)
-	proxyConn(wsconn, conn, err, sessionId, address)
+	proxyConn(id, wsconn, conn, err, sessionId, address)
 }
 
-func proxyWebSockets(wsconn *websocket.Conn, sessionId string, host string, port string, path string) {
+func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionId string, host string, port string, path string) {
 	origin := "http://localhost/"
 	u := fmt.Sprintf("ws://%s:%s%s/%s", host, port, path, sessionId)
 	//TODO: consider context from wsconn
 	conn, err := websocket.Dial(u, "", origin)
-	proxyConn(wsconn, conn, err, sessionId, u)
+	proxyConn(id, wsconn, conn, err, sessionId, u)
 }
 
-func proxyConn(wsconn *websocket.Conn, conn net.Conn, err error, sessionId string, address string) {
-	log.Printf("[PROXYING_TO_VNC] [%s] [%s]\n", sessionId, address)
+func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sessionId string, address string) {
+	log.Printf("[%d] [-] [PROXYING_TO_VNC] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionId)
 	if err != nil {
-		log.Printf("[VNC_ERROR] [%s] [%s] [%v]\n", sessionId, address, err)
+		log.Printf("[%d] [-] [VNC_ERROR] [-] [-] [-] [%s] [%s] [-] [%v]\n", id, sessionId, address, err)
 		return
 	}
 	defer conn.Close()
@@ -564,21 +575,23 @@ func proxyConn(wsconn *websocket.Conn, conn net.Conn, err error, sessionId strin
 	go func() {
 		io.Copy(wsconn, conn)
 		wsconn.Close()
-		log.Printf("[VNC_SESSION_CLOSED] [%s] [%s]\n", sessionId, address)
+		log.Printf("[%d] [-] [VNC_SESSION_CLOSED] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionId)
 	}()
 	io.Copy(conn, wsconn)
-	log.Printf("[VNC_CLIENT_DISCONNECTED] [%s] [%s]\n", sessionId, address)
+	log.Printf("[%d] [-] [VNC_CLIENT_DISCONNECTED] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionId)
 }
 
 func video(w http.ResponseWriter, r *http.Request) {
 	confLock.RLock()
 	defer confLock.RUnlock()
 
+	id := serial()
+	user, remote := info(r)
 	head := len(videoPath)
 	tail := head + md5SumLength
 	path := r.URL.Path
 	if len(path) < tail {
-		log.Printf("[INVALID_VIDEO_REQUEST_URL] [%s]\n", path)
+		log.Printf("[%d] [-] [INVALID_VIDEO_REQUEST_URL] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, user, remote, path)
 		reply(w, errMsg("invalid video request URL"), http.StatusNotFound)
 		return
 	}
@@ -590,10 +603,10 @@ func video(w http.ResponseWriter, r *http.Request) {
 			r.URL.Scheme = "http"
 			r.URL.Host = h.net()
 			r.URL.Path = fmt.Sprintf("/video/%s.mp4", sessionId)
-			log.Printf("[PROXYING_VIDEO] [%s] [%s]\n", sessionId, r.URL)
+			log.Printf("[%d] [-] [PROXYING_VIDEO] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, user, remote, r.URL, sessionId)
 		}}).ServeHTTP(w, r)
 	} else {
-		log.Printf("[UNKNOWN_VIDEO_HOST] [%s]\n", sum)
+		log.Printf("[%d] [-] [UNKNOWN_VIDEO_HOST] [%s] [%s] [-] [-] [%s] [-] [-]\n", id, user, remote, sum)
 		reply(w, errMsg("unknown video host"), http.StatusNotFound)
 	}
 }
