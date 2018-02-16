@@ -96,7 +96,7 @@ func init() {
 		showVersion()
 		os.Exit(0)
 	}
-	if !fileExists(users) {
+	if !fileExists(users) && !guestAccessAllowed {
 		log.Fatalf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file \"%s\" does not exist]\n", users)
 	}
 	log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file is \"%s\"]\n", users)
