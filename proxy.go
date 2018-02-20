@@ -454,15 +454,15 @@ func appendRoutes(routes Routes, config *Browsers) Routes {
 }
 
 func createVNCInfo(h Host) *vncInfo {
-	vncUrl := h.VNC
-	if vncUrl != "" {
-		u, err := url.Parse(vncUrl)
+	vncURL := h.VNC
+	if vncURL != "" {
+		u, err := url.Parse(vncURL)
 		if err != nil {
-			log.Printf("[-] [-] [INVALID_HOST_VNC_URL] [-] [-] [%s] [%s] [-] [-] [-]\n", vncUrl, fmt.Sprintf("%s:%s", h.Name, h.Port))
+			log.Printf("[-] [-] [INVALID_HOST_VNC_URL] [-] [-] [%s] [%s] [-] [-] [-]\n", vncURL, fmt.Sprintf("%s:%d", h.Name, h.Port))
 			return nil
 		}
 		if u.Scheme != vncScheme && u.Scheme != wsScheme {
-			log.Printf("[-] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [%s] [-] [-] [-]\n", vncUrl, fmt.Sprintf("%s:%s", h.Name, h.Port))
+			log.Printf("[-] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [%s] [-] [-] [-]\n", vncURL, fmt.Sprintf("%s:%d", h.Name, h.Port))
 			return nil
 		}
 		vncInfo := vncInfo{
@@ -482,6 +482,7 @@ func requireBasicAuth(authenticator *auth.BasicAuth, handler func(http.ResponseW
 	})
 }
 
+//WithSuitableAuthentication handles basic authentication and guest quota processing
 func WithSuitableAuthentication(authenticator *auth.BasicAuth, handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !guestAccessAllowed {
@@ -531,12 +532,12 @@ func vnc(wsconn *websocket.Conn) {
 			port = vncInfo.Port
 			path = vncInfo.Path
 		}
-		sessionId := strings.Split(wsconn.Request().URL.Path, "/")[2]
+		sessionID := strings.Split(wsconn.Request().URL.Path, "/")[2]
 		switch scheme {
 		case vncScheme:
-			proxyVNC(id, wsconn, sessionId, host, port)
+			proxyVNC(id, wsconn, sessionID, host, port)
 		case wsScheme:
-			proxyWebSockets(id, wsconn, sessionId, host, port, path)
+			proxyWebSockets(id, wsconn, sessionID, host, port, path)
 		default:
 			{
 				log.Printf("[%d] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [-] [-] [-] [-]\n", id, scheme)
@@ -549,25 +550,25 @@ func vnc(wsconn *websocket.Conn) {
 
 }
 
-func proxyVNC(id uint64, wsconn *websocket.Conn, sessionId string, host string, port string) {
+func proxyVNC(id uint64, wsconn *websocket.Conn, sessionID string, host string, port string) {
 	var d net.Dialer
 	address := fmt.Sprintf("%s:%s", host, port)
 	conn, err := d.DialContext(wsconn.Request().Context(), "tcp", address)
-	proxyConn(id, wsconn, conn, err, sessionId, address)
+	proxyConn(id, wsconn, conn, err, sessionID, address)
 }
 
-func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionId string, host string, port string, path string) {
+func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, host string, port string, path string) {
 	origin := "http://localhost/"
-	u := fmt.Sprintf("ws://%s:%s%s/%s", host, port, path, sessionId)
+	u := fmt.Sprintf("ws://%s:%s%s/%s", host, port, path, sessionID)
 	//TODO: consider context from wsconn
 	conn, err := websocket.Dial(u, "", origin)
-	proxyConn(id, wsconn, conn, err, sessionId, u)
+	proxyConn(id, wsconn, conn, err, sessionID, u)
 }
 
-func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sessionId string, address string) {
-	log.Printf("[%d] [-] [PROXYING_TO_VNC] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionId)
+func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sessionID string, address string) {
+	log.Printf("[%d] [-] [PROXYING_TO_VNC] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionID)
 	if err != nil {
-		log.Printf("[%d] [-] [VNC_ERROR] [-] [-] [-] [%s] [%s] [-] [%v]\n", id, sessionId, address, err)
+		log.Printf("[%d] [-] [VNC_ERROR] [-] [-] [-] [%s] [%s] [-] [%v]\n", id, sessionID, address, err)
 		return
 	}
 	defer conn.Close()
@@ -575,10 +576,10 @@ func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sess
 	go func() {
 		io.Copy(wsconn, conn)
 		wsconn.Close()
-		log.Printf("[%d] [-] [VNC_SESSION_CLOSED] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionId)
+		log.Printf("[%d] [-] [VNC_SESSION_CLOSED] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionID)
 	}()
 	io.Copy(conn, wsconn)
-	log.Printf("[%d] [-] [VNC_CLIENT_DISCONNECTED] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionId)
+	log.Printf("[%d] [-] [VNC_CLIENT_DISCONNECTED] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionID)
 }
 
 func video(w http.ResponseWriter, r *http.Request) {
@@ -596,14 +597,14 @@ func video(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sum := path[head:tail]
-	sessionId := path[tail:]
+	sessionID := path[tail:]
 	h, ok := routes[sum]
 	if ok {
 		(&httputil.ReverseProxy{Director: func(r *http.Request) {
 			r.URL.Scheme = "http"
 			r.URL.Host = h.net()
-			r.URL.Path = fmt.Sprintf("/video/%s.mp4", sessionId)
-			log.Printf("[%d] [-] [PROXYING_VIDEO] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, user, remote, r.URL, sessionId)
+			r.URL.Path = fmt.Sprintf("/video/%s.mp4", sessionID)
+			log.Printf("[%d] [-] [PROXYING_VIDEO] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, user, remote, r.URL, sessionID)
 		}}).ServeHTTP(w, r)
 	} else {
 		log.Printf("[%d] [-] [UNKNOWN_VIDEO_HOST] [%s] [%s] [-] [-] [%s] [-] [-]\n", id, user, remote, sum)
