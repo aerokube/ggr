@@ -133,7 +133,7 @@ func TestGetHostBadSessionId(t *testing.T) {
 	testGetHost(t, "bad-session-id", http.StatusBadRequest)
 }
 
-func testGetHost(t *testing.T, sessionId string, statusCode int) *Host {
+func testGetHost(t *testing.T, sessionID string, statusCode int) *Host {
 
 	test.Lock()
 	defer test.Unlock()
@@ -148,7 +148,7 @@ func testGetHost(t *testing.T, sessionId string, statusCode int) *Host {
 		}}}}
 	updateQuota(user, browsers)
 
-	rsp, err := doBasicHTTPRequest(http.MethodPost, gridrouter(fmt.Sprintf("/host/%s", sessionId)), nil)
+	rsp, err := doBasicHTTPRequest(http.MethodPost, gridrouter(fmt.Sprintf("/host/%s", sessionID)), nil)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{statusCode})
 	if statusCode != http.StatusOK {
@@ -195,7 +195,7 @@ func TestProxyScreenVNCProtocol(t *testing.T) {
 	defer test.Unlock()
 
 	const testData = "vnc-data"
-	server := testTcpServer(testData)
+	server := testTCPServer(testData)
 	defer server.Close()
 
 	vncHost := Host{Name: "example.com", Port: 4444, Count: 1, VNC: fmt.Sprintf("vnc://%s", server.Addr().String())}
@@ -214,10 +214,10 @@ func TestProxyScreenVNCProtocol(t *testing.T) {
 }
 
 func testDataReceived(host Host, correctData string, t *testing.T) {
-	sessionId := host.sum() + "123"
+	sessionID := host.sum() + "123"
 
 	origin := "http://localhost/"
-	u := fmt.Sprintf("ws://%s/vnc/%s", srv.Listener.Addr(), sessionId)
+	u := fmt.Sprintf("ws://%s/vnc/%s", srv.Listener.Addr(), sessionID)
 	ws, err := websocket.Dial(u, "", origin)
 	AssertThat(t, err, Is{nil})
 
@@ -227,7 +227,7 @@ func testDataReceived(host Host, correctData string, t *testing.T) {
 	AssertThat(t, strings.TrimSpace(string(data)), EqualTo{correctData})
 }
 
-func testTcpServer(data string) net.Listener {
+func testTCPServer(data string) net.Listener {
 	l, _ := net.Listen("tcp", "127.0.0.1:0")
 	go func() {
 		for {
@@ -306,9 +306,9 @@ func TestProxyVideoFile(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	sessionId := node.sum() + "123"
+	sessionID := node.sum() + "123"
 
-	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionId)), nil)
+	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionID)), nil)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusOK})
 
@@ -503,7 +503,7 @@ func TestStartSessionWithLocationHeader(t *testing.T) {
 	testStartSession(t, mux, browsersProvider, "browser", "1.0")
 }
 
-func testStartSessionCustomCaps(t *testing.T, mux *http.ServeMux, browsersProvider func(Host) Browsers, capsJson string) {
+func testStartSessionCustomCaps(t *testing.T, mux *http.ServeMux, browsersProvider func(Host) Browsers, capsJSON string) {
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
 
@@ -520,7 +520,7 @@ func testStartSessionCustomCaps(t *testing.T, mux *http.ServeMux, browsersProvid
 		updateQuota(user, browsers)
 	}()
 
-	rsp, err := createSession(capsJson)
+	rsp, err := createSession(capsJSON)
 
 	AssertThat(t, err, Is{nil})
 	var sess map[string]interface{}
