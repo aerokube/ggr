@@ -333,8 +333,11 @@ func proxy(r *http.Request) {
 			r.URL.Host = h.net()
 			r.URL.Path = proxyPath
 			fragments := strings.Split(proxyPath, "/")
-			if r.Method == "DELETE" && len(fragments) == sessPart+1 {
-				sess := fragments[sessPart]
+			sess := fragments[sessPart]
+			if verbose {
+				log.Printf("[%d] [-] [PROXYING] [-] [%s] [-] [%s] [%s] [-] [%s]\n", id, remote, h.net(), sess, proxyPath)
+			}
+			if r.Method == http.MethodDelete && len(fragments) == sessPart+1 {
 				log.Printf("[%d] [-] [SESSION_DELETED] [-] [%s] [-] [%s] [%s] [-] [-]\n", id, remote, h.net(), sess)
 			}
 			return

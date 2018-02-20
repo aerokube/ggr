@@ -75,6 +75,7 @@ func init() {
 	srv = httptest.NewServer(mux())
 	listen = hostport(srv.URL)
 	gitRevision = "test-revision"
+	verbose = true
 }
 
 func gridrouter(p string) string {

@@ -42,6 +42,7 @@ The following statuses are available:
 | INVALID_VNC_REQUEST_URL | VNC request URL do not contain enough information to determine upstream host 
 | INVALID_VIDEO_REQUEST_URL | Video request URL do not contain enough information to determine upstream host 
 | INVALID_URL | Session ID does not contain information about host where it was created 
+| PROXYING | Proxying Selenium request (shown in verbose mode only) 
 | PROXYING_TO_VNC | Starting to proxy VNC traffic 
 | PROXYING_VIDEO | Starting to proxy video from upstream host 
 | QUOTA_INFO_REQUESTED | Quota information request arrived 
