@@ -98,8 +98,9 @@ func init() {
 	}
 	if !fileExists(users) && !guestAccessAllowed {
 		log.Fatalf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file \"%s\" does not exist]\n", users)
+	} else {
+		log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file is \"%s\"]\n", users)
 	}
-	log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file is \"%s\"]\n", users)
 	if err := loadQuotaFiles(quotaDir); err != nil {
 		log.Fatalf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [%v]\n", err)
 	}
