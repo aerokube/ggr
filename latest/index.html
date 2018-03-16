@@ -524,7 +524,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2018-03-12</span>
+<span id="revdate">2018-03-16</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -820,7 +820,7 @@ For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost".
 <p>If the remote server also returns VNC traffic on a web socket (which is a case for <a href="http://aerokube.com/selenoid/latest/#_live_browser_screen">Selenoid</a>) - then you should specify a <code>ws://</code> URL without trailing <code>&lt;session-id&gt;</code> value:</p>
 <div class="literalblock">
 <div class="content">
-<pre>ws://my-selenoid-host.example.com/vnc</pre>
+<pre>ws://my-selenoid-host.example.com:4444/vnc</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -828,7 +828,7 @@ For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost".
 </div>
 <div class="literalblock">
 <div class="content">
-<pre>ws://my-selenoid-host.example.com/vnc/&lt;session-id&gt;</pre>
+<pre>ws://my-selenoid-host.example.com:4444/vnc/&lt;session-id&gt;</pre>
 </div>
 </div>
 </li>
@@ -1404,7 +1404,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2018-03-12 06:09:47 UTC
+Last updated 2018-03-16 18:49:50 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
