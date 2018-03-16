@@ -54,11 +54,11 @@ Two notations are supported in `vnc` attribute:
 
 . If the remote server also returns VNC traffic on a web socket (which is a case for http://aerokube.com/selenoid/latest/#_live_browser_screen[Selenoid]) - then you should specify a `ws://` URL without trailing `<session-id>` value:
 +
-    ws://my-selenoid-host.example.com/vnc
+    ws://my-selenoid-host.example.com:4444/vnc
 +
 Having this URL Ggr will append session ID and proxy VNC traffic from:
 +
-    ws://my-selenoid-host.example.com/vnc/<session-id>
+    ws://my-selenoid-host.example.com:4444/vnc/<session-id>
 
 === Working with External Selenium Services
 

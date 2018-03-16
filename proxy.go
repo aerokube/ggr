@@ -535,7 +535,7 @@ func vnc(wsconn *websocket.Conn) {
 			port = vncInfo.Port
 			path = vncInfo.Path
 		}
-		sessionID := strings.Split(wsconn.Request().URL.Path, "/")[2]
+		sessionID := strings.Split(wsconn.Request().URL.Path, "/")[2][md5SumLength:]
 		switch scheme {
 		case vncScheme:
 			proxyVNC(id, wsconn, sessionID, host, port)
