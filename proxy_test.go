@@ -251,7 +251,7 @@ func TestProxyScreenWebSocketsProtocol(t *testing.T) {
 
 	const testData = "ws-data"
 	mux := http.NewServeMux()
-	mux.Handle("/vnc/", websocket.Handler(func(wsconn *websocket.Conn) {
+	mux.Handle("/vnc/123", websocket.Handler(func(wsconn *websocket.Conn) {
 		wsconn.Write([]byte(testData))
 	}))
 
