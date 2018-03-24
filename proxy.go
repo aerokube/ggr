@@ -17,9 +17,10 @@ import (
 
 	"context"
 
+	"io"
+
 	"github.com/abbot/go-http-auth"
 	"golang.org/x/net/websocket"
-	"io"
 )
 
 const (
@@ -46,6 +47,16 @@ const (
 	wsScheme       = "ws"
 )
 
+var keys = struct {
+	desiredCapabilities string
+	w3cCapabilities     string
+	alwaysMatch         string
+}{
+	desiredCapabilities: "desiredCapabilities",
+	w3cCapabilities:     "capabilities",
+	alwaysMatch:         "alwaysMatch",
+}
+
 var (
 	httpClient = &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -64,21 +75,36 @@ type Routes map[string]*Host
 
 type caps map[string]interface{}
 
-func (c *caps) capability(k string) string {
-	dc := (*c)["desiredCapabilities"]
-	switch dc.(type) {
-	case map[string]interface{}:
-		v := dc.(map[string]interface{})
-		switch v[k].(type) {
-		case string:
-			return v[k].(string)
+func (c caps) capabilities(fn func(m map[string]interface{}, w3c bool)) {
+	if desiredCapabilities, ok := c[keys.desiredCapabilities]; ok {
+		if m, ok := desiredCapabilities.(map[string]interface{}); ok {
+			fn(m, false)
+		}
+	} else {
+		if w3cCapabilities, ok := c[keys.w3cCapabilities]; ok {
+			if m, ok := w3cCapabilities.(map[string]interface{}); ok {
+				if alwaysMatch, ok := m[keys.alwaysMatch]; ok {
+					if m, ok := alwaysMatch.(map[string]interface{}); ok {
+						fn(m, true)
+					}
+				}
+			}
 		}
 	}
-	return ""
+	fn(make(map[string]interface{}), false)
 }
 
-func (c *caps) setCapability(k string, v string) {
-	(*c)["desiredCapabilities"].(map[string]interface{})[k] = v
+func (c caps) capability(k string) string {
+	ch := make(chan string)
+	go func(ch chan string) {
+		c.capabilities(func(m map[string]interface{}, w3c bool) {
+			if v, ok := m[k].(string); ok {
+				ch <- v
+			}
+			ch <- ""
+		})
+	}(ch)
+	return <-ch
 }
 
 func (c *caps) browser() string {
@@ -90,11 +116,21 @@ func (c *caps) browser() string {
 }
 
 func (c *caps) version() string {
-	return c.capability("version")
+	v := c.capability("version")
+	if v != "" {
+		return v
+	}
+	return c.capability("browserVersion")
 }
 
 func (c *caps) setVersion(version string) {
-	c.setCapability("version", version)
+	c.capabilities(func(m map[string]interface{}, w3c bool) {
+		if w3c {
+			m["browserVersion"] = version
+		} else {
+			m["version"] = version
+		}
+	})
 }
 
 func (h *Host) session(ctx context.Context, header http.Header, c caps) (map[string]interface{}, int) {
