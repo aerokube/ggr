@@ -368,27 +368,6 @@ func TestCreateSessionBrowserNotSet(t *testing.T) {
 	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
 }
 
-func TestCreateSessionW3CBrowserNotSet0(t *testing.T) {
-	rsp, err := createSession(`{"capabilities":{}}`)
-
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
-}
-
-func TestCreateSessionW3CBrowserNotSet1(t *testing.T) {
-	rsp, err := createSession(`{"capabilities":{"alwaysMatch":{}}}`)
-
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
-}
-
-func TestCreateSessionW3CBrowserNotSet2(t *testing.T) {
-	rsp, err := createSession(`{"capabilities":{"alwaysMatch":{"browserName":false}}}}`)
-
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
-}
-
 func TestCreateSessionBadBrowserName(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":false}}`)
 
@@ -635,11 +614,33 @@ func TestStartSessionWithPrefixVersion(t *testing.T) {
 	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1"}}`)
 }
 
+func TestCreateSessionW3CBrowserNotSet0(t *testing.T) {
+	rsp, err := createSession(`{"capabilities":{}}`)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+}
+
+func TestCreateSessionW3CBrowserNotSet1(t *testing.T) {
+	rsp, err := createSession(`{"capabilities":{"alwaysMatch":{}}}`)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+}
+
+func TestCreateSessionW3CBrowserNotSet2(t *testing.T) {
+	rsp, err := createSession(`{"capabilities":{"alwaysMatch":{"browserName":false}}}}`)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+}
+
 func TestStartSessionWithDefaultVersion(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := ioutil.ReadAll(r.Body)
 		r.Body.Close()
+		w.Write([]byte(`{"sessionId":"123"}`))
 		var sess map[string]map[string]string
 		err := json.Unmarshal(body, &sess)
 		AssertThat(t, err, Is{nil})
@@ -670,16 +671,17 @@ func TestStartSessionWithDefaultVersion(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":""}}`)
+	createSession(`{"desiredCapabilities":{"browserName":"browser"}}`)
 }
 
-func TestStartSessionW3CWithDefaultVersion(t *testing.T) {
+func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := ioutil.ReadAll(r.Body)
 		r.Body.Close()
 		var sess map[string]map[string]map[string]string
 		err := json.Unmarshal(body, &sess)
+		w.Write([]byte(`{"sessionId":"123"}`))
 		AssertThat(t, err, Is{nil})
 		AssertThat(t, sess["capabilities"]["alwaysMatch"]["browserVersion"], EqualTo{"2.0"})
 

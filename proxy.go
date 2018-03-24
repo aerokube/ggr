@@ -95,9 +95,17 @@ func (c caps) capabilities(fn func(m map[string]interface{}, w3c bool)) {
 }
 
 func (c caps) capability(k string) string {
+	return c.capabilityJsonWireW3C(k, k)
+}
+
+func (c caps) capabilityJsonWireW3C(jsonWire, W3C string) string {
 	ch := make(chan string)
 	go func(ch chan string) {
 		c.capabilities(func(m map[string]interface{}, w3c bool) {
+			k := jsonWire
+			if w3c {
+				k = W3C
+			}
 			if v, ok := m[k].(string); ok {
 				ch <- v
 			}
@@ -115,15 +123,11 @@ func (c *caps) browser() string {
 	return c.capability("deviceName")
 }
 
-func (c *caps) version() string {
-	v := c.capability("version")
-	if v != "" {
-		return v
-	}
-	return c.capability("browserVersion")
+func (c caps) version() string {
+	return c.capabilityJsonWireW3C("version", "browserVersion")
 }
 
-func (c *caps) setVersion(version string) {
+func (c caps) setVersion(version string) {
 	c.capabilities(func(m map[string]interface{}, w3c bool) {
 		if w3c {
 			m["browserVersion"] = version
