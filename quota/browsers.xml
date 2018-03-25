@@ -1,11 +1,11 @@
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
-    <browser name="firefox" defaultVersion="59.0"> <!-- Every distinct browser name should have corresponding <browser> tag -->
-        <version number="59.0"> <!-- <version> tag is used to denote distinct browser version -->
+    <browser name="firefox" defaultVersion="53.0"> <!-- Every distinct browser name should have corresponding <browser> tag -->
+        <version number="53.0"> <!-- <version> tag is used to denote distinct browser version -->
             <region name="1"> <!-- <region> tag corresponds to a data center or cloud computing region -->
                 <host name="localhost" port="5555" count="5"/> <!-- <host> tag stores information about concrete remote host, port Selenium is listening and number of available browsers -->
             </region>
             <region name="2">
-                <host name="localhost" port="5555" count="5"/>
+                <host name="localhost" port="5556" count="5"/>
             </region>
         </version>
     </browser>
