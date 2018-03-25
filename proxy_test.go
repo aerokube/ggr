@@ -17,10 +17,11 @@ import (
 	"io"
 	"time"
 
+	"strings"
+
 	. "github.com/aandryashin/matchers"
 	. "github.com/aandryashin/matchers/httpresp"
 	"golang.org/x/net/websocket"
-	"strings"
 )
 
 var (
@@ -613,11 +614,33 @@ func TestStartSessionWithPrefixVersion(t *testing.T) {
 	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1"}}`)
 }
 
+func TestCreateSessionW3CBrowserNotSet0(t *testing.T) {
+	rsp, err := createSession(`{"capabilities":{}}`)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+}
+
+func TestCreateSessionW3CBrowserNotSet1(t *testing.T) {
+	rsp, err := createSession(`{"capabilities":{"alwaysMatch":{}}}`)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+}
+
+func TestCreateSessionW3CBrowserNotSet2(t *testing.T) {
+	rsp, err := createSession(`{"capabilities":{"alwaysMatch":{"browserName":false}}}}`)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+}
+
 func TestStartSessionWithDefaultVersion(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := ioutil.ReadAll(r.Body)
 		r.Body.Close()
+		w.Write([]byte(`{"sessionId":"123"}`))
 		var sess map[string]map[string]string
 		err := json.Unmarshal(body, &sess)
 		AssertThat(t, err, Is{nil})
@@ -648,7 +671,46 @@ func TestStartSessionWithDefaultVersion(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":""}}`)
+	createSession(`{"desiredCapabilities":{"browserName":"browser"}}`)
+}
+
+func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := ioutil.ReadAll(r.Body)
+		r.Body.Close()
+		var sess map[string]map[string]map[string]string
+		err := json.Unmarshal(body, &sess)
+		w.Write([]byte(`{"sessionId":"123"}`))
+		AssertThat(t, err, Is{nil})
+		AssertThat(t, sess["capabilities"]["alwaysMatch"]["browserVersion"], EqualTo{"2.0"})
+
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+			{Number: "2.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	createSession(`{"capabilities":{"alwaysMatch":{"browserName":"browser"}}}`)
 }
 
 func TestClientClosedConnection(t *testing.T) {
