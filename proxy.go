@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -14,10 +16,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"context"
-
-	"io"
 
 	"github.com/abbot/go-http-auth"
 	"golang.org/x/net/websocket"
@@ -283,6 +281,10 @@ func route(w http.ResponseWriter, r *http.Request) {
 loop:
 	for h, i := hosts.choose(); ; h, i = hosts.choose() {
 		count++
+		r.Header.Del("X-Selenoid-No-Wait")
+		if len(hosts) != 1 {
+			r.Header.Add("X-Selenoid-No-Wait", "")
+		}
 		if h == nil {
 			break loop
 		}
