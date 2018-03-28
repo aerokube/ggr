@@ -34,7 +34,7 @@ var (
 )
 
 func loadQuotaFiles(quotaDir string) error {
-	log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Loading configuration files from \"%s\"]\n", quotaDir)
+	log.Printf("[-] [-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Loading configuration files from \"%s\"]\n", quotaDir)
 
 	glob := fmt.Sprintf("%s%c%s", quotaDir, filepath.Separator, "*.xml")
 	files, _ := filepath.Glob(glob)
@@ -54,12 +54,12 @@ func loadQuotaFile(file string) {
 	var browsers Browsers
 	err := readConfig(file, &browsers)
 	if err != nil {
-		log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Failed to load configuration from \"%s\": %v]\n", fileName, err)
+		log.Printf("[-] [-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Failed to load configuration from \"%s\": %v]\n", fileName, err)
 		return
 	}
 	updateQuota(quotaName, browsers)
 	if verbose {
-		log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Loaded configuration from \"%s\"]\n%v\n", file, browsers)
+		log.Printf("[-] [-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Loaded configuration from \"%s\"]\n%v\n", file, browsers)
 	}
 }
 
@@ -96,12 +96,12 @@ func init() {
 		showVersion()
 		os.Exit(0)
 	}
-	log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file is \"%s\"]\n", users)
+	log.Printf("[-] [-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file is \"%s\"]\n", users)
 	if !fileExists(users) && !guestAccessAllowed {
-		log.Fatalf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file \"%s\" does not exist]\n", users)
+		log.Fatalf("[-] [-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file \"%s\" does not exist]\n", users)
 	}
 	if err := loadQuotaFiles(quotaDir); err != nil {
-		log.Fatalf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [%v]\n", err)
+		log.Fatalf("[-] [-] [-] [INIT] [-] [-] [-] [-] [-] [-] [%v]\n", err)
 	}
 	sig := make(chan os.Signal)
 	signal.Notify(sig, syscall.SIGHUP)
@@ -127,14 +127,14 @@ func main() {
 	}()
 	select {
 	case err := <-e:
-		log.Fatalf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [%v]\n", err)
+		log.Fatalf("[-] [-] [-] [INIT] [-] [-] [-] [-] [-] [-] [%v]\n", err)
 	case <-stop:
 	}
 
-	log.Printf("[-] [%s] [SHUTTING_DOWN] [-] [-] [-] [-] [-] [-] [-]\n", gracefulPeriod)
+	log.Printf("[-] [-] [%s] [SHUTTING_DOWN] [-] [-] [-] [-] [-] [-] [-]\n", gracefulPeriod)
 	ctx, cancel := context.WithTimeout(context.Background(), gracefulPeriod)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("[-] [-] [SHUTDOWN_FAILURE] [-] [-] [-] [-] [-] [-] [%v]\n", err)
+		log.Fatalf("[-] [-] [-] [SHUTDOWN_FAILURE] [-] [-] [-] [-] [-] [-] [%v]\n", err)
 	}
 }
