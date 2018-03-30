@@ -29,8 +29,8 @@ You can also start [Selenoid](https://github.com/aerokube/selenoid) instead.
 ```
 $ cat /etc/grid-router/quota/test.xml
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
-<browser name="firefox" defaultVersion="45.0">
-    <version number="45.0">
+<browser name="firefox" defaultVersion="59.0">
+    <version number="59.0">
         <region name="1">
             <host name="localhost" port="4445" count="1"/>
         </region>
