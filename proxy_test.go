@@ -1399,6 +1399,13 @@ func TestStartSessionGuestModeAndWrongBasicAuth(t *testing.T) {
 	AssertThat(t, rsp.StatusCode, Is{http.StatusUnauthorized})
 }
 
+func TestReloadWithoutAuth(t *testing.T) {
+	rsp, err := http.Post(gridrouter("/reload"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{}}`)))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
 func createSessionWithoutAuthentication(capabilities string) (*http.Response, error) {
 	body := bytes.NewReader([]byte(capabilities))
 	return doHTTPRequestWithoutAuthentication(http.MethodPost, gridrouter("/wd/hub/session"), body)

@@ -36,6 +36,7 @@ const (
 	proxyPath      = routePath + "/"
 	vncPath        = "/vnc/"
 	videoPath      = "/video/"
+	reloadPath     = "/reload"
 	head           = len(proxyPath)
 	md5SumLength   = 32
 	tail           = head + md5SumLength
@@ -657,6 +658,20 @@ func video(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func reload(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	id := serial()
+	user, remote := info(r)
+	err := loadQuotaFiles(quotaDir)
+
+	if err != nil {
+		reply(w, errMsg(fmt.Sprintf("failed to load quotas: %s", err.Error())), http.StatusInternalServerError)
+		log.Printf("[%d] [%.2fs] [RELOAD_QUOTAS] [%s] [%s] [-] [-] [-] [-] [%v]\n", id, secondsSince(start), user, remote, err)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func mux() http.Handler {
 	mux := http.NewServeMux()
 	authenticator := auth.NewBasicAuthenticator(
@@ -671,5 +686,6 @@ func mux() http.Handler {
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	mux.Handle(vncPath, websocket.Handler(vnc))
 	mux.HandleFunc(videoPath, WithSuitableAuthentication(authenticator, video))
+	mux.HandleFunc(reloadPath, WithSuitableAuthentication(authenticator, postOnly(reload)))
 	return mux
 }
