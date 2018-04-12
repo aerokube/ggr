@@ -36,6 +36,7 @@ const (
 	proxyPath      = routePath + "/"
 	vncPath        = "/vnc/"
 	videoPath      = "/video/"
+	downloadPath   = "/download/"
 	head           = len(proxyPath)
 	md5SumLength   = 32
 	tail           = head + md5SumLength
@@ -628,32 +629,44 @@ func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sess
 }
 
 func video(w http.ResponseWriter, r *http.Request) {
+	proxyStatic(w, r, videoPath, "INVALID_VIDEO_REQUEST_URL", "PROXYING_VIDEO", "UNKNOWN_VIDEO_HOST", func(sessionId string) string {
+		return fmt.Sprintf("/video/%s.mp4", sessionId)
+	})
+}
+
+func download(w http.ResponseWriter, r *http.Request) {
+	proxyStatic(w, r, downloadPath, "INVALID_DOWNLOAD_REQUEST_URL", "PROXYING_DOWNLOAD", "UNKNOWN_DOWNLOAD_HOST", func(remainder string) string {
+		return fmt.Sprintf("/download/%s", remainder)
+	})
+}
+
+func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUrlMessage string, proxyingMessage string, unknownHostMessage string, pathProvider func(string) string) {
 	confLock.RLock()
 	defer confLock.RUnlock()
 
 	id := serial()
 	user, remote := info(r)
-	head := len(videoPath)
+	head := len(route)
 	tail := head + md5SumLength
 	path := r.URL.Path
 	if len(path) < tail {
-		log.Printf("[%d] [-] [INVALID_VIDEO_REQUEST_URL] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, user, remote, path)
-		reply(w, errMsg("invalid video request URL"), http.StatusNotFound)
+		log.Printf("[%d] [-] [%s] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, invalidUrlMessage, user, remote, path)
+		reply(w, errMsg("invalid request URL"), http.StatusNotFound)
 		return
 	}
 	sum := path[head:tail]
-	sessionID := path[tail:]
+	remainder := path[tail:]
 	h, ok := routes[sum]
 	if ok {
 		(&httputil.ReverseProxy{Director: func(r *http.Request) {
 			r.URL.Scheme = "http"
 			r.URL.Host = h.net()
-			r.URL.Path = fmt.Sprintf("/video/%s.mp4", sessionID)
-			log.Printf("[%d] [-] [PROXYING_VIDEO] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, user, remote, r.URL, sessionID)
+			r.URL.Path = pathProvider(remainder)
+			log.Printf("[%d] [-] [%s] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, proxyingMessage, user, remote, r.URL, remainder)
 		}}).ServeHTTP(w, r)
 	} else {
-		log.Printf("[%d] [-] [UNKNOWN_VIDEO_HOST] [%s] [%s] [-] [-] [%s] [-] [-]\n", id, user, remote, sum)
-		reply(w, errMsg("unknown video host"), http.StatusNotFound)
+		log.Printf("[%d] [-] [%s] [%s] [%s] [-] [-] [%s] [-] [-]\n", id, unknownHostMessage, user, remote, sum)
+		reply(w, errMsg("unknown host"), http.StatusNotFound)
 	}
 }
 
@@ -671,5 +684,6 @@ func mux() http.Handler {
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	mux.Handle(vncPath, websocket.Handler(vnc))
 	mux.HandleFunc(videoPath, WithSuitableAuthentication(authenticator, video))
+	mux.HandleFunc(downloadPath, WithSuitableAuthentication(authenticator, download))
 	return mux
 }

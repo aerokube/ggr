@@ -276,7 +276,7 @@ func TestProxyScreenWebSocketsProtocol(t *testing.T) {
 }
 
 func TestProxyVideoFileWithoutAuth(t *testing.T) {
-	rsp, err := http.Get(gridrouter("/video/123.mp4"))
+	rsp, err := http.Get(gridrouter("/video/123"))
 
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusUnauthorized})
@@ -284,19 +284,35 @@ func TestProxyVideoFileWithoutAuth(t *testing.T) {
 
 func TestProxyVideoFile(t *testing.T) {
 
+	test.Lock()
+	defer test.Unlock()
+
+	fileServer, sessionID := prepareMockFileServer("/video/123.mp4")
+	defer fileServer.Close()
+
+	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionID)), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusOK})
+
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/video/missing-file"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusNotFound})
+
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/video/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusNotFound})
+}
+
+func prepareMockFileServer(path string) (*httptest.Server, string) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/video/123.mp4", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
 	fileServer := httptest.NewServer(mux)
-	defer fileServer.Close()
 
 	host, port := hostportnum(fileServer.URL)
 	node := Host{Name: host, Port: port, Count: 1}
-
-	test.Lock()
-	defer test.Unlock()
 
 	browsers := Browsers{Browsers: []Browser{
 		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
@@ -310,15 +326,33 @@ func TestProxyVideoFile(t *testing.T) {
 
 	sessionID := node.sum() + "123"
 
-	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionID)), nil)
+	return fileServer, sessionID
+}
+
+func TestProxyDownloadWithoutAuth(t *testing.T) {
+	rsp, err := http.Get(gridrouter("/download/123"))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
+func TestProxyDownload(t *testing.T) {
+
+	test.Lock()
+	defer test.Unlock()
+
+	fileServer, sessionID := prepareMockFileServer("/download/123/somefile.txt")
+	defer fileServer.Close()
+
+	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/download/%s/somefile.txt", sessionID)), nil)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusOK})
 
-	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/video/missing-file"), nil)
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/download/missing-file"), nil)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusNotFound})
 
-	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/video/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/download/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusNotFound})
 }
