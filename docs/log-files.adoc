@@ -39,10 +39,12 @@ The following statuses are available:
 | CLIENT_DISCONNECTED | User disconnected and doing session attempts was interrupted 
 | INIT | Server initialization messages 
 | INVALID_HOST_VNC_URL | Failed to parse VNC host URL specified in quota configuration 
+| INVALID_DOWNLOAD_REQUEST_URL | Download request URL do not contain enough information to determine upstream host 
 | INVALID_VNC_REQUEST_URL | VNC request URL do not contain enough information to determine upstream host 
 | INVALID_VIDEO_REQUEST_URL | Video request URL do not contain enough information to determine upstream host 
 | INVALID_URL | Session ID does not contain information about host where it was created 
 | PROXYING | Proxying Selenium request (shown in verbose mode only) 
+| PROXYING_DOWNLOAD | Starting to proxy downloaded file from upstream host 
 | PROXYING_TO_VNC | Starting to proxy VNC traffic 
 | PROXYING_VIDEO | Starting to proxy video from upstream host 
 | QUOTA_INFO_REQUESTED | Quota information request arrived 
@@ -53,6 +55,7 @@ The following statuses are available:
 | SESSION_FAILED | Session attempt on specified host failed 
 | SESSION_NOT_CREATED | Attempts to create a new session on all hosts failed. An error was returned to user. 
 | SHUTTING_DOWN | Server is shutting down and waiting graceful shutdown timeout for currently proxied requests to finish  
+| UNKNOWN_DOWNLOAD_HOST | Requested to proxy downloaded file to host not present in quota 
 | UNKNOWN_VNC_HOST | Requested to proxy VNC to host not present in quota 
 | UNKNOWN_VIDEO_HOST | Requested to proxy video to host not present in quota 
 | UNSUPPORTED_BROWSER | Requested browser name and version is not present in quota 
