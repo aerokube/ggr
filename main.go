@@ -77,8 +77,8 @@ func showVersion() {
 }
 
 func fileExists(p string) bool {
-	_, err := os.Stat(p)
-	return !os.IsNotExist(err)
+	fileInfo, err := os.Stat(p)
+	return !os.IsNotExist(err) && !fileInfo.IsDir()
 }
 
 func init() {
@@ -98,7 +98,7 @@ func init() {
 	}
 	log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file is \"%s\"]\n", users)
 	if !fileExists(users) && !guestAccessAllowed {
-		log.Fatalf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file \"%s\" does not exist]\n", users)
+		log.Fatalf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [Users file \"%s\" does not exist or is a directory]\n", users)
 	}
 	if err := loadQuotaFiles(quotaDir); err != nil {
 		log.Fatalf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [%v]\n", err)
