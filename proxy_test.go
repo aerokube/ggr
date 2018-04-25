@@ -22,6 +22,8 @@ import (
 	. "github.com/aandryashin/matchers"
 	. "github.com/aandryashin/matchers/httpresp"
 	"golang.org/x/net/websocket"
+	"os"
+	"path/filepath"
 )
 
 var (
@@ -1442,4 +1444,13 @@ func doHTTPRequestWithoutAuthentication(method string, url string, body io.Reade
 	req, _ := http.NewRequest(method, url, body)
 	client := &http.Client{}
 	return client.Do(req)
+}
+
+func TestFileExists(t *testing.T) {
+	tmpDir := os.TempDir()
+	AssertThat(t, fileExists(tmpDir), Is{false})
+	AssertThat(t, fileExists(filepath.Join(tmpDir, "missing-file")), Is{false})
+	f, err := ioutil.TempFile(tmpDir, "testfile")
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, fileExists(f.Name()), Is{true})
 }
