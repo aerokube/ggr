@@ -98,20 +98,17 @@ func (c caps) capability(k string) string {
 }
 
 func (c caps) capabilityJsonWireW3C(jsonWire, W3C string) string {
-	ch := make(chan string)
-	go func(ch chan string) {
-		c.capabilities(func(m map[string]interface{}, w3c bool) {
-			k := jsonWire
-			if w3c {
-				k = W3C
-			}
-			if v, ok := m[k].(string); ok {
-				ch <- v
-			}
-			ch <- ""
-		})
-	}(ch)
-	return <-ch
+	result := ""
+	c.capabilities(func(m map[string]interface{}, w3c bool) {
+		k := jsonWire
+		if w3c {
+			k = W3C
+		}
+		if v, ok := m[k].(string); ok {
+			result = v
+		}
+	})
+	return result
 }
 
 func (c *caps) browser() string {
