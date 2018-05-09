@@ -172,7 +172,6 @@ func TestGetQuotaInfoUnauthorized(t *testing.T) {
 func TestGetQuotaInfo(t *testing.T) {
 	test.Lock()
 	defer test.Unlock()
-
 	browsers := Browsers{Browsers: []Browser{
 		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			{Number: "1.0", Regions: []Region{
@@ -190,7 +189,16 @@ func TestGetQuotaInfo(t *testing.T) {
 	var fetchedBrowsers []Browser
 	err = json.NewDecoder(rsp.Body).Decode(&fetchedBrowsers)
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, fetchedBrowsers, EqualTo{browsers.Browsers})
+	
+	browsersWithoutCredentials := []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					Host{Name: "example.com", Port: 4444, Count: 1, Username: "", Password: ""},
+				}},
+			}},
+		}}}
+	AssertThat(t, fetchedBrowsers, EqualTo{browsersWithoutCredentials})
 }
 
 func TestProxyScreenVNCProtocol(t *testing.T) {
