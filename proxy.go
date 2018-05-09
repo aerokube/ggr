@@ -440,7 +440,20 @@ func quotaInfo(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[%d] [-] [QUOTA_INFO_REQUESTED] [%s] [%s] [-] [-] [-] [-] [-]\n", id, user, remote)
 	browsers := quota[user]
 	w.Header().Set("Content-Type", "application/json")
-	// NOTE: intentionally not removing username \ password fields from returned XML to not complicate things (can be done later if needed)
+	for i := 0; i < len(browsers.Browsers); i++ {
+		browser := &browsers.Browsers[i]
+		for j := 0; j < len(browser.Versions); j++ {
+			version := &browser.Versions[j]
+			for k := 0; k < len(version.Regions); k++ {
+				region := &version.Regions[k]
+				for l := 0; l < len(region.Hosts); l++ {
+					host := &region.Hosts[l]
+					host.Username = ""
+					host.Password = ""
+				}
+			}
+		}
+	}
 	json.NewEncoder(w).Encode(browsers.Browsers)
 }
 
