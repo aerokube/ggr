@@ -493,20 +493,32 @@ func readConfig(fn string, browsers *Browsers) error {
 	return nil
 }
 
-func appendRoutes(routes Routes, config *Browsers) Routes {
+func preprocess(routes Routes, config Browsers) (Routes, Browsers) {
+	var newBrowsers []Browser
 	for _, b := range config.Browsers {
+		var newVersions []Version
 		for _, v := range b.Versions {
+			var newRegions []Region
 			for _, r := range v.Regions {
+				var newHosts []Host
 				for i, h := range r.Hosts {
 					host := r.Hosts[i]
 					host.region = r.Name
 					host.vncInfo = createVNCInfo(host)
 					routes[h.sum()] = &host
+					newHosts = append(newHosts, host)
 				}
+				r.Hosts = newHosts
+				newRegions = append(newRegions, r)
 			}
+			v.Regions = newRegions
+			newVersions = append(newVersions, v)
 		}
+		b.Versions = newVersions
+		newBrowsers = append(newBrowsers, b)
 	}
-	return routes
+	config.Browsers = newBrowsers
+	return routes, config
 }
 
 func createVNCInfo(h Host) *vncInfo {
