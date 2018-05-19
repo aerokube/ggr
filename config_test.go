@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	. "github.com/aandryashin/matchers"
+	. "github.com/aerokube/ggr/config"
 )
 
 func init() {
@@ -14,37 +15,37 @@ func init() {
 }
 
 func TestEmptyListOfHosts(t *testing.T) {
-	host, index := Hosts{}.choose()
+	host, index := choose(Hosts{})
 	AssertThat(t, host, Is{(*Host)(nil)})
 	AssertThat(t, index, EqualTo{-1})
 }
 
 func TestNothingToChoose(t *testing.T) {
-	host, index := Hosts{Host{Count: 0}, Host{Count: 0}}.choose()
+	host, index := choose(Hosts{Host{Count: 0}, Host{Count: 0}})
 	AssertThat(t, host, Is{(*Host)(nil)})
 	AssertThat(t, index, EqualTo{-1})
 }
 
 func TestChooseFirst(t *testing.T) {
-	host, index := Hosts{Host{Name: "first", Count: 1}, Host{Name: "mid", Count: 0}, Host{Name: "last", Count: 0}}.choose()
+	host, index := choose(Hosts{Host{Name: "first", Count: 1}, Host{Name: "mid", Count: 0}, Host{Name: "last", Count: 0}})
 	AssertThat(t, host.Name, EqualTo{"first"})
 	AssertThat(t, index, EqualTo{0})
 }
 
 func TestChooseMid(t *testing.T) {
-	host, index := Hosts{Host{Name: "first", Count: 0}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 0}}.choose()
+	host, index := choose(Hosts{Host{Name: "first", Count: 0}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 0}})
 	AssertThat(t, host.Name, EqualTo{"mid"})
 	AssertThat(t, index, EqualTo{1})
 }
 
 func TestChooseLast(t *testing.T) {
-	host, index := Hosts{Host{Name: "first", Count: 0}, Host{Name: "mid", Count: 0}, Host{Name: "last", Count: 1}}.choose()
+	host, index := choose(Hosts{Host{Name: "first", Count: 0}, Host{Name: "mid", Count: 0}, Host{Name: "last", Count: 1}})
 	AssertThat(t, host.Name, EqualTo{"last"})
 	AssertThat(t, index, EqualTo{2})
 }
 
 var (
-	browsersWithMultipleVersions = &Browsers{Browsers: []Browser{
+	browsersWithMultipleVersions = &ggrBrowsers{Browsers{Browsers: []Browser{
 		{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
 			{Number: "2.0", Regions: []Region{
 				{Hosts: Hosts{
@@ -61,9 +62,9 @@ var (
 					Host{Name: "browser"},
 				}},
 			}},
-		}}}}
+		}}}}}
 
-	browsersWithMultipleRegions = &Browsers{Browsers: []Browser{
+	browsersWithMultipleRegions = &ggrBrowsers{Browsers{Browsers: []Browser{
 		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			{Number: "1.0", Regions: []Region{
 				{Name: "e", Hosts: Hosts{
@@ -73,7 +74,7 @@ var (
 					Host{Name: "browser-f-1.0", Port: 4444},
 				}},
 			}},
-		}}}}
+		}}}}}
 )
 
 func TestFindDefaultVersion(t *testing.T) {
@@ -198,7 +199,7 @@ func TestChoosingAllHosts(t *testing.T) {
 	hosts := Hosts{Host{Name: "first", Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
 	chosenHosts := make(map[string]int)
 	for i := 0; i < 100; i++ {
-		host, _ := hosts.choose()
+		host, _ := choose(hosts)
 		chosenHosts[host.Name]++
 	}
 	AssertThat(t, chosenHosts["first"] > 0, Is{true})

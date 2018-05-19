@@ -1,60 +1,10 @@
 package main
 
 import (
-	"crypto/md5"
-	"encoding/xml"
-	"fmt"
+	. "github.com/aerokube/ggr/config"
 	"math/rand"
 	"strings"
 )
-
-// Browsers - a set of available browsers
-type Browsers struct {
-	XMLName  xml.Name  `xml:"urn:config.gridrouter.qatools.ru browsers"`
-	Browsers []Browser `xml:"browser"`
-}
-
-// Browser - one browser name, e.g. Firefox with all available versions
-type Browser struct {
-	Name           string    `xml:"name,attr"`
-	DefaultVersion string    `xml:"defaultVersion,attr"`
-	Versions       []Version `xml:"version"`
-}
-
-// Version - concrete browser version
-type Version struct {
-	Number  string   `xml:"number,attr"`
-	Regions []Region `xml:"region"`
-}
-
-// Hosts - a list of hosts for browser version
-type Hosts []Host
-
-// Region - a datacenter to group hosts
-type Region struct {
-	Name  string `xml:"name,attr"`
-	Hosts Hosts  `xml:"host"`
-}
-
-// Host - just a hostname
-type Host struct {
-	Name     string `xml:"name,attr"`
-	Port     int    `xml:"port,attr"`
-	Count    int    `xml:"count,attr"`
-	Username string `xml:"username,attr,omitempty"`
-	Password string `xml:"password,attr,omitempty"`
-	VNC      string `xml:"vnc,attr,omitempty"`
-	Scheme   string `xml:"scheme,attr,omitempty"`
-	region   string
-	vncInfo  *vncInfo
-}
-
-type vncInfo struct {
-	Scheme string
-	Host   string
-	Port   string
-	Path   string
-}
 
 type set interface {
 	contains(el string) bool
@@ -87,34 +37,17 @@ func (ss *setImpl) size() int {
 	return len(ss.data)
 }
 
-func (b Browsers) String() string {
-	buf, _ := xml.MarshalIndent(b, "", "  ")
-	return string(buf)
+func sessionURL(h *Host) string {
+	return h.Route() + routePath
 }
 
-func (h *Host) net() string {
-	return fmt.Sprintf("%s:%d", h.Name, h.Port)
+type ggrBrowsers struct {
+	Browsers
 }
 
-func (h *Host) route() string {
-	scheme := h.Scheme
-	if scheme == "" {
-		scheme = "http"
-	}
-	return scheme + "://" + h.net()
-}
-
-func (h *Host) sessionURL() string {
-	return h.route() + routePath
-}
-
-func (h *Host) sum() string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(h.route())))
-}
-
-func (b *Browsers) find(browser, version string, excludedHosts set, excludedRegions set) (Hosts, string, set) {
+func (b *ggrBrowsers) find(browser, version string, excludedHosts set, excludedRegions set) (Hosts, string, set) {
 	var hosts Hosts
-	for _, b := range b.Browsers {
+	for _, b := range b.Browsers.Browsers {
 		if b.Name == browser {
 			if version == "" {
 				version = b.DefaultVersion
@@ -131,7 +64,7 @@ func (b *Browsers) find(browser, version string, excludedHosts set, excludedRegi
 							continue next
 						}
 						for _, h := range r.Hosts {
-							if !excludedHosts.contains(h.net()) {
+							if !excludedHosts.contains(h.Net()) {
 								hosts = append(hosts, h)
 							}
 						}
@@ -143,7 +76,7 @@ func (b *Browsers) find(browser, version string, excludedHosts set, excludedRegi
 	return hosts, version, excludedRegions
 }
 
-func (hosts Hosts) choose() (*Host, int) {
+func choose(hosts Hosts) (*Host, int) {
 	total := 0
 	for _, h := range hosts {
 		total += h.Count

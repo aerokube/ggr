@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/abbot/go-http-auth"
+	. "github.com/aerokube/ggr/config"
 	"golang.org/x/net/websocket"
 )
 
@@ -62,7 +63,7 @@ var (
 			return http.ErrUseLastResponse
 		},
 	}
-	quota    = make(map[string]Browsers)
+	quota    = make(map[string]ggrBrowsers)
 	routes   = make(Routes)
 	num      uint64
 	numLock  sync.RWMutex
@@ -133,9 +134,9 @@ func (c caps) setVersion(version string) {
 	})
 }
 
-func (h *Host) session(ctx context.Context, header http.Header, c caps) (map[string]interface{}, int) {
+func session(ctx context.Context, h *Host, header http.Header, c caps) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
-	req, err := http.NewRequest(http.MethodPost, h.sessionURL(), bytes.NewReader(b))
+	req, err := http.NewRequest(http.MethodPost, sessionURL(h), bytes.NewReader(b))
 	if err != nil {
 		return nil, seleniumError
 	}
@@ -277,7 +278,7 @@ func route(w http.ResponseWriter, r *http.Request) {
 	}
 	lastHostError := ""
 loop:
-	for h, i := hosts.choose(); ; h, i = hosts.choose() {
+	for h, i := choose(hosts); ; h, i = choose(hosts) {
 		count++
 		r.Header.Del("X-Selenoid-No-Wait")
 		if len(hosts) != 1 {
@@ -286,12 +287,12 @@ loop:
 		if h == nil {
 			break loop
 		}
-		log.Printf("[%d] [%.2fs] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.net(), count)
+		log.Printf("[%d] [%.2fs] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.Net(), count)
 		c.setVersion(version)
-		resp, status := h.session(r.Context(), r.Header, c)
+		resp, status := session(r.Context(), h, r.Header, c)
 		select {
 		case <-r.Context().Done():
-			log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.net(), count)
+			log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.Net(), count)
 			return
 		default:
 		}
@@ -301,7 +302,7 @@ loop:
 			if !ok {
 				protocolError := func() {
 					reply(w, errMsg("protocol error"), http.StatusBadGateway)
-					log.Printf("[%d] [%.2fs] [BAD_RESPONSE] [%s] [%s] [%s] [%s] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.net())
+					log.Printf("[%d] [%.2fs] [BAD_RESPONSE] [%s] [%s] [%s] [%s] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.Net())
 				}
 				value, ok := resp["value"]
 				if !ok {
@@ -313,22 +314,22 @@ loop:
 					protocolError()
 					return
 				}
-				resp["value"].(map[string]interface{})["sessionId"] = h.sum() + sess
+				resp["value"].(map[string]interface{})["sessionId"] = h.Sum() + sess
 			} else {
-				resp["sessionId"] = h.sum() + sess
+				resp["sessionId"] = h.Sum() + sess
 			}
 			reply(w, resp, http.StatusOK)
-			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.net(), sess, count)
+			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.Net(), sess, count)
 			return
 		case browserFailed:
 			hosts = append(hosts[:i], hosts[i+1:]...)
 		case seleniumError:
-			excludedHosts.add(h.net())
-			excludedRegions.add(h.region)
+			excludedHosts.add(h.Net())
+			excludedRegions.add(h.Region)
 			hosts, version, excludedRegions = browsers.find(browser, version, excludedHosts, excludedRegions)
 		}
 		errMsg := browserErrMsg(resp)
-		log.Printf("[%d] [%.2fs] [SESSION_FAILED] [%s] [%s] [%s] [%s] [-] [%d] [%s]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.net(), count, errMsg)
+		log.Printf("[%d] [%.2fs] [SESSION_FAILED] [%s] [%s] [%s] [%s] [-] [%d] [%s]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version), h.Net(), count, errMsg)
 		lastHostError = errMsg
 		if len(hosts) == 0 {
 			break loop
@@ -369,16 +370,16 @@ func proxy(r *http.Request) {
 					r.Body = ioutil.NopCloser(bytes.NewReader(body))
 				}
 			}
-			r.Host = h.net()
-			r.URL.Host = h.net()
+			r.Host = h.Net()
+			r.URL.Host = h.Net()
 			r.URL.Path = proxyPath
 			fragments := strings.Split(proxyPath, "/")
 			sess := fragments[sessPart]
 			if verbose {
-				log.Printf("[%d] [-] [PROXYING] [-] [%s] [-] [%s] [%s] [-] [%s]\n", id, remote, h.net(), sess, proxyPath)
+				log.Printf("[%d] [-] [PROXYING] [-] [%s] [-] [%s] [%s] [-] [%s]\n", id, remote, h.Net(), sess, proxyPath)
 			}
 			if r.Method == http.MethodDelete && len(fragments) == sessPart+1 {
-				log.Printf("[%d] [-] [SESSION_DELETED] [-] [%s] [-] [%s] [%s] [-] [-]\n", id, remote, h.net(), sess)
+				log.Printf("[%d] [-] [SESSION_DELETED] [-] [%s] [-] [%s] [%s] [-] [-]\n", id, remote, h.Net(), sess)
 			}
 			return
 		}
@@ -440,8 +441,8 @@ func quotaInfo(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[%d] [-] [QUOTA_INFO_REQUESTED] [%s] [%s] [-] [-] [-] [-] [-]\n", id, user, remote)
 	browsers := quota[user]
 	w.Header().Set("Content-Type", "application/json")
-	for i := 0; i < len(browsers.Browsers); i++ {
-		browser := &browsers.Browsers[i]
+	for i := 0; i < len(browsers.Browsers.Browsers); i++ {
+		browser := &browsers.Browsers.Browsers[i]
 		for j := 0; j < len(browser.Versions); j++ {
 			version := &browser.Versions[j]
 			for k := 0; k < len(version.Regions); k++ {
@@ -454,7 +455,7 @@ func quotaInfo(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	json.NewEncoder(w).Encode(browsers.Browsers)
+	json.NewEncoder(w).Encode(browsers.Browsers.Browsers)
 }
 
 func postOnly(handler http.HandlerFunc) http.HandlerFunc {
@@ -499,9 +500,9 @@ func appendRoutes(routes Routes, config *Browsers) Routes {
 			for _, r := range v.Regions {
 				for i, h := range r.Hosts {
 					// It is important to use the r.Hosts[i] here!
-					r.Hosts[i].region = r.Name
-					r.Hosts[i].vncInfo = createVNCInfo(h)
-					routes[h.sum()] = &r.Hosts[i]
+					r.Hosts[i].Region = r.Name
+					r.Hosts[i].VncInfo = createVNCInfo(h)
+					routes[h.Sum()] = &r.Hosts[i]
 				}
 			}
 		}
@@ -509,7 +510,7 @@ func appendRoutes(routes Routes, config *Browsers) Routes {
 	return routes
 }
 
-func createVNCInfo(h Host) *vncInfo {
+func createVNCInfo(h Host) *VncInfo {
 	vncURL := h.VNC
 	if vncURL != "" {
 		u, err := url.Parse(vncURL)
@@ -521,7 +522,7 @@ func createVNCInfo(h Host) *vncInfo {
 			log.Printf("[-] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [%s] [-] [-] [-]\n", vncURL, fmt.Sprintf("%s:%d", h.Name, h.Port))
 			return nil
 		}
-		vncInfo := vncInfo{
+		vncInfo := VncInfo{
 			Scheme: u.Scheme,
 			Path:   u.Path,
 		}
@@ -577,7 +578,7 @@ func vnc(wsconn *websocket.Conn) {
 	sum := path[head:tail]
 	h, ok := routes[sum]
 	if ok {
-		vncInfo := h.vncInfo
+		vncInfo := h.VncInfo
 		scheme := vncScheme
 		host := h.Name
 		port := defaultVNCPort
@@ -670,7 +671,7 @@ func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUr
 	if ok {
 		(&httputil.ReverseProxy{Director: func(r *http.Request) {
 			r.URL.Scheme = "http"
-			r.URL.Host = h.net()
+			r.URL.Host = h.Net()
 			r.URL.Path = pathProvider(remainder)
 			log.Printf("[%d] [-] [%s] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, proxyingMessage, user, remote, r.URL, remainder)
 		}}).ServeHTTP(w, r)
