@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"context"
+	. "github.com/aerokube/ggr/config"
 	"os"
 	"os/signal"
 	"syscall"
@@ -66,7 +67,7 @@ func loadQuotaFile(file string) {
 func updateQuota(quotaName string, browsers Browsers) {
 	confLock.Lock()
 	defer confLock.Unlock()
-	quota[quotaName] = browsers
+	quota[quotaName] = ggrBrowsers{browsers}
 	routes = appendRoutes(routes, &browsers)
 	lastReloadTime = time.Now()
 }

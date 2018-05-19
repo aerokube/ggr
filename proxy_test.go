@@ -21,6 +21,7 @@ import (
 
 	. "github.com/aandryashin/matchers"
 	. "github.com/aandryashin/matchers/httpresp"
+	. "github.com/aerokube/ggr/config"
 	"golang.org/x/net/websocket"
 	"log"
 	"os"
@@ -124,7 +125,7 @@ func TestGetHostUnauthorized(t *testing.T) {
 
 func TestGetExistingHost(t *testing.T) {
 	correctHost := Host{Name: "example.com", Port: 4444, Count: 1}
-	host := testGetHost(t, correctHost.sum()+"123", http.StatusOK)
+	host := testGetHost(t, correctHost.Sum()+"123", http.StatusOK)
 	AssertThat(t, host, Not{nil})
 	AssertThat(t, *host, EqualTo{correctHost})
 }
@@ -227,7 +228,7 @@ func TestProxyScreenVNCProtocol(t *testing.T) {
 }
 
 func testDataReceived(host Host, correctData string, t *testing.T) {
-	sessionID := host.sum() + "123"
+	sessionID := host.Sum() + "123"
 
 	origin := "http://localhost/"
 	u := fmt.Sprintf("ws://%s/vnc/%s", srv.Listener.Addr(), sessionID)
@@ -335,7 +336,7 @@ func prepareMockFileServer(path string) (*httptest.Server, string) {
 		}}}}
 	updateQuota(user, browsers)
 
-	sessionID := node.sum() + "123"
+	sessionID := node.Sum() + "123"
 
 	return fileServer, sessionID
 }
@@ -572,7 +573,7 @@ func testStartSessionCustomCaps(t *testing.T, mux *http.ServeMux, browsersProvid
 	AssertThat(t, err, Is{nil})
 	var sess map[string]interface{}
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
-	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
+	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.Sum())})
 }
 
 func testStartSession(t *testing.T, mux *http.ServeMux, browsersProvider func(Host) Browsers, browserName string, version string) {
@@ -1122,7 +1123,7 @@ func TestStartSessionJSONWireProtocol(t *testing.T) {
 	AssertThat(t, err, Is{nil})
 	var value map[string]interface{}
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&value}})
-	AssertThat(t, value["value"].(map[string]interface{})["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
+	AssertThat(t, value["value"].(map[string]interface{})["sessionId"], EqualTo{fmt.Sprintf("%s123", node.Sum())})
 }
 
 func TestDeleteSession(t *testing.T) {
@@ -1148,7 +1149,7 @@ func TestDeleteSession(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	r, _ := http.NewRequest(http.MethodDelete, gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
+	r, _ := http.NewRequest(http.MethodDelete, gridrouter("/wd/hub/session/"+node.Sum()+"123"), nil)
 	r.SetBasicAuth("test", "test")
 	rsp, err := http.DefaultClient.Do(r)
 
@@ -1180,7 +1181,7 @@ func TestProxyRequest(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	r, _ := http.NewRequest(http.MethodGet, gridrouter("/wd/hub/session/"+node.sum()+"123"), nil)
+	r, _ := http.NewRequest(http.MethodGet, gridrouter("/wd/hub/session/"+node.Sum()+"123"), nil)
 	r.SetBasicAuth("test", "test")
 	rsp, err := http.DefaultClient.Do(r)
 
@@ -1218,7 +1219,7 @@ func TestProxyJsonRequest(t *testing.T) {
 		updateQuota(user, browsers)
 	}()
 
-	doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
+	doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.Sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
 }
 
 func TestProxyPlainRequest(t *testing.T) {
@@ -1247,7 +1248,7 @@ func TestProxyPlainRequest(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.sum()+"123"), bytes.NewReader([]byte("request")))
+	doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
 }
 
 func TestRequest(t *testing.T) {
@@ -1329,7 +1330,7 @@ func TestStartSessionProxyHeaders(t *testing.T) {
 	AssertThat(t, err, Is{nil})
 	var sess map[string]string
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
-	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
+	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.Sum())})
 }
 
 func TestStartSessionGuest(t *testing.T) {
@@ -1362,7 +1363,7 @@ func TestStartSessionGuest(t *testing.T) {
 	AssertThat(t, err, Is{nil})
 	var value map[string]interface{}
 	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&value}})
-	AssertThat(t, value["value"].(map[string]interface{})["sessionId"], EqualTo{fmt.Sprintf("%s123", node.sum())})
+	AssertThat(t, value["value"].(map[string]interface{})["sessionId"], EqualTo{fmt.Sprintf("%s123", node.Sum())})
 }
 
 func TestStartSessionGuestFailNoQuota(t *testing.T) {
