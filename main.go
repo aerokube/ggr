@@ -66,7 +66,8 @@ func loadQuotaFile(file string) {
 func updateQuota(quotaName string, browsers Browsers) {
 	confLock.Lock()
 	defer confLock.Unlock()
-	routes, quota[quotaName] = preprocess(routes, browsers)
+	quota[quotaName] = browsers
+	routes = appendRoutes(routes, &browsers)
 	lastReloadTime = time.Now()
 }
 
