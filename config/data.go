@@ -21,8 +21,9 @@ type Browser struct {
 
 // Version - concrete browser version
 type Version struct {
-	Number  string   `xml:"number,attr"`
-	Regions []Region `xml:"region"`
+	Number   string   `xml:"number,attr"`
+	Platform string   `xml:"platform,attr"`
+	Regions  []Region `xml:"region"`
 }
 
 // Hosts - a list of hosts for browser version
