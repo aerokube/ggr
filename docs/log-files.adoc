@@ -64,3 +64,17 @@ The following statuses are available:
 | VNC_ERROR | An error occurred when trying to proxy VNC traffic 
 | VNC_SESSION_CLOSED | Client closed VNC session
 |===
+
+=== Custom Labels in Log File
+Sometimes you may need to add some custom metadata like build number or branch name to Selenium logs. Just add the following capability to your tests:
+
+.Type: map, format: "<key>": "<value>"
+----
+labels: {"buildNumber": 122, "branch": "feature-XXX"}
+----
+
+With this capability browser column will look like this:
+```
+[firefox-42.0 buildNumber=122 branch=feature-XXX]
+```
+Such additional metadata in logs allows to better analyze respective Selenium sessions.

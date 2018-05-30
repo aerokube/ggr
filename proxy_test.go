@@ -577,7 +577,7 @@ func testStartSessionCustomCaps(t *testing.T, mux *http.ServeMux, browsersProvid
 }
 
 func testStartSession(t *testing.T, mux *http.ServeMux, browsersProvider func(Host) Browsers, browserName string, version string) {
-	testStartSessionCustomCaps(t, mux, browsersProvider, fmt.Sprintf(`{"desiredCapabilities":{"browserName":"%s", "version":"%s"}}`, browserName, version))
+	testStartSessionCustomCaps(t, mux, browsersProvider, fmt.Sprintf(`{"desiredCapabilities":{"browserName":"%s", "version":"%s", "labels": {"one": "value1", "two": null, "three": false}}}`, browserName, version))
 }
 
 func TestStartSessionWithJsonSpecChars(t *testing.T) {
