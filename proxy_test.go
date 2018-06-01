@@ -21,6 +21,7 @@ import (
 
 	. "github.com/aandryashin/matchers"
 	. "github.com/aandryashin/matchers/httpresp"
+	"github.com/abbot/go-http-auth"
 	. "github.com/aerokube/ggr/config"
 	"golang.org/x/net/websocket"
 	"log"
@@ -1382,7 +1383,7 @@ func TestStartSessionGuestFailNoQuota(t *testing.T) {
 
 	rsp, err := createSessionWithoutAuthentication(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
 	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusUnauthorized}, Message{"Guest access is unavailable."}})
+	AssertThat(t, rsp, AllOf{Code{http.StatusUnauthorized}, Message{"Guest access is unavailable"}})
 
 }
 
@@ -1542,4 +1543,28 @@ func recordingMux(region string, storage *[]string) http.Handler {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 	return mux
+}
+
+func TestPanicGuestQuotaMissingUsersFileAuthPresent(t *testing.T) {
+	guestAccessAllowed = true
+	users = "missing-file"
+	defer func() {
+		users = ".htpasswd"
+	}()
+	authenticator := auth.NewBasicAuthenticator(
+		"Some Realm",
+		auth.HtpasswdFileProvider(users),
+	)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", WithSuitableAuthentication(authenticator, func(_ http.ResponseWriter, _ *http.Request) {}))
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
+	req.SetBasicAuth("test", "test")
+	resp, err := http.DefaultClient.Do(req)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, resp, Code{http.StatusOK})
 }
