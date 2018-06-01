@@ -565,13 +565,17 @@ func WithSuitableAuthentication(authenticator *auth.BasicAuth, handler func(http
 			_, ok := quota[guestUserName]
 			confLock.RUnlock()
 			if !ok {
-				reply(w, errMsg("Guest access is unavailable."), http.StatusUnauthorized)
+				reply(w, errMsg("Guest access is unavailable"), http.StatusUnauthorized)
 			} else {
 				handler(w, r)
 			}
 		} else {
 			//Run the handler using basic authentication
-			requireBasicAuth(authenticator, handler)(w, r)
+			if fileExists(users) {
+				requireBasicAuth(authenticator, handler)(w, r)
+			} else {
+				handler(w, r)
+			}
 		}
 	}
 }
