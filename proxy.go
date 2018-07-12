@@ -30,6 +30,7 @@ const (
 
 const (
 	pingPath       = "/ping"
+	statusPath     = "/wd/hub/status"
 	errPath        = "/err"
 	hostPath       = "/host/"
 	quotaPath      = "/quota"
@@ -417,6 +418,17 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 	}{time.Since(startTime).String(), lastReloadTime.String(), getSerial(), gitRevision})
 }
 
+func status(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(
+		map[string]interface{}{
+			"value": map[string]interface{}{
+				"message": fmt.Sprintf("Ggr %s built at %s", gitRevision, buildStamp),
+				"ready":   true,
+			},
+		})
+}
+
 func err(w http.ResponseWriter, _ *http.Request) {
 	reply(w, errMsg("route not found"), http.StatusNotFound)
 }
@@ -706,6 +718,7 @@ func mux() http.Handler {
 		auth.HtpasswdFileProvider(users),
 	)
 	mux.HandleFunc(pingPath, ping)
+	mux.HandleFunc(statusPath, status)
 	mux.HandleFunc(errPath, err)
 	mux.HandleFunc(hostPath, WithSuitableAuthentication(authenticator, host))
 	mux.HandleFunc(quotaPath, WithSuitableAuthentication(authenticator, quotaInfo))
