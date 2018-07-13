@@ -45,15 +45,18 @@ type ggrBrowsers struct {
 	Browsers
 }
 
-func (b *ggrBrowsers) find(browser, version string, excludedHosts set, excludedRegions set) (Hosts, string, set) {
+func (b *ggrBrowsers) find(browser, version string, platform string, excludedHosts set, excludedRegions set) (Hosts, string, set) {
 	var hosts Hosts
 	for _, b := range b.Browsers.Browsers {
 		if b.Name == browser {
 			if version == "" {
 				version = b.DefaultVersion
 			}
+			if platform == "" {
+				platform = b.DefaultPlatform
+			}
 			for _, v := range b.Versions {
-				if strings.HasPrefix(v.Number, version) {
+				if strings.HasPrefix(v.Number, version) && strings.HasPrefix(v.Platform, platform) {
 					version = v.Number
 				next:
 					for _, r := range v.Regions {

@@ -131,6 +131,10 @@ func (c caps) version() string {
 	return c.capabilityJsonWireW3C("version", "browserVersion")
 }
 
+func (c caps) platform() string {
+	return c.capabilityJsonWireW3C("platform", "platformName")
+}
+
 func (c caps) labels() string {
 	return c.capability("labels")
 }
@@ -273,7 +277,7 @@ func route(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[%d] [%.2fs] [BAD_JSON] [%s] [%s] [-] [-] [-] [-] [%v]\n", id, secondsSince(start), user, remote, err)
 		return
 	}
-	browser, version, labels := c.browser(), c.version(), c.labels()
+	browser, version, platform, labels := c.browser(), c.version(), c.platform(), c.labels()
 	if browser == "" {
 		reply(w, errMsg("browser not set"), http.StatusBadRequest)
 		log.Printf("[%d] [%.2fs] [BROWSER_NOT_SET] [%s] [%s] [-] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote)
@@ -283,7 +287,7 @@ func route(w http.ResponseWriter, r *http.Request) {
 	confLock.RLock()
 	browsers := quota[user]
 	excludedHosts := newSet()
-	hosts, version, excludedRegions := browsers.find(browser, version, excludedHosts, newSet())
+	hosts, version, excludedRegions := browsers.find(browser, version, platform, excludedHosts, newSet())
 	confLock.RUnlock()
 
 	if len(hosts) == 0 {
@@ -341,7 +345,7 @@ loop:
 		case seleniumError:
 			excludedHosts.add(h.Net())
 			excludedRegions.add(h.Region)
-			hosts, version, excludedRegions = browsers.find(browser, version, excludedHosts, excludedRegions)
+			hosts, version, excludedRegions = browsers.find(browser, version, platform, excludedHosts, excludedRegions)
 		}
 		errMsg := browserErrMsg(resp)
 		log.Printf("[%d] [%.2fs] [SESSION_FAILED] [%s] [%s] [%s] [%s] [-] [%d] [%s]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, labels), h.Net(), count, errMsg)

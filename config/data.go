@@ -14,9 +14,10 @@ type Browsers struct {
 
 // Browser - one browser name, e.g. Firefox with all available versions
 type Browser struct {
-	Name           string    `xml:"name,attr"`
-	DefaultVersion string    `xml:"defaultVersion,attr"`
-	Versions       []Version `xml:"version"`
+	Name            string    `xml:"name,attr"`
+	DefaultVersion  string    `xml:"defaultVersion,attr"`
+	DefaultPlatform string    `xml:"defaultPlatform,attr,omitempty"`
+	Versions        []Version `xml:"version"`
 }
 
 // Version - concrete browser version
