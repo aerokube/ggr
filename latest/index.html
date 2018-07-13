@@ -529,7 +529,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2018-07-12</span>
+<span id="revdate">2018-07-13</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -758,8 +758,8 @@ For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost".
 <div class="listingblock">
 <div class="content">
 <pre>&lt;qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"&gt;
-&lt;browser name="firefox" defaultVersion="45.0"&gt;
-    &lt;version number="45.0"&gt;
+&lt;browser name="firefox" defaultVersion="61.0"&gt;
+    &lt;version number="61.0"&gt;
         &lt;region name="1"&gt;
             &lt;host name="host1.example.com" port="4444" count="1"/&gt;
             &lt;host name="host2.example.com" port="4444" count="1"/&gt;
@@ -769,11 +769,11 @@ For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost".
             ...
         &lt;/region&gt;
     &lt;/version&gt;
-    &lt;version number="46.0"&gt;
+    &lt;version number="60.0"&gt;
         ...
     &lt;/version&gt;
 &lt;/browser&gt;
-&lt;browser name="firefox" defaultVersion="45.0"&gt;
+&lt;browser name="chrome" defaultVersion="67.0"&gt;
     ...
 &lt;/browser&gt;
 ...
@@ -783,6 +783,30 @@ For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost".
 <div class="paragraph">
 <p>Here we define a list of browser names, their versions and default version for each browser. Each version has one or more regions (in cloud term, i.e. data centers). Every region contains one or more hosts. Each host defined in XML should have Selenium listening on specified port. The XML namespace is needed to be fully compatible with <a href="http://github.com/seleniumkit/gridrouter">original</a> Java GridRouter implementation.</p>
 </div>
+</li>
+<li>
+<p>Sometimes you may need to have the same browser name and version on different platforms, e.g. Firefox on both Linux and Windows. To achieve this you need to add <code>defaultPlatform</code> and <code>platform</code> attributes to quota file as follows:</p>
+<div class="listingblock">
+<div class="content">
+<pre>&lt;qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"&gt;
+&lt;browser name="firefox" defaultVersion="61.0" defaultPlatform="LINUX"&gt;
+    &lt;version number="61.0" platform="LINUX"&gt;
+        ...
+    &lt;/version&gt;
+    &lt;version number="61.0" platform="WINDOWS"&gt;
+        ...
+    &lt;/version&gt;
+&lt;/browser&gt;
+...
+&lt;/qa:browsers&gt;</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Version <code>number</code> is matched against <code>version</code> or <code>browserVersion</code> capability by prefix. For example both <code>61</code> and <code>61.0</code> in version capability (i.e. in your code) will match version number <code>61.0</code>.</p>
+</li>
+<li>
+<p>Similarly version <code>platform</code> attribute is matched against <code>platform</code> or <code>platformName</code> capability by prefix.</p>
 </li>
 </ol>
 </div>
@@ -1478,7 +1502,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2018-07-12 18:54:27 UTC
+Last updated 2018-07-13 19:12:41 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
