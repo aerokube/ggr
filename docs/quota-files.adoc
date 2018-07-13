@@ -6,8 +6,8 @@
 +
 ----
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
-<browser name="firefox" defaultVersion="45.0">
-    <version number="45.0">
+<browser name="firefox" defaultVersion="61.0">
+    <version number="61.0">
         <region name="1">
             <host name="host1.example.com" port="4444" count="1"/>
             <host name="host2.example.com" port="4444" count="1"/>
@@ -17,11 +17,11 @@
             ...
         </region>
     </version>
-    <version number="46.0">
+    <version number="60.0">
         ...
     </version>    
 </browser>
-<browser name="firefox" defaultVersion="45.0">
+<browser name="chrome" defaultVersion="67.0">
     ...
 </browser>
 ...
@@ -29,6 +29,23 @@
 ----
 +
 Here we define a list of browser names, their versions and default version for each browser. Each version has one or more regions (in cloud term, i.e. data centers). Every region contains one or more hosts. Each host defined in XML should have Selenium listening on specified port. The XML namespace is needed to be fully compatible with http://github.com/seleniumkit/gridrouter[original] Java GridRouter implementation.
+. Sometimes you may need to have the same browser name and version on different platforms, e.g. Firefox on both Linux and Windows. To achieve this you need to add `defaultPlatform` and `platform` attributes to quota file as follows:
++
+----
+<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
+<browser name="firefox" defaultVersion="61.0" defaultPlatform="LINUX">
+    <version number="61.0" platform="LINUX">
+        ...
+    </version>
+    <version number="61.0" platform="WINDOWS">
+        ...
+    </version>    
+</browser>
+...
+</qa:browsers>
+----
+. Version `number` is matched against `version` or `browserVersion` capability by prefix. For example both `61` and `61.0` in version capability (i.e. in your code) will match version number `61.0`.
+. Similarly version `platform` attribute is matched against `platform` or `platformName` capability by prefix. 
 
 === Proxying VNC Traffic
 

@@ -75,56 +75,91 @@ var (
 				}},
 			}},
 		}}}}}
+
+	browsersWithMultiplePlatforms = &ggrBrowsers{Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "2.0", DefaultPlatform: "LINUX", Versions: []Version{
+			{Number: "2.0", Platform: "LINUX", Regions: []Region{
+				{Hosts: Hosts{
+					Host{Name: "browser-2.0-linux"},
+				}},
+			}},
+			{Number: "2.0", Platform: "WINDOWS", Regions: []Region{
+				{Hosts: Hosts{
+					Host{Name: "browser-2.0-windows"},
+				}},
+			}},
+		}}}}}
 )
 
 func TestFindDefaultVersion(t *testing.T) {
-	hosts, version, _ := browsersWithMultipleVersions.find("browser", "", newSet(), newSet())
+	hosts, version, _ := browsersWithMultipleVersions.find("browser", "", "", newSet(), newSet())
 	AssertThat(t, version, EqualTo{"2.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0"})
 }
 
 func TestFindVersion(t *testing.T) {
-	hosts, version, _ := browsersWithMultipleVersions.find("browser", "1.0", newSet(), newSet())
+	hosts, version, _ := browsersWithMultipleVersions.find("browser", "1.0", "", newSet(), newSet())
 	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
 }
 
 func TestFindVersionByPrefix(t *testing.T) {
-	hosts, version, _ := browsersWithMultipleVersions.find("browser", "1", newSet(), newSet())
+	hosts, version, _ := browsersWithMultipleVersions.find("browser", "1", "", newSet(), newSet())
 	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
 }
 
 func TestVersionNotFound(t *testing.T) {
-	hosts, version, _ := browsersWithMultipleVersions.find("browser", "missing", newSet(), newSet())
+	hosts, version, _ := browsersWithMultipleVersions.find("browser", "missing", "", newSet(), newSet())
 	AssertThat(t, version, EqualTo{"missing"})
 	AssertThat(t, len(hosts), EqualTo{0})
 }
 
 func TestFindWithExcludedRegions(t *testing.T) {
-	hosts, version, _ := browsersWithMultipleRegions.find("browser", "1.0", newSet(), newSet("f"))
+	hosts, version, _ := browsersWithMultipleRegions.find("browser", "1.0", "", newSet(), newSet("f"))
 	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-e-1.0"})
 }
 
 func TestFindWithExcludedRegionsExhausted(t *testing.T) {
-	hosts, _, excludedRegions := browsersWithMultipleRegions.find("browser", "1.0", newSet(), newSet("e", "f"))
+	hosts, _, excludedRegions := browsersWithMultipleRegions.find("browser", "1.0", "", newSet(), newSet("e", "f"))
 	AssertThat(t, len(hosts), EqualTo{2})
 	AssertThat(t, excludedRegions.size(), EqualTo{0})
 }
 
 func TestFindWithExcludedHosts(t *testing.T) {
-	hosts, version, _ := browsersWithMultipleRegions.find("browser", "1.0", newSet("browser-e-1.0:4444"), newSet())
+	hosts, version, _ := browsersWithMultipleRegions.find("browser", "1.0", "", newSet("browser-e-1.0:4444"), newSet())
 	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-f-1.0"})
 }
 
-func TestReadUnexistentConfig(t *testing.T) {
+func TestFindWithDefaultPlatform(t *testing.T) {
+	hosts, version, _ := browsersWithMultiplePlatforms.find("browser", "2.0", "", newSet(), newSet())
+	AssertThat(t, version, EqualTo{"2.0"})
+	AssertThat(t, len(hosts), EqualTo{1})
+	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0-linux"})
+}
+
+func TestFindWithPlatform(t *testing.T) {
+	hosts, version, _ := browsersWithMultiplePlatforms.find("browser", "2.0", "LINUX", newSet(), newSet())
+	AssertThat(t, version, EqualTo{"2.0"})
+	AssertThat(t, len(hosts), EqualTo{1})
+	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0-linux"})
+}
+
+func TestFindWithPlatformPrefix(t *testing.T) {
+	hosts, version, _ := browsersWithMultiplePlatforms.find("browser", "2.0", "WIN", newSet(), newSet())
+	AssertThat(t, version, EqualTo{"2.0"})
+	AssertThat(t, len(hosts), EqualTo{1})
+	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0-windows"})
+}
+
+func TestReadNotExistingConfig(t *testing.T) {
 	tmp, err := ioutil.TempFile("", "config")
 	if err != nil {
 		t.Fatal(err)
