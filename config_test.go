@@ -99,7 +99,7 @@ func TestFindDefaultVersion(t *testing.T) {
 }
 
 func TestFindVersion(t *testing.T) {
-	hosts, version, _ := browsersWithMultipleVersions.find("browser", "1.0", "", newSet(), newSet())
+	hosts, version, _ := browsersWithMultipleVersions.find("browser", "1.0", "LINUX", newSet(), newSet())
 	AssertThat(t, version, EqualTo{"1.0"})
 	AssertThat(t, len(hosts), EqualTo{1})
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
