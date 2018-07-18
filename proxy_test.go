@@ -364,6 +364,34 @@ func prepareMockFileServer(path string) (*httptest.Server, string) {
 	return fileServer, sessionID
 }
 
+func TestProxyLogsWithoutAuth(t *testing.T) {
+	rsp, err := http.Get(gridrouter("/logs/123"))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
+func TestProxyLogs(t *testing.T) {
+
+	test.Lock()
+	defer test.Unlock()
+
+	fileServer, sessionID := prepareMockFileServer("/logs/123.log")
+	defer fileServer.Close()
+
+	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/logs/%s", sessionID)), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusOK})
+
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/logs/missing-session-id"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusNotFound})
+
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/logs/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusNotFound})
+}
+
 func TestProxyDownloadWithoutAuth(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/download/123"))
 
