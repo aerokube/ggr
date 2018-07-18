@@ -38,6 +38,7 @@ const (
 	proxyPath      = routePath + "/"
 	vncPath        = "/vnc/"
 	videoPath      = "/video/"
+	logsPath       = "/logs/"
 	downloadPath   = "/download/"
 	head           = len(proxyPath)
 	md5SumLength   = 32
@@ -679,6 +680,12 @@ func video(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func logs(w http.ResponseWriter, r *http.Request) {
+	proxyStatic(w, r, logsPath, "INVALID_LOG_REQUEST_URL", "PROXYING_LOG", "UNKNOWN_LOG_HOST", func(sessionId string) string {
+		return fmt.Sprintf("/logs/%s.log", sessionId)
+	})
+}
+
 func download(w http.ResponseWriter, r *http.Request) {
 	proxyStatic(w, r, downloadPath, "INVALID_DOWNLOAD_REQUEST_URL", "PROXYING_DOWNLOAD", "UNKNOWN_DOWNLOAD_HOST", func(remainder string) string {
 		return fmt.Sprintf("/download/%s", remainder)
@@ -730,6 +737,7 @@ func mux() http.Handler {
 	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
 	mux.Handle(vncPath, websocket.Handler(vnc))
 	mux.HandleFunc(videoPath, WithSuitableAuthentication(authenticator, video))
+	mux.HandleFunc(logsPath, WithSuitableAuthentication(authenticator, logs))
 	mux.HandleFunc(downloadPath, WithSuitableAuthentication(authenticator, download))
 	return mux
 }
