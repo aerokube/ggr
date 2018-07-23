@@ -529,7 +529,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2018-07-18</span>
+<span id="revdate">2018-07-23</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -1241,6 +1241,10 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <td class="tableblock halign-left valign-top"><p class="tableblock">Download request URL do not contain enough information to determine upstream host</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INVALID_LOG_REQUEST_URL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Log request URL do not contain enough information to determine upstream host</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">INVALID_VNC_REQUEST_URL</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">VNC request URL do not contain enough information to determine upstream host</p></td>
 </tr>
@@ -1259,6 +1263,10 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">PROXYING_DOWNLOAD</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Starting to proxy downloaded file from upstream host</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PROXYING_LOG</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Starting to proxy log from upstream host</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">PROXYING_TO_VNC</p></td>
@@ -1303,6 +1311,10 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">UNKNOWN_DOWNLOAD_HOST</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Requested to proxy downloaded file to host not present in quota</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">UNKNOWN_LOG_HOST</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requested to proxy log to host not present in quota</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">UNKNOWN_VNC_HOST</p></td>
@@ -1502,7 +1514,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2018-07-18 03:38:23 UTC
+Last updated 2018-07-23 13:58:20 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
