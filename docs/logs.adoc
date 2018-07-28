@@ -1,0 +1,11 @@
+== Proxying Session Logs
+
+Similarly to video files Ggr gives you an ability to view Selenium session logs.
+
+. To download a log file via Ggr send the following request:
+
+     $ curl -o log-file.log http://ggr-host.example.com:4444/logs/<ggr-test-session-id>
+
+. To delete log file via Ggr just change HTTP method to DELETE:
+
+    $ curl -X DELETE http://ggr-host.example.com:4444/logs/<ggr-test-session-id>
