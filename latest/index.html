@@ -529,7 +529,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2018-07-23</span>
+<span id="revdate">2018-07-28</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -552,20 +552,21 @@ table.CodeRay td.code>pre{padding:0}
 </li>
 <li><a href="#_quota_reloading">2.3. Quota Reloading</a></li>
 <li><a href="#_proxying_session_video">2.4. Proxying Session Video</a></li>
-<li><a href="#_proxying_downloaded_files">2.5. Proxying Downloaded Files</a></li>
-<li><a href="#_how_it_works">2.6. How it Works</a></li>
-<li><a href="#_using_multiple_ggr_instances">2.7. Using Multiple Ggr Instances</a>
+<li><a href="#_proxying_session_logs">2.5. Proxying Session Logs</a></li>
+<li><a href="#_proxying_downloaded_files">2.6. Proxying Downloaded Files</a></li>
+<li><a href="#_how_it_works">2.7. How it Works</a></li>
+<li><a href="#_using_multiple_ggr_instances">2.8. Using Multiple Ggr Instances</a>
 <ul class="sectlevel3">
-<li><a href="#_why_ggr_is_stateless">2.7.1. Why Ggr is Stateless</a></li>
-<li><a href="#_getting_host_by_session_id">2.7.2. Getting Host by Session ID</a></li>
+<li><a href="#_why_ggr_is_stateless">2.8.1. Why Ggr is Stateless</a></li>
+<li><a href="#_getting_host_by_session_id">2.8.2. Getting Host by Session ID</a></li>
 </ul>
 </li>
-<li><a href="#_log_files">2.8. Log Files</a>
+<li><a href="#_log_files">2.9. Log Files</a>
 <ul class="sectlevel3">
-<li><a href="#_custom_labels_in_log_file">2.8.1. Custom Labels in Log File</a></li>
+<li><a href="#_custom_labels_in_log_file">2.9.1. Custom Labels in Log File</a></li>
 </ul>
 </li>
-<li><a href="#_ggr_cli_flags">2.9. Ggr CLI Flags</a></li>
+<li><a href="#_ggr_cli_flags">2.10. Ggr CLI Flags</a></li>
 </ul>
 </li>
 <li><a href="#_contributing_development">3. Contributing &amp; Development</a>
@@ -995,7 +996,33 @@ Notice that session ID for hub host (aka <code>real-session-id</code>) and for G
 </div>
 </div>
 <div class="sect2">
-<h3 id="_proxying_downloaded_files"><a class="anchor" href="#_proxying_downloaded_files"></a>2.5. Proxying Downloaded Files</h3>
+<h3 id="_proxying_session_logs"><a class="anchor" href="#_proxying_session_logs"></a>2.5. Proxying Session Logs</h3>
+<div class="paragraph">
+<p>Similarly to video files Ggr gives you an ability to view Selenium session logs.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>To download a log file via Ggr send the following request:</p>
+<div class="literalblock">
+<div class="content">
+<pre>$ curl -o log-file.log http://ggr-host.example.com:4444/logs/&lt;ggr-test-session-id&gt;</pre>
+</div>
+</div>
+</li>
+<li>
+<p>To delete log file via Ggr just change HTTP method to DELETE:</p>
+<div class="literalblock">
+<div class="content">
+<pre>$ curl -X DELETE http://ggr-host.example.com:4444/logs/&lt;ggr-test-session-id&gt;</pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_proxying_downloaded_files"><a class="anchor" href="#_proxying_downloaded_files"></a>2.6. Proxying Downloaded Files</h3>
 <div class="paragraph">
 <p>Similarly to proxying video files Ggr is able to return any files downloaded by browser in <strong>running</strong> Selenium session.</p>
 </div>
@@ -1024,9 +1051,9 @@ Notice that session ID for hub host (aka <code>real-session-id</code>) and for G
 </div>
 </div>
 <div class="sect2">
-<h3 id="_how_it_works"><a class="anchor" href="#_how_it_works"></a>2.6. How it Works</h3>
+<h3 id="_how_it_works"><a class="anchor" href="#_how_it_works"></a>2.7. How it Works</h3>
 <div class="paragraph">
-<p>See the full history in our article - <strong>Selenium testing: a new hope</strong>:</p>
+<p>See the full story in our article - <strong>Selenium testing: a new hope</strong>:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -1040,7 +1067,7 @@ Notice that session ID for hub host (aka <code>real-session-id</code>) and for G
 </div>
 </div>
 <div class="sect2">
-<h3 id="_using_multiple_ggr_instances"><a class="anchor" href="#_using_multiple_ggr_instances"></a>2.7. Using Multiple Ggr Instances</h3>
+<h3 id="_using_multiple_ggr_instances"><a class="anchor" href="#_using_multiple_ggr_instances"></a>2.8. Using Multiple Ggr Instances</h3>
 <div class="paragraph">
 <p>In order to obtain reliable Selenium cluster you need to install multiple Ggr instances behind reliable load balancer such as <a href="https://aws.amazon.com/elasticloadbalancing/">AWS Elastic Load Balancing</a> or <a href="http://keepalived.org/">Keepalived</a>. To check Ggr instance health use <code>/ping</code>:</p>
 </div>
@@ -1060,7 +1087,7 @@ Notice that session ID for hub host (aka <code>real-session-id</code>) and for G
 <p>It returns <code>200 OK</code> when Ggr operates normally. Additionally server uptime, last quota reload time and overall number of session requests from service startup are returned in JSON format.</p>
 </div>
 <div class="sect3">
-<h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.7.1. Why Ggr is Stateless</h4>
+<h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.8.1. Why Ggr is Stateless</h4>
 <div class="paragraph">
 <p>Selenium uses an HTTP-based protocol. That means every action in Selenium, e.g. launching browser or taking screenshot is a separate HTTP request. When multiple instances of Ggr are handling requests behind load balancer every request can be routed to any of these instances. Here&#8217;s how it works.</p>
 </div>
@@ -1088,7 +1115,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect3">
-<h4 id="_getting_host_by_session_id"><a class="anchor" href="#_getting_host_by_session_id"></a>2.7.2. Getting Host by Session ID</h4>
+<h4 id="_getting_host_by_session_id"><a class="anchor" href="#_getting_host_by_session_id"></a>2.8.2. Getting Host by Session ID</h4>
 <div class="paragraph">
 <p>Sometimes you may want to get real hostname behind Ggr that is executing browser session. This can be done using session ID:</p>
 </div>
@@ -1107,7 +1134,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect2">
-<h3 id="_log_files"><a class="anchor" href="#_log_files"></a>2.8. Log Files</h3>
+<h3 id="_log_files"><a class="anchor" href="#_log_files"></a>2.9. Log Files</h3>
 <div class="paragraph">
 <p>A typical log file looks like the following:</p>
 </div>
@@ -1347,7 +1374,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </tbody>
 </table>
 <div class="sect3">
-<h4 id="_custom_labels_in_log_file"><a class="anchor" href="#_custom_labels_in_log_file"></a>2.8.1. Custom Labels in Log File</h4>
+<h4 id="_custom_labels_in_log_file"><a class="anchor" href="#_custom_labels_in_log_file"></a>2.9.1. Custom Labels in Log File</h4>
 <div class="paragraph">
 <p>Sometimes you may need to add some custom metadata like build number or branch name to Selenium logs. Just add the following capability to your tests:</p>
 </div>
@@ -1371,7 +1398,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect2">
-<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.9. Ggr CLI Flags</h3>
+<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.10. Ggr CLI Flags</h3>
 <div class="paragraph">
 <p>The following flags are supported by <code><code>ggr</code></code> command:</p>
 </div>
@@ -1514,7 +1541,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2018-07-23 13:58:20 UTC
+Last updated 2018-07-28 13:37:48 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
