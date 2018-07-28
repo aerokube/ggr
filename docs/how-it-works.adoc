@@ -1,5 +1,5 @@
 == How it Works
-See the full history in our article - **Selenium testing: a new hope**:
+See the full story in our article - **Selenium testing: a new hope**:
 
 * https://hackernoon.com/selenium-testing-a-new-hope-7fa87a501ee9[Part 1]
 * https://hackernoon.com/selenium-testing-a-new-hope-a00649cdb100[Part 2]
