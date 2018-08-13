@@ -16,5 +16,5 @@ func init() {
 	if err != nil {
 		log.Fatalf("[-] [INIT] [Failed to init watching quota for changes: %v]", err)
 	}
-
+	log.Printf("[-] [INIT] [Watching quota directory %s for changes]", quotaDir)
 }
