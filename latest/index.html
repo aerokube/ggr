@@ -529,7 +529,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2018-08-13</span>
+<span id="revdate">2018-08-15</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -758,48 +758,60 @@ For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost".
 <p>Each quota file contains the following XML:</p>
 <div class="listingblock">
 <div class="content">
-<pre>&lt;qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"&gt;
-&lt;browser name="firefox" defaultVersion="61.0"&gt;
-    &lt;version number="61.0"&gt;
-        &lt;region name="1"&gt;
-            &lt;host name="host1.example.com" port="4444" count="1"/&gt;
-            &lt;host name="host2.example.com" port="4444" count="1"/&gt;
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;qa:browsers</span> <span class="attribute-name">xmlns:qa</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">urn:config.gridrouter.qatools.ru</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+<span class="tag">&lt;browser</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">firefox</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">defaultVersion</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">61.0</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;version</span> <span class="attribute-name">number</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">61.0</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;region</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;host</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">host1.example.com</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">port</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">4444</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">count</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
+            <span class="tag">&lt;host</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">host2.example.com</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">port</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">4444</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">count</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span>
             ...
-        &lt;/region&gt;
-        &lt;region name="2"&gt;
+        <span class="tag">&lt;/region&gt;</span>
+        <span class="tag">&lt;region</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">2</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
             ...
-        &lt;/region&gt;
-    &lt;/version&gt;
-    &lt;version number="60.0"&gt;
+        <span class="tag">&lt;/region&gt;</span>
+    <span class="tag">&lt;/version&gt;</span>
+    <span class="tag">&lt;version</span> <span class="attribute-name">number</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">60.0</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
         ...
-    &lt;/version&gt;
-&lt;/browser&gt;
-&lt;browser name="chrome" defaultVersion="67.0"&gt;
+    <span class="tag">&lt;/version&gt;</span>
+<span class="tag">&lt;/browser&gt;</span>
+<span class="tag">&lt;browser</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">chrome</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">defaultVersion</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">67.0</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
     ...
-&lt;/browser&gt;
+<span class="tag">&lt;/browser&gt;</span>
 ...
-&lt;/qa:browsers&gt;</pre>
+<span class="tag">&lt;/qa:browsers&gt;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Here we define a list of browser names, their versions and default version for each browser. Each version has one or more regions (in cloud term, i.e. data centers). Every region contains one or more hosts. Each host defined in XML should have Selenium listening on specified port. The XML namespace is needed to be fully compatible with <a href="http://github.com/seleniumkit/gridrouter">original</a> Java GridRouter implementation.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+A frequent question being asked is the meaning of <code>count</code> attribute because the name for historical questions is a bit confusing. You can have hosts with different number of CPU and memory allowing to run different number of browsers simultaneously. So <code>count</code> is the relative host weight allowing to adjust the load to every host depending on its capacity. For example if your quota contains two hosts with <code>count = 1</code> and <code>count = 3</code> then new session requests will be distributed as <code>1:3</code> between these hosts. The easiest way to deliver uniform load distribution is to set <code>count</code> equal to total number of browsers available on the host. This is what we always recommend to do by default.
+</td>
+</tr>
+</table>
 </div>
 </li>
 <li>
 <p>Sometimes you may need to have the same browser name and version on different platforms, e.g. Firefox on both Linux and Windows. To achieve this you need to add <code>defaultPlatform</code> and <code>platform</code> attributes to quota file as follows:</p>
 <div class="listingblock">
 <div class="content">
-<pre>&lt;qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"&gt;
-&lt;browser name="firefox" defaultVersion="61.0" defaultPlatform="LINUX"&gt;
-    &lt;version number="61.0" platform="LINUX"&gt;
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;qa:browsers</span> <span class="attribute-name">xmlns:qa</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">urn:config.gridrouter.qatools.ru</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+<span class="tag">&lt;browser</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">firefox</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">defaultVersion</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">61.0</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">defaultPlatform</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">LINUX</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;version</span> <span class="attribute-name">number</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">61.0</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">platform</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">LINUX</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
         ...
-    &lt;/version&gt;
-    &lt;version number="61.0" platform="WINDOWS"&gt;
+    <span class="tag">&lt;/version&gt;</span>
+    <span class="tag">&lt;version</span> <span class="attribute-name">number</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">61.0</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">platform</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">WINDOWS</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
         ...
-    &lt;/version&gt;
-&lt;/browser&gt;
+    <span class="tag">&lt;/version&gt;</span>
+<span class="tag">&lt;/browser&gt;</span>
 ...
-&lt;/qa:browsers&gt;</pre>
+<span class="tag">&lt;/qa:browsers&gt;</span></code></pre>
 </div>
 </div>
 </li>
@@ -825,17 +837,17 @@ For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost".
 <div class="paragraph">
 <p>Browser VNC clients like <a href="https://github.com/novnc/noVNC">noVNC</a> work with such URLs out of the box. By default having an XML host entry like this&#8230;&#8203;</p>
 </div>
-<div class="literalblock">
+<div class="listingblock">
 <div class="content">
-<pre>&lt;host name="host1.example.com" port="4444" count="1"/&gt;</pre>
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;host</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">host1.example.com</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">port</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">4444</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">count</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>&#8230;&#8203;Ggr proxies all traffic from <code>host1.example.com:5900</code>. You can customize this by adding an optional <code>vnc</code> attribute to a host:</p>
 </div>
-<div class="literalblock">
+<div class="listingblock">
 <div class="content">
-<pre>&lt;host name="host1.example.com" port="4444" count="1" vnc="vnc://host1.example.com:6900"/&gt;</pre>
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;host</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">host1.example.com</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">port</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">4444</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">count</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">vnc</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">vnc://host1.example.com:6900</span><span class="delimiter">&quot;</span></span><span class="tag">/&gt;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -877,15 +889,15 @@ For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost".
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>&lt;qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"&gt;
-&lt;browser name="firefox" defaultVersion="45.0"&gt;
-    &lt;version number="45.0"&gt;
-        &lt;region name="1"&gt;
-            &lt;host name="hub.browserstack.com" port="443" count="1" username="test-user" password="my-password" scheme="https" /&gt;
-        &lt;/region&gt;
-    &lt;/version&gt;
-&lt;/browser&gt;
-&lt;/qa:browsers&gt;</pre>
+<pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;qa:browsers</span> <span class="attribute-name">xmlns:qa</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">urn:config.gridrouter.qatools.ru</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+<span class="tag">&lt;browser</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">firefox</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">defaultVersion</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">45.0</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;version</span> <span class="attribute-name">number</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">45.0</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;region</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;host</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">hub.browserstack.com</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">port</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">443</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">count</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">1</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">username</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">test-user</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">password</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">my-password</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">scheme</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">https</span><span class="delimiter">&quot;</span></span> <span class="tag">/&gt;</span>
+        <span class="tag">&lt;/region&gt;</span>
+    <span class="tag">&lt;/version&gt;</span>
+<span class="tag">&lt;/browser&gt;</span>
+<span class="tag">&lt;/qa:browsers&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -1541,7 +1553,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2018-08-13 13:27:25 UTC
+Last updated 2018-08-15 08:44:31 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
