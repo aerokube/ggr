@@ -4,7 +4,7 @@
 . For user ```username``` quota file should be named ```username.xml```.
 . Each quota file contains the following XML:
 +
-----
+```xml
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
 <browser name="firefox" defaultVersion="61.0">
     <version number="61.0">
@@ -26,11 +26,15 @@
 </browser>
 ...
 </qa:browsers>
-----
+```
 +
 Here we define a list of browser names, their versions and default version for each browser. Each version has one or more regions (in cloud term, i.e. data centers). Every region contains one or more hosts. Each host defined in XML should have Selenium listening on specified port. The XML namespace is needed to be fully compatible with http://github.com/seleniumkit/gridrouter[original] Java GridRouter implementation.
++
+NOTE: A frequent question being asked is the meaning of `count` attribute because the name for historical questions is a bit confusing. You can have hosts with different number of CPU and memory allowing to run different number of browsers simultaneously. So `count` is the relative host weight allowing to adjust the load to every host depending on its capacity. For example if your quota contains two hosts with `count = 1` and `count = 3` then new session requests will be distributed as `1:3` between these hosts. The easiest way to deliver uniform load distribution is to set `count` equal to total number of browsers available on the host. This is what we always recommend to do by default. 
+ 
 . Sometimes you may need to have the same browser name and version on different platforms, e.g. Firefox on both Linux and Windows. To achieve this you need to add `defaultPlatform` and `platform` attributes to quota file as follows:
 +
+[source,xml]
 ----
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
 <browser name="firefox" defaultVersion="61.0" defaultPlatform="LINUX">
@@ -56,12 +60,17 @@ Sometimes for debugging purposes you need to see the screen of the browser where
 ws://ggr-host.example.com:4444/vnc/<session-id>
 ----
 Browser VNC clients like https://github.com/novnc/noVNC[noVNC] work with such URLs out of the box. By default having an XML host entry like this...
-    
-    <host name="host1.example.com" port="4444" count="1"/>
+[source,xml]
+----    
+<host name="host1.example.com" port="4444" count="1"/>
+----
 
 ...Ggr proxies all traffic from `host1.example.com:5900`. You can customize this by adding an optional `vnc` attribute to a host:
-    
-    <host name="host1.example.com" port="4444" count="1" vnc="vnc://host1.example.com:6900"/>
+
+[source,xml]
+----    
+<host name="host1.example.com" port="4444" count="1" vnc="vnc://host1.example.com:6900"/>
+----
 
 Two notations are supported in `vnc` attribute:
 
@@ -80,6 +89,7 @@ Having this URL Ggr will append session ID and proxy VNC traffic from:
 === Working with External Selenium Services
 
 Although Ggr is mainly used for creating your own Selenium cluster you can also configure it to obtain some browsers in external Selenium services such as http://saucelabs.com/[Saucelabs], http://browserstack.com/[BrowserStack] or https://testingbot.com/[TestingBot]. These services always require username and password to be specified. Credentials should be set for each browser version in respective quota file:
+[source,xml]
 ----
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
 <browser name="firefox" defaultVersion="45.0">
