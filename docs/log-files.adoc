@@ -15,7 +15,7 @@ Every line contains:
 | Field | Example | Notes 
  
 | Time | 2017/04/18 03:52:36 | - 
-| Request counter | [12413389] | Only present for new session requests. So far as session ID is unknown when doing attempts this counter is used to find all session attempts for each new session request. 
+| Request counter | [12413389] | So far as session ID is unknown when doing attempts this counter is used to find all session attempts for each new session request. 
 | Status | [SESSION_ATTEMPTED] | See table below for complete list of statuses. 
 | Quota name | [my_quota] | Extracted from basic HTTP auth headers. 
 | User IP | [192.168.2.3] | IPv4 or IPv6 address 
