@@ -10,7 +10,7 @@ $ curl -s http://example.com:4444/ping
 .Result
 [source,javascript]
 ----
-{"uptime":"2m46.854829503s","lastReloadTime":"2017-05-12 12:33:06.322038542 +0300 MSK","numRequests":42, "version": "1.4.0"}
+{"uptime":"2m46.854829503s","lastReloadTime":"2017-05-12 12:33:06.322038542 +0300 MSK","numRequests":42, "numSessions":19, "version": "1.6.3"}
 ----
 
 It returns `200 OK` when Ggr operates normally. Additionally server uptime, last quota reload time and overall number of session requests from service startup are returned in JSON format.

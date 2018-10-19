@@ -106,6 +106,8 @@ func TestPing(t *testing.T) {
 	AssertThat(t, hasLastReloadTime, Is{true})
 	_, hasNumRequests := data["numRequests"]
 	AssertThat(t, hasNumRequests, Is{true})
+	_, hasNumSessions := data["numSessions"]
+	AssertThat(t, hasNumSessions, Is{true})
 	version, hasVersion := data["version"]
 	AssertThat(t, hasVersion, Is{true})
 	AssertThat(t, version, EqualTo{"test-revision"})

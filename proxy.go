@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/abbot/go-http-auth"
@@ -71,11 +72,11 @@ var (
 			return http.ErrUseLastResponse
 		},
 	}
-	quota    = make(map[string]ggrBrowsers)
-	routes   = make(Routes)
-	num      uint64
-	numLock  sync.RWMutex
-	confLock sync.RWMutex
+	quota       = make(map[string]ggrBrowsers)
+	routes      = make(Routes)
+	numSessions uint64
+	numRequests uint64
+	confLock    sync.RWMutex
 )
 
 // Routes - an MD5 to host map
@@ -208,17 +209,7 @@ func reply(w http.ResponseWriter, msg map[string]interface{}, status int) {
 }
 
 func serial() uint64 {
-	numLock.Lock()
-	defer numLock.Unlock()
-	id := num
-	num++
-	return id
-}
-
-func getSerial() uint64 {
-	numLock.RLock()
-	defer numLock.RUnlock()
-	return num
+	return atomic.AddUint64(&numRequests, 1) - 1
 }
 
 func info(r *http.Request) (user, remote string) {
@@ -345,6 +336,7 @@ loop:
 				resp["sessionId"] = h.Sum() + sess
 			}
 			reply(w, resp, http.StatusOK)
+			atomic.AddUint64(&numSessions, 1)
 			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, labels), h.Net(), sess, count)
 			return
 		case browserFailed:
@@ -425,8 +417,15 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 		Uptime         string `json:"uptime"`
 		LastReloadTime string `json:"lastReloadTime"`
 		NumRequests    uint64 `json:"numRequests"`
+		NumSessions    uint64 `json:"numSessions"`
 		Version        string `json:"version"`
-	}{time.Since(startTime).String(), lastReloadTime.String(), getSerial(), gitRevision})
+	}{
+		time.Since(startTime).String(),
+		lastReloadTime.String(),
+		atomic.LoadUint64(&numRequests),
+		atomic.LoadUint64(&numSessions),
+		gitRevision,
+	})
 }
 
 func status(w http.ResponseWriter, _ *http.Request) {
