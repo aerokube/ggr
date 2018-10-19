@@ -38,7 +38,7 @@ func (ss *setImpl) size() int {
 }
 
 func sessionURL(h *Host) string {
-	return h.Route() + routePath
+	return h.Route() + paths.Route
 }
 
 type ggrBrowsers struct {

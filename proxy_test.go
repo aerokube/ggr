@@ -420,6 +420,34 @@ func TestProxyDownload(t *testing.T) {
 	AssertThat(t, rsp, Code{http.StatusNotFound})
 }
 
+func TestProxyClipboardWithoutAuth(t *testing.T) {
+	rsp, err := http.Get(gridrouter("/clipboard/123"))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
+func TestProxyClipboard(t *testing.T) {
+
+	test.Lock()
+	defer test.Unlock()
+
+	fileServer, sessionID := prepareMockFileServer("/clipboard/123")
+	defer fileServer.Close()
+
+	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/clipboard/%s", sessionID)), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusOK})
+
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/clipboard/missing-session"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusNotFound})
+
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/clipboard/f7fd94f75c79c36e547c091632da440f_missing-session"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusNotFound})
+}
+
 func TestCreateSessionGet(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, gridrouter("/wd/hub/session"), nil)
 	req.SetBasicAuth("test", "test")
