@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/abbot/go-http-auth"
@@ -29,25 +30,29 @@ const (
 )
 
 const (
-	pingPath       = "/ping"
-	statusPath     = "/wd/hub/status"
-	errPath        = "/err"
-	hostPath       = "/host/"
-	quotaPath      = "/quota"
-	routePath      = "/wd/hub/session"
-	proxyPath      = routePath + "/"
-	vncPath        = "/vnc/"
-	videoPath      = "/video/"
-	logsPath       = "/logs/"
-	downloadPath   = "/download/"
-	head           = len(proxyPath)
 	md5SumLength   = 32
-	tail           = head + md5SumLength
 	sessPart       = 4 // /wd/hub/session/{various length session}
 	defaultVNCPort = "5900"
 	vncScheme      = "vnc"
 	wsScheme       = "ws"
 )
+
+var paths = struct {
+	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, Video, Logs, Download, Clipboard string
+}{
+	Ping:      "/ping",
+	Status:    "/wd/hub/status",
+	Err:       "/err",
+	Host:      "/host/",
+	Quota:     "/quota",
+	Route:     "/wd/hub/session",
+	Proxy:     "/wd/hub/session/",
+	VNC:       "/vnc/",
+	Video:     "/video/",
+	Logs:      "/logs/",
+	Download:  "/download/",
+	Clipboard: "/clipboard/",
+}
 
 var keys = struct {
 	desiredCapabilities string
@@ -60,16 +65,18 @@ var keys = struct {
 }
 
 var (
+	head       = len(paths.Proxy)
+	tail       = head + md5SumLength
 	httpClient = &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 	}
-	quota    = make(map[string]ggrBrowsers)
-	routes   = make(Routes)
-	num      uint64
-	numLock  sync.RWMutex
-	confLock sync.RWMutex
+	quota       = make(map[string]ggrBrowsers)
+	routes      = make(Routes)
+	numSessions uint64
+	numRequests uint64
+	confLock    sync.RWMutex
 )
 
 // Routes - an MD5 to host map
@@ -202,17 +209,7 @@ func reply(w http.ResponseWriter, msg map[string]interface{}, status int) {
 }
 
 func serial() uint64 {
-	numLock.Lock()
-	defer numLock.Unlock()
-	id := num
-	num++
-	return id
-}
-
-func getSerial() uint64 {
-	numLock.RLock()
-	defer numLock.RUnlock()
-	return num
+	return atomic.AddUint64(&numRequests, 1) - 1
 }
 
 func info(r *http.Request) (user, remote string) {
@@ -339,6 +336,7 @@ loop:
 				resp["sessionId"] = h.Sum() + sess
 			}
 			reply(w, resp, http.StatusOK)
+			atomic.AddUint64(&numSessions, 1)
 			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, labels), h.Net(), sess, count)
 			return
 		case browserFailed:
@@ -408,7 +406,7 @@ func proxy(r *http.Request) {
 		log.Printf("[%d] [-] [INVALID_URL] [-] [%s] [%s] [-] [-] [-] [-]\n", id, remote, r.URL.Path)
 	}
 	r.URL.Host = listen
-	r.URL.Path = errPath
+	r.URL.Path = paths.Err
 }
 
 func ping(w http.ResponseWriter, _ *http.Request) {
@@ -419,8 +417,15 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 		Uptime         string `json:"uptime"`
 		LastReloadTime string `json:"lastReloadTime"`
 		NumRequests    uint64 `json:"numRequests"`
+		NumSessions    uint64 `json:"numSessions"`
 		Version        string `json:"version"`
-	}{time.Since(startTime).String(), lastReloadTime.String(), getSerial(), gitRevision})
+	}{
+		time.Since(startTime).String(),
+		lastReloadTime.String(),
+		atomic.LoadUint64(&numRequests),
+		atomic.LoadUint64(&numSessions),
+		gitRevision,
+	})
 }
 
 func status(w http.ResponseWriter, _ *http.Request) {
@@ -444,7 +449,7 @@ func host(w http.ResponseWriter, r *http.Request) {
 
 	id := serial()
 	user, remote := info(r)
-	head := len(hostPath)
+	head := len(paths.Host)
 	tail := head + md5SumLength
 	path := r.URL.Path
 	if len(path) < tail {
@@ -603,7 +608,7 @@ func vnc(wsconn *websocket.Conn) {
 	defer confLock.RUnlock()
 
 	id := serial()
-	head := len(vncPath)
+	head := len(paths.VNC)
 	tail := head + md5SumLength
 	path := wsconn.Request().URL.Path
 	if len(path) < tail {
@@ -675,20 +680,26 @@ func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sess
 }
 
 func video(w http.ResponseWriter, r *http.Request) {
-	proxyStatic(w, r, videoPath, "INVALID_VIDEO_REQUEST_URL", "PROXYING_VIDEO", "UNKNOWN_VIDEO_HOST", func(sessionId string) string {
+	proxyStatic(w, r, paths.Video, "INVALID_VIDEO_REQUEST_URL", "PROXYING_VIDEO", "UNKNOWN_VIDEO_HOST", func(sessionId string) string {
 		return fmt.Sprintf("/video/%s.mp4", sessionId)
 	})
 }
 
 func logs(w http.ResponseWriter, r *http.Request) {
-	proxyStatic(w, r, logsPath, "INVALID_LOG_REQUEST_URL", "PROXYING_LOG", "UNKNOWN_LOG_HOST", func(sessionId string) string {
+	proxyStatic(w, r, paths.Logs, "INVALID_LOG_REQUEST_URL", "PROXYING_LOG", "UNKNOWN_LOG_HOST", func(sessionId string) string {
 		return fmt.Sprintf("/logs/%s.log", sessionId)
 	})
 }
 
 func download(w http.ResponseWriter, r *http.Request) {
-	proxyStatic(w, r, downloadPath, "INVALID_DOWNLOAD_REQUEST_URL", "PROXYING_DOWNLOAD", "UNKNOWN_DOWNLOAD_HOST", func(remainder string) string {
+	proxyStatic(w, r, paths.Download, "INVALID_DOWNLOAD_REQUEST_URL", "PROXYING_DOWNLOAD", "UNKNOWN_DOWNLOAD_HOST", func(remainder string) string {
 		return fmt.Sprintf("/download/%s", remainder)
+	})
+}
+
+func clipboard(w http.ResponseWriter, r *http.Request) {
+	proxyStatic(w, r, paths.Clipboard, "INVALID_CLIPBOARD_REQUEST_URL", "PROXYING_CLIPBOARD", "UNKNOWN_DOWNLOAD_HOST", func(remainder string) string {
+		return fmt.Sprintf("/clipboard/%s", remainder)
 	})
 }
 
@@ -728,16 +739,17 @@ func mux() http.Handler {
 		"Selenium Grid Router",
 		auth.HtpasswdFileProvider(users),
 	)
-	mux.HandleFunc(pingPath, ping)
-	mux.HandleFunc(statusPath, status)
-	mux.HandleFunc(errPath, err)
-	mux.HandleFunc(hostPath, WithSuitableAuthentication(authenticator, host))
-	mux.HandleFunc(quotaPath, WithSuitableAuthentication(authenticator, quotaInfo))
-	mux.HandleFunc(routePath, withCloseNotifier(WithSuitableAuthentication(authenticator, postOnly(route))))
-	mux.Handle(proxyPath, &httputil.ReverseProxy{Director: proxy})
-	mux.Handle(vncPath, websocket.Handler(vnc))
-	mux.HandleFunc(videoPath, WithSuitableAuthentication(authenticator, video))
-	mux.HandleFunc(logsPath, WithSuitableAuthentication(authenticator, logs))
-	mux.HandleFunc(downloadPath, WithSuitableAuthentication(authenticator, download))
+	mux.HandleFunc(paths.Ping, ping)
+	mux.HandleFunc(paths.Status, status)
+	mux.HandleFunc(paths.Err, err)
+	mux.HandleFunc(paths.Host, WithSuitableAuthentication(authenticator, host))
+	mux.HandleFunc(paths.Quota, WithSuitableAuthentication(authenticator, quotaInfo))
+	mux.HandleFunc(paths.Route, withCloseNotifier(WithSuitableAuthentication(authenticator, postOnly(route))))
+	mux.Handle(paths.Proxy, &httputil.ReverseProxy{Director: proxy})
+	mux.Handle(paths.VNC, websocket.Handler(vnc))
+	mux.HandleFunc(paths.Video, WithSuitableAuthentication(authenticator, video))
+	mux.HandleFunc(paths.Logs, WithSuitableAuthentication(authenticator, logs))
+	mux.HandleFunc(paths.Download, WithSuitableAuthentication(authenticator, download))
+	mux.HandleFunc(paths.Clipboard, WithSuitableAuthentication(authenticator, clipboard))
 	return mux
 }

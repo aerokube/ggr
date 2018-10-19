@@ -106,6 +106,8 @@ func TestPing(t *testing.T) {
 	AssertThat(t, hasLastReloadTime, Is{true})
 	_, hasNumRequests := data["numRequests"]
 	AssertThat(t, hasNumRequests, Is{true})
+	_, hasNumSessions := data["numSessions"]
+	AssertThat(t, hasNumSessions, Is{true})
 	version, hasVersion := data["version"]
 	AssertThat(t, hasVersion, Is{true})
 	AssertThat(t, version, EqualTo{"test-revision"})
@@ -416,6 +418,34 @@ func TestProxyDownload(t *testing.T) {
 	AssertThat(t, rsp, Code{http.StatusNotFound})
 
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/download/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusNotFound})
+}
+
+func TestProxyClipboardWithoutAuth(t *testing.T) {
+	rsp, err := http.Get(gridrouter("/clipboard/123"))
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
+func TestProxyClipboard(t *testing.T) {
+
+	test.Lock()
+	defer test.Unlock()
+
+	fileServer, sessionID := prepareMockFileServer("/clipboard/123")
+	defer fileServer.Close()
+
+	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/clipboard/%s", sessionID)), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusOK})
+
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/clipboard/missing-session"), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusNotFound})
+
+	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/clipboard/f7fd94f75c79c36e547c091632da440f_missing-session"), nil)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusNotFound})
 }
