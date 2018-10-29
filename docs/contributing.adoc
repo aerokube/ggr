@@ -1,19 +1,14 @@
 == Contributing & Development
 To build Ggr:
 
-. Install https://golang.org/doc/install[Golang]
-. Setup `$GOPATH` https://github.com/golang/go/wiki/GOPATH[properly]
-. Get Ggr source:
+. Install https://golang.org/doc/install[Golang] 1.11 and above
+. Clone Ggr source:
 
-    $ go get -d github.com/aerokube/ggr
+    $ git clone https://github.com/aerokube/ggr.git
 
 . Go to project directory:
 
-    $ cd $GOPATH/src/github.com/aerokube/ggr
-
-. Checkout dependencies:
-
-    $ go get -u github.com/golang/dep/cmd/dep && dep ensure
+    $ cd ggr
 
 . Build source:
 
