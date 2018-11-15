@@ -1207,6 +1207,36 @@ func TestStartSessionJSONWireProtocol(t *testing.T) {
 	AssertThat(t, value["value"].(map[string]interface{})["sessionId"], EqualTo{fmt.Sprintf("%s123", node.Sum())})
 }
 
+func TestPanicRouteProtocolError(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"value":[]}`))
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp.StatusCode, Is{http.StatusBadGateway})
+}
+
 func TestDeleteSession(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
