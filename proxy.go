@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -122,6 +123,8 @@ func (c caps) capabilityJsonWireW3C(jsonWire, W3C string) string {
 				pairs = append(pairs, fmt.Sprintf("%s=%v", k, v))
 			}
 			result = strings.Join(pairs, " ")
+		} else {
+			log.Printf("[-] [-] [BAD_CAPABILITY] [Using default value for capability %s: should be a string or a map but is %T] [-] [-] [-] [-] [-] [-]", k, reflect.TypeOf(m[k]))
 		}
 	})
 	return result
