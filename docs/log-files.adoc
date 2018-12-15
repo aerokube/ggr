@@ -33,6 +33,7 @@ The following statuses are available:
 |===
 | Status | Description 
  
+| BAD_CAPABILITY | User is passing non-string value for capability that should be string 
 | BAD_JSON | User request does not contain valid Selenium data 
 | BAD_RESPONSE | Upstream server returned data using unknown JSON protocol 
 | BROWSER_NOT_SET | Browser name is not present or empty string 
