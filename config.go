@@ -45,6 +45,8 @@ type ggrBrowsers struct {
 	Browsers
 }
 
+const anyPlatform = "ANY"
+
 func (b *ggrBrowsers) find(browser, version string, platform string, excludedHosts set, excludedRegions set) (Hosts, string, set) {
 	var hosts Hosts
 	for _, b := range b.Browsers.Browsers {
@@ -52,7 +54,7 @@ func (b *ggrBrowsers) find(browser, version string, platform string, excludedHos
 			if version == "" {
 				version = b.DefaultVersion
 			}
-			if platform == "" {
+			if platform == "" || platform == anyPlatform {
 				platform = b.DefaultPlatform
 			}
 			for _, v := range b.Versions {
