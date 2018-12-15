@@ -4,7 +4,9 @@
 . For user ```username``` quota file should be named ```username.xml```.
 . Each quota file contains the following XML:
 +
-```xml
+.A typical quota file
+[source,xml]
+----
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
 <browser name="firefox" defaultVersion="61.0">
     <version number="61.0">
@@ -26,7 +28,7 @@
 </browser>
 ...
 </qa:browsers>
-```
+----
 +
 Here we define a list of browser names, their versions and default version for each browser. Each version has one or more regions (in cloud term, i.e. data centers). Every region contains one or more hosts. Each host defined in XML should have Selenium listening on specified port. The XML namespace is needed to be fully compatible with http://github.com/seleniumkit/gridrouter[original] Java GridRouter implementation.
 +
@@ -37,6 +39,7 @@ NOTE: A frequent question being asked is the meaning of `count` attribute becaus
 . Similarly version `platform` attribute is matched against `platform` or `platformName` capability by prefix. When platform from capabilities equals to `ANY` - default platform will be chosen. 
 . Sometimes you may need to have the same browser name and version on different platforms, e.g. Firefox on both Linux and Windows. To achieve this you need to add `defaultPlatform` and `platform` attributes to quota file as follows:
 +
+.Adding platform information to quota file
 [source,xml]
 ----
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
@@ -90,6 +93,8 @@ Having this URL Ggr will append session ID and proxy VNC traffic from:
 === Working with External Selenium Services
 
 Although Ggr is mainly used for creating your own Selenium cluster you can also configure it to obtain some browsers in external Selenium services such as http://saucelabs.com/[Saucelabs], http://browserstack.com/[BrowserStack] or https://testingbot.com/[TestingBot]. These services always require username and password to be specified. Credentials should be set for each browser version in respective quota file:
+
+.Providing user name and password for external Selenium service
 [source,xml]
 ----
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">

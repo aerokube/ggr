@@ -1,0 +1,68 @@
+== Encrypting Connection to Ggr
+
+Ggr itself does not support any modern encryption technologies such as https://en.wikipedia.org/wiki/Transport_Layer_Security[TLS] or https://en.wikipedia.org/wiki/WebSocket[WebSocket Secure]. In order to use them you are expected to setup a reverse proxy having such capabilities. A typical http://nginx.org/[Nginx] configuration looks like the following:
+
+.Nginx configuration for encrypted connection
+----
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+upstream ggr {
+    server ggr1.example.com:4444 weight=10  max_fails=30 fail_timeout=180s;
+    server ggr2.example.com:4444 weight=10  max_fails=30 fail_timeout=180s;
+    server ggr3.example.com:4444 weight=10  max_fails=30 fail_timeout=180s;
+}
+
+server {
+  server_name selenium.example.com;
+  
+  listen 4444 ssl;
+  listen [::]:4444 ssl;
+  
+  ssl_prefer_server_ciphers on;
+  ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+  ssl_ciphers kEECDH+AESGCM+AES128:kEECDH+AES128:kRSA+AESGCM+AES128:kRSA+AES128:DES-CBC3-SHA:!RC4:!aNULL:!eNULL:!MD5:!EXPORT:!LOW:!SEED:!CAMELLIA:!IDEA:!PSK:!SRP:!SSLv2;
+  ssl_session_cache    shared:SSL:64m;
+  ssl_session_timeout  28h;
+  
+  # These two files are private key and certificate from SSL certificate provider
+  ssl_certificate /etc/ssl/selenium.pem;
+  ssl_certificate_key /etc/ssl/selenium.key;
+  
+  access_log /var/log/nginx/selenium_access.log;
+  error_log /var/log/nginx/selenium_error.log;
+
+  location / {
+    proxy_pass              http://ggr;
+    proxy_http_version      1.1;
+    proxy_set_header        Connection "";
+    proxy_set_header        Host $host;
+    proxy_set_header        X-Real-IP $remote_addr;
+    proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_connect_timeout   10;
+    proxy_send_timeout      300;
+    proxy_read_timeout      300;
+    proxy_buffers           32 64m;
+    proxy_buffer_size       64k;
+    proxy_next_upstream    error timeout http_502 http_503 http_504;
+    client_max_body_size    64m;
+    client_body_buffer_size 64m;
+    add_header Access-Control-Allow-Methods "GET,PUT,OPTIONS,POST,DELETE";
+    add_header Access-Control-Allow-Origin "*";
+    add_header Access-Control-Allow-Headers "Content-Type,Authorization";
+    add_header Access-Control-Allow-Credentials "true";
+  }
+
+  location ~ ^/vnc/ {
+    proxy_pass http://ggr;
+    proxy_http_version 1.1;
+    proxy_read_timeout 950s;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+  }
+
+}
+----
+
