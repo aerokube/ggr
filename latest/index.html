@@ -554,19 +554,20 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_proxying_session_video">2.4. Proxying Session Video</a></li>
 <li><a href="#_proxying_session_logs">2.5. Proxying Session Logs</a></li>
 <li><a href="#_proxying_downloaded_files">2.6. Proxying Downloaded Files</a></li>
-<li><a href="#_how_it_works">2.7. How it Works</a></li>
-<li><a href="#_using_multiple_ggr_instances">2.8. Using Multiple Ggr Instances</a>
+<li><a href="#_encrypting_connection_to_ggr">2.7. Encrypting Connection to Ggr</a></li>
+<li><a href="#_how_it_works">2.8. How it Works</a></li>
+<li><a href="#_using_multiple_ggr_instances">2.9. Using Multiple Ggr Instances</a>
 <ul class="sectlevel3">
-<li><a href="#_why_ggr_is_stateless">2.8.1. Why Ggr is Stateless</a></li>
-<li><a href="#_getting_host_by_session_id">2.8.2. Getting Host by Session ID</a></li>
+<li><a href="#_why_ggr_is_stateless">2.9.1. Why Ggr is Stateless</a></li>
+<li><a href="#_getting_host_by_session_id">2.9.2. Getting Host by Session ID</a></li>
 </ul>
 </li>
-<li><a href="#_log_files">2.9. Log Files</a>
+<li><a href="#_log_files">2.10. Log Files</a>
 <ul class="sectlevel3">
-<li><a href="#_custom_labels_in_log_file">2.9.1. Custom Labels in Log File</a></li>
+<li><a href="#_custom_labels_in_log_file">2.10.1. Custom Labels in Log File</a></li>
 </ul>
 </li>
-<li><a href="#_ggr_cli_flags">2.10. Ggr CLI Flags</a></li>
+<li><a href="#_ggr_cli_flags">2.11. Ggr CLI Flags</a></li>
 </ul>
 </li>
 <li><a href="#_contributing_development">3. Contributing &amp; Development</a>
@@ -757,6 +758,7 @@ For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost".
 <li>
 <p>Each quota file contains the following XML:</p>
 <div class="listingblock">
+<div class="title">A typical quota file</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;qa:browsers</span> <span class="attribute-name">xmlns:qa</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">urn:config.gridrouter.qatools.ru</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
 <span class="tag">&lt;browser</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">firefox</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">defaultVersion</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">61.0</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
@@ -809,6 +811,7 @@ A frequent question being asked is the meaning of <code>count</code> attribute b
 <li>
 <p>Sometimes you may need to have the same browser name and version on different platforms, e.g. Firefox on both Linux and Windows. To achieve this you need to add <code>defaultPlatform</code> and <code>platform</code> attributes to quota file as follows:</p>
 <div class="listingblock">
+<div class="title">Adding platform information to quota file</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;qa:browsers</span> <span class="attribute-name">xmlns:qa</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">urn:config.gridrouter.qatools.ru</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
 <span class="tag">&lt;browser</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">firefox</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">defaultVersion</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">61.0</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">defaultPlatform</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">LINUX</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
@@ -891,6 +894,7 @@ A frequent question being asked is the meaning of <code>count</code> attribute b
 <p>Although Ggr is mainly used for creating your own Selenium cluster you can also configure it to obtain some browsers in external Selenium services such as <a href="http://saucelabs.com/">Saucelabs</a>, <a href="http://browserstack.com/">BrowserStack</a> or <a href="https://testingbot.com/">TestingBot</a>. These services always require username and password to be specified. Credentials should be set for each browser version in respective quota file:</p>
 </div>
 <div class="listingblock">
+<div class="title">Providing user name and password for external Selenium service</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;qa:browsers</span> <span class="attribute-name">xmlns:qa</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">urn:config.gridrouter.qatools.ru</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
 <span class="tag">&lt;browser</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">firefox</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">defaultVersion</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">45.0</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
@@ -1066,7 +1070,78 @@ Notice that session ID for hub host (aka <code>real-session-id</code>) and for G
 </div>
 </div>
 <div class="sect2">
-<h3 id="_how_it_works"><a class="anchor" href="#_how_it_works"></a>2.7. How it Works</h3>
+<h3 id="_encrypting_connection_to_ggr"><a class="anchor" href="#_encrypting_connection_to_ggr"></a>2.7. Encrypting Connection to Ggr</h3>
+<div class="paragraph">
+<p>Ggr itself does not support any modern encryption technologies such as <a href="https://en.wikipedia.org/wiki/Transport_Layer_Security">TLS</a> or <a href="https://en.wikipedia.org/wiki/WebSocket">WebSocket Secure</a>. In order to use them you are expected to setup a reverse proxy having such capabilities. A typical <a href="http://nginx.org/">Nginx</a> configuration looks like the following:</p>
+</div>
+<div class="listingblock">
+<div class="title">Nginx configuration for encrypted connection</div>
+<div class="content">
+<pre>map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+upstream ggr {
+    server ggr1.example.com:4444 weight=10  max_fails=30 fail_timeout=180s;
+    server ggr2.example.com:4444 weight=10  max_fails=30 fail_timeout=180s;
+    server ggr3.example.com:4444 weight=10  max_fails=30 fail_timeout=180s;
+}
+
+server {
+  server_name selenium.example.com;
+
+  listen 4444 ssl;
+  listen [::]:4444 ssl;
+
+  ssl_prefer_server_ciphers on;
+  ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+  ssl_ciphers kEECDH+AESGCM+AES128:kEECDH+AES128:kRSA+AESGCM+AES128:kRSA+AES128:DES-CBC3-SHA:!RC4:!aNULL:!eNULL:!MD5:!EXPORT:!LOW:!SEED:!CAMELLIA:!IDEA:!PSK:!SRP:!SSLv2;
+  ssl_session_cache    shared:SSL:64m;
+  ssl_session_timeout  28h;
+
+  # These two files are private key and certificate from SSL certificate provider
+  ssl_certificate /etc/ssl/selenium.pem;
+  ssl_certificate_key /etc/ssl/selenium.key;
+
+  access_log /var/log/nginx/selenium_access.log;
+  error_log /var/log/nginx/selenium_error.log;
+
+  location / {
+    proxy_pass              http://ggr;
+    proxy_http_version      1.1;
+    proxy_set_header        Connection "";
+    proxy_set_header        Host $host;
+    proxy_set_header        X-Real-IP $remote_addr;
+    proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_connect_timeout   10;
+    proxy_send_timeout      300;
+    proxy_read_timeout      300;
+    proxy_buffers           32 64m;
+    proxy_buffer_size       64k;
+    proxy_next_upstream    error timeout http_502 http_503 http_504;
+    client_max_body_size    64m;
+    client_body_buffer_size 64m;
+    add_header Access-Control-Allow-Methods "GET,PUT,OPTIONS,POST,DELETE";
+    add_header Access-Control-Allow-Origin "*";
+    add_header Access-Control-Allow-Headers "Content-Type,Authorization";
+    add_header Access-Control-Allow-Credentials "true";
+  }
+
+  location ~ ^/vnc/ {
+    proxy_pass http://ggr;
+    proxy_http_version 1.1;
+    proxy_read_timeout 950s;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+  }
+
+}</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_how_it_works"><a class="anchor" href="#_how_it_works"></a>2.8. How it Works</h3>
 <div class="paragraph">
 <p>See the full story in our article - <strong>Selenium testing: a new hope</strong>:</p>
 </div>
@@ -1082,7 +1157,7 @@ Notice that session ID for hub host (aka <code>real-session-id</code>) and for G
 </div>
 </div>
 <div class="sect2">
-<h3 id="_using_multiple_ggr_instances"><a class="anchor" href="#_using_multiple_ggr_instances"></a>2.8. Using Multiple Ggr Instances</h3>
+<h3 id="_using_multiple_ggr_instances"><a class="anchor" href="#_using_multiple_ggr_instances"></a>2.9. Using Multiple Ggr Instances</h3>
 <div class="paragraph">
 <p>In order to obtain reliable Selenium cluster you need to install multiple Ggr instances behind reliable load balancer such as <a href="https://aws.amazon.com/elasticloadbalancing/">AWS Elastic Load Balancing</a> or <a href="http://keepalived.org/">Keepalived</a>. To check Ggr instance health use <code>/ping</code>:</p>
 </div>
@@ -1102,7 +1177,7 @@ Notice that session ID for hub host (aka <code>real-session-id</code>) and for G
 <p>It returns <code>200 OK</code> when Ggr operates normally. Additionally server uptime, last quota reload time and overall number of session requests from service startup are returned in JSON format.</p>
 </div>
 <div class="sect3">
-<h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.8.1. Why Ggr is Stateless</h4>
+<h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.9.1. Why Ggr is Stateless</h4>
 <div class="paragraph">
 <p>Selenium uses an HTTP-based protocol. That means every action in Selenium, e.g. launching browser or taking screenshot is a separate HTTP request. When multiple instances of Ggr are handling requests behind load balancer every request can be routed to any of these instances. Here&#8217;s how it works.</p>
 </div>
@@ -1130,7 +1205,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect3">
-<h4 id="_getting_host_by_session_id"><a class="anchor" href="#_getting_host_by_session_id"></a>2.8.2. Getting Host by Session ID</h4>
+<h4 id="_getting_host_by_session_id"><a class="anchor" href="#_getting_host_by_session_id"></a>2.9.2. Getting Host by Session ID</h4>
 <div class="paragraph">
 <p>Sometimes you may want to get real hostname behind Ggr that is executing browser session. This can be done using session ID:</p>
 </div>
@@ -1149,7 +1224,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect2">
-<h3 id="_log_files"><a class="anchor" href="#_log_files"></a>2.9. Log Files</h3>
+<h3 id="_log_files"><a class="anchor" href="#_log_files"></a>2.10. Log Files</h3>
 <div class="paragraph">
 <p>A typical log file looks like the following:</p>
 </div>
@@ -1393,7 +1468,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </tbody>
 </table>
 <div class="sect3">
-<h4 id="_custom_labels_in_log_file"><a class="anchor" href="#_custom_labels_in_log_file"></a>2.9.1. Custom Labels in Log File</h4>
+<h4 id="_custom_labels_in_log_file"><a class="anchor" href="#_custom_labels_in_log_file"></a>2.10.1. Custom Labels in Log File</h4>
 <div class="paragraph">
 <p>Sometimes you may need to add some custom metadata like build number or branch name to Selenium logs. Just add the following capability to your tests:</p>
 </div>
@@ -1417,7 +1492,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect2">
-<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.10. Ggr CLI Flags</h3>
+<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.11. Ggr CLI Flags</h3>
 <div class="paragraph">
 <p>The following flags are supported by <code><code>ggr</code></code> command:</p>
 </div>
@@ -1549,7 +1624,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2018-12-15 15:33:37 UTC
+Last updated 2018-12-15 17:56:27 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
