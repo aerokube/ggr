@@ -798,6 +798,15 @@ A frequent question being asked is the meaning of <code>count</code> attribute b
 </div>
 </li>
 <li>
+<p>Browser name is matched against <code>browserName</code> capability. Values are compared as strings and should be exactly equal. When testing mobile applications (e.g. with <a href="http://github.com/appium/appium">Appium</a>) <code>browserName</code> capability makes no sense and can be replaced by <code>deviceName</code> capability. Ggr will try to match both against browser name specified in XML.</p>
+</li>
+<li>
+<p>Version <code>number</code> is matched against <code>version</code> or <code>browserVersion</code> capability by prefix. For example both <code>61</code> and <code>61.0</code> in version capability (i.e. in your code) will match version number <code>61.0</code>.</p>
+</li>
+<li>
+<p>Similarly version <code>platform</code> attribute is matched against <code>platform</code> or <code>platformName</code> capability by prefix. When platform from capabilities equals to <code>ANY</code> - default platform will be chosen.</p>
+</li>
+<li>
 <p>Sometimes you may need to have the same browser name and version on different platforms, e.g. Firefox on both Linux and Windows. To achieve this you need to add <code>defaultPlatform</code> and <code>platform</code> attributes to quota file as follows:</p>
 <div class="listingblock">
 <div class="content">
@@ -814,12 +823,6 @@ A frequent question being asked is the meaning of <code>count</code> attribute b
 <span class="tag">&lt;/qa:browsers&gt;</span></code></pre>
 </div>
 </div>
-</li>
-<li>
-<p>Version <code>number</code> is matched against <code>version</code> or <code>browserVersion</code> capability by prefix. For example both <code>61</code> and <code>61.0</code> in version capability (i.e. in your code) will match version number <code>61.0</code>.</p>
-</li>
-<li>
-<p>Similarly version <code>platform</code> attribute is matched against <code>platform</code> or <code>platformName</code> capability by prefix.</p>
 </li>
 </ol>
 </div>
@@ -1252,6 +1255,10 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </thead>
 <tbody>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BAD_CAPABILITY</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">User is passing non-string value for capability that should be string</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">BAD_JSON</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">User request does not contain valid Selenium data</p></td>
 </tr>
@@ -1542,7 +1549,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2018-12-15 13:43:09 UTC
+Last updated 2018-12-15 15:33:37 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
