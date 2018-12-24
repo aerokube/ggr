@@ -10,5 +10,5 @@ Similarly to proxying video files Ggr is able to return any files downloaded by 
 Such notation for example is supported by http://aerokube.com/selenoid/latest[Selenoid].
 . To get downloaded file via Ggr just use the same request but with the session ID returned to test:
 
-     $ curl http://ggr-host.example.com:4444/video/<test-session-id>/filename.txt
+     $ curl http://ggr-host.example.com:4444/download/<test-session-id>/filename.txt
 
