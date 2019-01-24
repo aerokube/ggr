@@ -180,7 +180,9 @@ func session(ctx context.Context, h *Host, header http.Header, c caps) (map[stri
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := httpClient.Do(req)
 	if resp != nil {
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 	}
 	if err != nil {
 		return nil, seleniumError
@@ -208,7 +210,7 @@ func session(ctx context.Context, h *Host, header http.Header, c caps) (map[stri
 func reply(w http.ResponseWriter, msg map[string]interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(msg)
+	_ = json.NewEncoder(w).Encode(msg)
 }
 
 func serial() uint64 {
@@ -386,7 +388,7 @@ func proxy(r *http.Request) {
 		if ok {
 			if r.Body != nil {
 				if body, err := ioutil.ReadAll(r.Body); err == nil {
-					r.Body.Close()
+					_ = r.Body.Close()
 					var msg map[string]interface{}
 					if err := json.Unmarshal(body, &msg); err == nil {
 						delete(msg, "sessionId")
@@ -421,7 +423,7 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 	confLock.RLock()
 	defer confLock.RUnlock()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(struct {
+	_ = json.NewEncoder(w).Encode(struct {
 		Uptime         string `json:"uptime"`
 		LastReloadTime string `json:"lastReloadTime"`
 		NumRequests    uint64 `json:"numRequests"`
@@ -438,7 +440,7 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 
 func status(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(
+	_ = json.NewEncoder(w).Encode(
 		map[string]interface{}{
 			"value": map[string]interface{}{
 				"message": fmt.Sprintf("Ggr %s built at %s", gitRevision, buildStamp),
@@ -462,19 +464,19 @@ func host(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	if len(path) < tail {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid session ID"))
+		_,_ = w.Write([]byte("invalid session ID"))
 		return
 	}
 	sum := path[head:tail]
 	h, ok := routes[sum]
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("unknown host"))
+		_,_ = w.Write([]byte("unknown host"))
 		return
 	}
 	log.Printf("[%d] [-] [HOST_INFO_REQUESTED] [%s] [%s] [-] [%s] [%s] [-] [-]\n", id, user, remote, h.Name, sum)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Host{Name: h.Name, Port: h.Port, Count: h.Count})
+	_ = json.NewEncoder(w).Encode(Host{Name: h.Name, Port: h.Port, Count: h.Count})
 }
 
 func quotaInfo(w http.ResponseWriter, r *http.Request) {
@@ -499,7 +501,7 @@ func quotaInfo(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	json.NewEncoder(w).Encode(browsers.Browsers.Browsers)
+	_ = json.NewEncoder(w).Encode(browsers.Browsers.Browsers)
 }
 
 func postOnly(handler http.HandlerFunc) http.HandlerFunc {
@@ -611,7 +613,9 @@ func WithSuitableAuthentication(authenticator *auth.BasicAuth, handler func(http
 }
 
 func vnc(wsconn *websocket.Conn) {
-	defer wsconn.Close()
+	defer func() {
+		_ = wsconn.Close()
+	}()
 	confLock.RLock()
 	defer confLock.RUnlock()
 
@@ -676,14 +680,16 @@ func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sess
 		log.Printf("[%d] [-] [VNC_ERROR] [-] [-] [-] [%s] [%s] [-] [%v]\n", id, sessionID, address, err)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 	wsconn.PayloadType = websocket.BinaryFrame
 	go func() {
-		io.Copy(wsconn, conn)
-		wsconn.Close()
+		_, _ = io.Copy(wsconn, conn)
+		_ = wsconn.Close()
 		log.Printf("[%d] [-] [VNC_SESSION_CLOSED] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionID)
 	}()
-	io.Copy(conn, wsconn)
+	_,_ = io.Copy(conn, wsconn)
 	log.Printf("[%d] [-] [VNC_CLIENT_DISCONNECTED] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionID)
 }
 
