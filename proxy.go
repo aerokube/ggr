@@ -123,8 +123,8 @@ func (c caps) capabilityJsonWireW3C(jsonWire, W3C string) string {
 				pairs = append(pairs, fmt.Sprintf("%s=%v", k, v))
 			}
 			result = strings.Join(pairs, " ")
-		} else {
-			log.Printf("[-] [-] [BAD_CAPABILITY] [Using default value for capability %s: should be a string or a map but is %T] [-] [-] [-] [-] [-] [-]", k, reflect.TypeOf(m[k]))
+		} else if v, ok := m[k]; ok && v != nil {
+			log.Printf(`[-] [-] [BAD_CAPABILITY] [Using default value for capability %s: unsupported value type "%s"] [-] [-] [-] [-] [-] [-]`, k, reflect.TypeOf(m[k]).String())
 		}
 	})
 	return result
