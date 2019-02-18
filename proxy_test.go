@@ -249,14 +249,14 @@ func TestProxyScreenVNCProtocol(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	testDataReceived(vncHost, testData, t)
+	testDataReceived(vncHost, "vnc", testData, t)
 }
 
-func testDataReceived(host Host, correctData string, t *testing.T) {
+func testDataReceived(host Host, api string, correctData string, t *testing.T) {
 	sessionID := host.Sum() + "123"
 
 	origin := "http://localhost/"
-	u := fmt.Sprintf("ws://%s/vnc/%s", srv.Listener.Addr(), sessionID)
+	u := fmt.Sprintf("ws://%s/%s/%s", srv.Listener.Addr(), api, sessionID)
 	ws, err := websocket.Dial(u, "", origin)
 	AssertThat(t, err, Is{nil})
 
@@ -308,8 +308,38 @@ func TestProxyScreenWebSocketsProtocol(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	testDataReceived(wsHost, testData, t)
+	testDataReceived(wsHost, "vnc", testData, t)
 
+}
+
+func TestProxyDevtools(t *testing.T) {
+	test.Lock()
+	defer test.Unlock()
+
+	const testData = "devtools-data"
+	mux := http.NewServeMux()
+	mux.Handle("/devtools/123", websocket.Handler(func(wsconn *websocket.Conn) {
+		wsconn.Write([]byte(testData))
+	}))
+
+	wsServer := httptest.NewServer(mux)
+	defer wsServer.Close()
+
+	h, p, _ := net.SplitHostPort(wsServer.Listener.Addr().String())
+	intPort, _ := strconv.Atoi(p)
+	wsHost := Host{Name: h, Port: intPort, Count: 1}
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					wsHost,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	testDataReceived(wsHost, "devtools", testData, t)
 }
 
 func TestProxyVideoFileWithoutAuth(t *testing.T) {
