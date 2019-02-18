@@ -529,7 +529,7 @@ table.CodeRay td.code>pre{padding:0}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2019-02-16</span>
+<span id="revdate">2019-02-18</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -554,20 +554,21 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#_proxying_session_video">2.4. Proxying Session Video</a></li>
 <li><a href="#_proxying_session_logs">2.5. Proxying Session Logs</a></li>
 <li><a href="#_proxying_downloaded_files">2.6. Proxying Downloaded Files</a></li>
-<li><a href="#_encrypting_connection_to_ggr">2.7. Encrypting Connection to Ggr</a></li>
-<li><a href="#_how_it_works">2.8. How it Works</a></li>
-<li><a href="#_using_multiple_ggr_instances">2.9. Using Multiple Ggr Instances</a>
+<li><a href="#_proxying_browser_developer_tools">2.7. Proxying Browser Developer Tools</a></li>
+<li><a href="#_encrypting_connection_to_ggr">2.8. Encrypting Connection to Ggr</a></li>
+<li><a href="#_how_it_works">2.9. How it Works</a></li>
+<li><a href="#_using_multiple_ggr_instances">2.10. Using Multiple Ggr Instances</a>
 <ul class="sectlevel3">
-<li><a href="#_why_ggr_is_stateless">2.9.1. Why Ggr is Stateless</a></li>
-<li><a href="#_getting_host_by_session_id">2.9.2. Getting Host by Session ID</a></li>
+<li><a href="#_why_ggr_is_stateless">2.10.1. Why Ggr is Stateless</a></li>
+<li><a href="#_getting_host_by_session_id">2.10.2. Getting Host by Session ID</a></li>
 </ul>
 </li>
-<li><a href="#_log_files">2.10. Log Files</a>
+<li><a href="#_log_files">2.11. Log Files</a>
 <ul class="sectlevel3">
-<li><a href="#_custom_labels_in_log_file">2.10.1. Custom Labels in Log File</a></li>
+<li><a href="#_custom_labels_in_log_file">2.11.1. Custom Labels in Log File</a></li>
 </ul>
 </li>
-<li><a href="#_ggr_cli_flags">2.11. Ggr CLI Flags</a></li>
+<li><a href="#_ggr_cli_flags">2.12. Ggr CLI Flags</a></li>
 </ul>
 </li>
 <li><a href="#_contributing_development">3. Contributing &amp; Development</a>
@@ -1070,7 +1071,18 @@ Notice that session ID for hub host (aka <code>real-session-id</code>) and for G
 </div>
 </div>
 <div class="sect2">
-<h3 id="_encrypting_connection_to_ggr"><a class="anchor" href="#_encrypting_connection_to_ggr"></a>2.7. Encrypting Connection to Ggr</h3>
+<h3 id="_proxying_browser_developer_tools"><a class="anchor" href="#_proxying_browser_developer_tools"></a>2.7. Proxying Browser Developer Tools</h3>
+<div class="paragraph">
+<p>Similarly to proxying VNC traffic Ggr is able to proxy browser developer tools traffic in <strong>running</strong> Selenium session. To access developer tools - just use the following web socket URL:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>ws://ggr-host.example.com:4444/devtools/&lt;session-id&gt;</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_encrypting_connection_to_ggr"><a class="anchor" href="#_encrypting_connection_to_ggr"></a>2.8. Encrypting Connection to Ggr</h3>
 <div class="paragraph">
 <p>Ggr itself does not support any modern encryption technologies such as <a href="https://en.wikipedia.org/wiki/Transport_Layer_Security">TLS</a> or <a href="https://en.wikipedia.org/wiki/WebSocket">WebSocket Secure</a>. In order to use them you are expected to setup a reverse proxy having such capabilities. A typical <a href="http://nginx.org/">Nginx</a> configuration looks like the following:</p>
 </div>
@@ -1128,7 +1140,7 @@ server {
     add_header Access-Control-Allow-Credentials "true";
   }
 
-  location ~ ^/vnc/ {
+  location ~ ^/(vnc|devtools)/ {
     proxy_pass http://ggr;
     proxy_http_version 1.1;
     proxy_read_timeout 950s;
@@ -1141,7 +1153,7 @@ server {
 </div>
 </div>
 <div class="sect2">
-<h3 id="_how_it_works"><a class="anchor" href="#_how_it_works"></a>2.8. How it Works</h3>
+<h3 id="_how_it_works"><a class="anchor" href="#_how_it_works"></a>2.9. How it Works</h3>
 <div class="paragraph">
 <p>See the full story in our article - <strong>Selenium testing: a new hope</strong>:</p>
 </div>
@@ -1157,7 +1169,7 @@ server {
 </div>
 </div>
 <div class="sect2">
-<h3 id="_using_multiple_ggr_instances"><a class="anchor" href="#_using_multiple_ggr_instances"></a>2.9. Using Multiple Ggr Instances</h3>
+<h3 id="_using_multiple_ggr_instances"><a class="anchor" href="#_using_multiple_ggr_instances"></a>2.10. Using Multiple Ggr Instances</h3>
 <div class="paragraph">
 <p>In order to obtain reliable Selenium cluster you need to install multiple Ggr instances behind reliable load balancer such as <a href="https://aws.amazon.com/elasticloadbalancing/">AWS Elastic Load Balancing</a> or <a href="http://keepalived.org/">Keepalived</a>. To check Ggr instance health use <code>/ping</code>:</p>
 </div>
@@ -1177,7 +1189,7 @@ server {
 <p>It returns <code>200 OK</code> when Ggr operates normally. Additionally server uptime, last quota reload time and overall number of session requests from service startup are returned in JSON format.</p>
 </div>
 <div class="sect3">
-<h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.9.1. Why Ggr is Stateless</h4>
+<h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.10.1. Why Ggr is Stateless</h4>
 <div class="paragraph">
 <p>Selenium uses an HTTP-based protocol. That means every action in Selenium, e.g. launching browser or taking screenshot is a separate HTTP request. When multiple instances of Ggr are handling requests behind load balancer every request can be routed to any of these instances. Here&#8217;s how it works.</p>
 </div>
@@ -1205,7 +1217,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect3">
-<h4 id="_getting_host_by_session_id"><a class="anchor" href="#_getting_host_by_session_id"></a>2.9.2. Getting Host by Session ID</h4>
+<h4 id="_getting_host_by_session_id"><a class="anchor" href="#_getting_host_by_session_id"></a>2.10.2. Getting Host by Session ID</h4>
 <div class="paragraph">
 <p>Sometimes you may want to get real hostname behind Ggr that is executing browser session. This can be done using session ID:</p>
 </div>
@@ -1224,7 +1236,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect2">
-<h3 id="_log_files"><a class="anchor" href="#_log_files"></a>2.10. Log Files</h3>
+<h3 id="_log_files"><a class="anchor" href="#_log_files"></a>2.11. Log Files</h3>
 <div class="paragraph">
 <p>A typical log file looks like the following:</p>
 </div>
@@ -1430,6 +1442,10 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <td class="tableblock halign-left valign-top"><p class="tableblock">Server is shutting down and waiting graceful shutdown timeout for currently proxied requests to finish</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">UNKNOWN_DEVTOOLS_HOST</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requested to proxy devtools to host not present in quota</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">UNKNOWN_DOWNLOAD_HOST</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Requested to proxy downloaded file to host not present in quota</p></td>
 </tr>
@@ -1454,21 +1470,21 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <td class="tableblock halign-left valign-top"><p class="tableblock">Invalid URL protocol specified for host in quota VNC configuration (should be vnc:// or ws://)</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">VNC_CLIENT_DISCONNECTED</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Client disconnected from VNC API</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">WS_CLIENT_DISCONNECTED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client disconnected from websocket API</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">VNC_ERROR</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">An error occurred when trying to proxy VNC traffic</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">WS_ERROR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An error occurred when trying to proxy websocket traffic</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">VNC_SESSION_CLOSED</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Client closed VNC session</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">WS_SESSION_CLOSED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Client closed websocket session</p></td>
 </tr>
 </tbody>
 </table>
 <div class="sect3">
-<h4 id="_custom_labels_in_log_file"><a class="anchor" href="#_custom_labels_in_log_file"></a>2.10.1. Custom Labels in Log File</h4>
+<h4 id="_custom_labels_in_log_file"><a class="anchor" href="#_custom_labels_in_log_file"></a>2.11.1. Custom Labels in Log File</h4>
 <div class="paragraph">
 <p>Sometimes you may need to add some custom metadata like build number or branch name to Selenium logs. Just add the following capability to your tests:</p>
 </div>
@@ -1492,7 +1508,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 </div>
 <div class="sect2">
-<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.11. Ggr CLI Flags</h3>
+<h3 id="_ggr_cli_flags"><a class="anchor" href="#_ggr_cli_flags"></a>2.12. Ggr CLI Flags</h3>
 <div class="paragraph">
 <p>The following flags are supported by <code><code>ggr</code></code> command:</p>
 </div>
@@ -1624,7 +1640,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2019-02-16 11:13:49 UTC
+Last updated 2019-02-18 17:53:18 UTC
 </div>
 </div>
 <!-- Yandex.Metrika counter -->
