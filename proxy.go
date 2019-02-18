@@ -14,6 +14,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -39,7 +40,7 @@ const (
 )
 
 var paths = struct {
-	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, Video, Logs, Download, Clipboard string
+	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, Video, Logs, Download, Clipboard, Devtools string
 }{
 	Ping:      "/ping",
 	Status:    "/wd/hub/status",
@@ -53,6 +54,7 @@ var paths = struct {
 	Logs:      "/logs/",
 	Download:  "/download/",
 	Clipboard: "/clipboard/",
+	Devtools:  "/devtools/",
 }
 
 var keys = struct {
@@ -671,9 +673,9 @@ func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, host s
 }
 
 func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sessionID string, address string) {
-	log.Printf("[%d] [-] [PROXYING_TO_VNC] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionID)
+	log.Printf("[%d] [-] [PROXYING_TO_WS] [-] [-] [-] [%s] [%s] [-] [-]", id, address, sessionID)
 	if err != nil {
-		log.Printf("[%d] [-] [VNC_ERROR] [-] [-] [-] [%s] [%s] [-] [%v]\n", id, sessionID, address, err)
+		log.Printf("[%d] [-] [WS_ERROR] [-] [-] [-] [%s] [%s] [-] [%v]", id, sessionID, address, err)
 		return
 	}
 	defer conn.Close()
@@ -681,10 +683,33 @@ func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sess
 	go func() {
 		io.Copy(wsconn, conn)
 		wsconn.Close()
-		log.Printf("[%d] [-] [VNC_SESSION_CLOSED] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionID)
+		log.Printf("[%d] [-] [WS_SESSION_CLOSED] [-] [-] [-] [%s] [%s] [-] [-]", id, address, sessionID)
 	}()
 	io.Copy(conn, wsconn)
-	log.Printf("[%d] [-] [VNC_CLIENT_DISCONNECTED] [-] [-] [-] [%s] [%s] [-] [-]\n", id, address, sessionID)
+	log.Printf("[%d] [-] [WS_CLIENT_DISCONNECTED] [-] [-] [-] [%s] [%s] [-] [-]", id, address, sessionID)
+}
+
+func devtools(wsconn *websocket.Conn) {
+	defer wsconn.Close()
+	confLock.RLock()
+	defer confLock.RUnlock()
+
+	id := serial()
+	head := len(paths.Devtools)
+	tail := head + md5SumLength
+	path := wsconn.Request().URL.Path
+	if len(path) < tail {
+		log.Printf("[%d] [-] [INVALID_DEVTOOLS_REQUEST_URL] [-] [-] [%s] [-] [-] [-] [-]", id, path)
+		return
+	}
+	sum := path[head:tail]
+	h, ok := routes[sum]
+	if ok {
+		sessionID := strings.Split(path, "/")[2][md5SumLength:]
+		proxyWebSockets(id, wsconn, sessionID, h.Name, strconv.Itoa(h.Port), "/devtools")
+	} else {
+		log.Printf("[%d] [-] [UNKNOWN_DEVTOOLS_HOST] [-] [-] [-] [-] [%s] [-] [-]", id, sum)
+	}
 }
 
 func video(w http.ResponseWriter, r *http.Request) {
@@ -759,5 +784,6 @@ func mux() http.Handler {
 	mux.HandleFunc(paths.Logs, WithSuitableAuthentication(authenticator, logs))
 	mux.HandleFunc(paths.Download, WithSuitableAuthentication(authenticator, download))
 	mux.HandleFunc(paths.Clipboard, WithSuitableAuthentication(authenticator, clipboard))
+	mux.Handle(paths.Devtools, websocket.Handler(devtools))
 	return mux
 }
