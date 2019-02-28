@@ -8,7 +8,7 @@ import (
 
 // Browsers - a set of available browsers
 type Browsers struct {
-	XMLName  xml.Name  `xml:"urn:config.gridrouter.qatools.ru browsers"`
+	XMLName  xml.Name  `xml:"browsers"`
 	Browsers []Browser `xml:"browser"`
 }
 
