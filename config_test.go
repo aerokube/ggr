@@ -204,12 +204,20 @@ func TestParseInvalidConfig(t *testing.T) {
 }
 
 func TestParseConfig(t *testing.T) {
+	testParseConfig(t, `<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"><browser name="browser"/></qa:browsers>`)
+}
+
+func TestParseConfigWithoutNamespace(t *testing.T) {
+	testParseConfig(t, `<browsers><browser name="browser"/></browsers>`)
+}
+
+func testParseConfig(t *testing.T, config string) {
 	tmp, err := ioutil.TempFile("", "config")
 	defer os.Remove(tmp.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = tmp.Write([]byte(`<qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"><browser name="browser"/></qa:browsers>`))
+	_, err = tmp.Write([]byte(config))
 	if err != nil {
 		t.Fatal(err)
 	}
