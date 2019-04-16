@@ -431,7 +431,7 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 		Version        string `json:"version"`
 	}{
 		time.Since(startTime).String(),
-		lastReloadTime.String(),
+		lastReloadTime.Format(time.RFC3339),
 		atomic.LoadUint64(&numRequests),
 		atomic.LoadUint64(&numSessions),
 		gitRevision,
