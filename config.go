@@ -1,9 +1,16 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	. "github.com/aerokube/ggr/config"
+	"io/ioutil"
 	"math/rand"
+	"net/http"
+	"sort"
 	"strings"
+	"sync"
+	"time"
 )
 
 type set interface {
@@ -18,6 +25,14 @@ func newSet(data ...string) *setImpl {
 		set.add(el)
 	}
 	return set
+}
+
+type capacity struct {
+	Key     *Host
+	queued  int
+	pending int
+	used    int
+	total   int
 }
 
 type setImpl struct {
@@ -96,4 +111,85 @@ func choose(hosts Hosts) (*Host, int) {
 		}
 	}
 	return nil, -1
+}
+
+func findFirstNodeByQueue(currentHost *Host, hosts *Hosts, mutex *sync.RWMutex) (host *Host) {
+	if len(*hosts) < 1 {
+		return currentHost
+	}
+	hostMap := map[string]*Host{}
+	for v := range *hosts {
+		hostMap[fmt.Sprintf("%s%d%s", (*hosts)[v].Name, (*hosts)[v].Port, (*hosts)[v].Region)] = &(*hosts)[v]
+	}
+	var capacities []capacity
+	mutex.Lock()
+	defer mutex.Unlock()
+	var netClient = &http.Client{
+		Timeout: time.Second * 10,
+	}
+	for i := range *hosts {
+		rsp, err := netClient.Get((*hosts)[i].StatusEndPoint())
+		if err != nil {
+			continue
+		}
+
+		responseMap := make(map[string]interface{})
+		body, err := ioutil.ReadAll(rsp.Body)
+		if err != nil {
+			return currentHost
+		}
+
+		err = json.Unmarshal(body, &responseMap)
+		if err != nil {
+			return currentHost
+		}
+
+		var cap capacity
+
+		if queued, ok := responseMap["queued"]; ok {
+			cap.queued = int(queued.(float64))
+		} else {
+			continue
+		}
+
+		if pending, ok := responseMap["pending"]; ok {
+			cap.pending = int(pending.(float64))
+		} else {
+			continue
+		}
+
+		if used, ok := responseMap["used"]; ok {
+			cap.used = int(used.(float64))
+		} else {
+			continue
+		}
+
+		if total, ok := responseMap["total"]; ok {
+			cap.total = int(total.(float64))
+		} else {
+			continue
+		}
+
+		cap.Key = &(*hosts)[i]
+		capacities = append(capacities, cap)
+	}
+	if len(capacities) < 1 {
+		return currentHost
+	}
+	var target = mostFreeHost(capacities)
+	if v, ok := hostMap[fmt.Sprintf("%s%d%s", target.Name, target.Port, target.Region)]; ok {
+		if &v == &currentHost {
+			return currentHost
+		}
+		return v
+	}
+
+	return currentHost
+}
+
+func mostFreeHost(values []capacity) *Host {
+	sort.Slice(values, func(i, j int) bool {
+		return values[i].queued < values[j].queued
+	})
+	return values[0].Key
 }

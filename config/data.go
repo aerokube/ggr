@@ -53,6 +53,10 @@ func (h *Host) Net() string {
 	return fmt.Sprintf("%s:%d", h.Name, h.Port)
 }
 
+func (h *Host) StatusEndPoint() string {
+	return fmt.Sprintf("%s%s", h.Route(), "/status")
+}
+
 func (h *Host) Route() string {
 	scheme := h.Scheme
 	if scheme == "" {

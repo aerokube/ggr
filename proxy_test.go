@@ -642,6 +642,35 @@ func TestStartSession(t *testing.T) {
 	testStartSessionCustomCaps(t, mux, browsersProvider, `{"desiredCapabilities":{"deviceName":"someDevice", "version":"2.0"}}`)
 }
 
+func TestStartSessionUniformDistribution(t *testing.T) {
+	uniformDistribution = true
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"sessionId":"123"}`))
+	}))
+
+	browsersProvider := func(node Host) Browsers {
+		return Browsers{Browsers: []Browser{
+			{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+				{Number: "1.0", Regions: []Region{
+					{Hosts: Hosts{
+						node,
+					}},
+				}},
+			}},
+			{Name: "someDevice", DefaultVersion: "2.0", Versions: []Version{
+				{Number: "2.0", Regions: []Region{
+					{Hosts: Hosts{
+						node,
+					}},
+				}},
+			}}}}
+	}
+
+	testStartSession(t, mux, browsersProvider, "browser", "1.0")
+	testStartSessionCustomCaps(t, mux, browsersProvider, `{"desiredCapabilities":{"deviceName":"someDevice", "version":"2.0"}}`)
+}
+
 func TestStartSessionWithLocationHeader(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
@@ -1607,6 +1636,7 @@ func TestFileExists(t *testing.T) {
 }
 
 func TestCreateSessionChangeRegionOnFailure(t *testing.T) {
+	uniformDistribution = false
 	var selectedRegions []string
 
 	srv1 := httptest.NewServer(recordingMux("a", &selectedRegions))

@@ -17,14 +17,15 @@ import (
 )
 
 var (
-	listen             string
-	quotaDir           string
-	users              string
-	timeout            time.Duration
-	gracefulPeriod     time.Duration
-	guestAccessAllowed bool
-	guestUserName      string
-	verbose            bool
+	listen              string
+	quotaDir            string
+	users               string
+	timeout             time.Duration
+	gracefulPeriod      time.Duration
+	guestAccessAllowed  bool
+	guestUserName       string
+	verbose             bool
+	uniformDistribution bool
 
 	startTime      = time.Now()
 	lastReloadTime = time.Now()
@@ -92,6 +93,7 @@ func init() {
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
 	flag.BoolVar(&version, "version", false, "show version and exit")
 	flag.BoolVar(&verbose, "verbose", false, "enable verbose mode")
+	flag.BoolVar(&uniformDistribution, "uniformDistribution", false, "enable uniform load distribution mode")
 	flag.Parse()
 	if version {
 		showVersion()

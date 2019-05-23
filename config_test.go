@@ -3,7 +3,13 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"math/rand"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
+	"strconv"
+	"sync"
 	"testing"
 
 	. "github.com/aandryashin/matchers"
@@ -255,4 +261,127 @@ func TestChoosingAllHosts(t *testing.T) {
 	AssertThat(t, chosenHosts["first"] > 0, Is{true})
 	AssertThat(t, chosenHosts["mid"] > 0, Is{true})
 	AssertThat(t, chosenHosts["last"] > 0, Is{true})
+}
+
+func TestFindMostFreeHostCapacity(t *testing.T) {
+	cap := []capacity{{Key: &Host{Name: "MaxLoad", Count: 1}, queued: 10, pending: 0, used: 0, total: 1}, {Key: &Host{Name: "MidLoad", Count: 1}, queued: 5, pending: 0, used: 0, total: 1}, {Key: &Host{Name: "Free", Count: 1}, queued: 0, pending: 0, used: 0, total: 1}}
+	targetHost := mostFreeHost(cap)
+	AssertThat(t, targetHost.Name, EqualTo{"Free"})
+}
+
+func TestHostCapacity(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.RequestURI {
+		case "/status":
+			res.WriteHeader(200)
+			res.Write([]byte(fmt.Sprintf("{\"queued\":%s, \"pending\":%d, \"used\":%d, \"total\":%d }", strconv.Itoa(rand.Intn(20)), 0, 0, 0)))
+		}
+	}))
+
+	ip, _ := url.Parse(testServer.URL)
+	port, _ := strconv.Atoi(ip.Port())
+
+	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
+	defer testServer.Close()
+	target := findFirstNodeByQueue(&hosts[0], &hosts, &sync.RWMutex{})
+	AssertThat(t, target, EqualTo{&hosts[0]})
+}
+
+func TestErrorResponseHostCapacity(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.RequestURI {
+		case "/status":
+			res.WriteHeader(500)
+		}
+	}))
+
+	ip, _ := url.Parse(testServer.URL)
+	port, _ := strconv.Atoi(ip.Port())
+
+	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
+	defer testServer.Close()
+	AssertThat(t, findFirstNodeByQueue(&hosts[0], &hosts, &sync.RWMutex{}), EqualTo{&hosts[0]})
+}
+
+func TestEmptyHostListCapacity(t *testing.T) {
+	currentHost := Host{Name: "", Port: 0, Count: 1}
+	hosts := Hosts{}
+	AssertThat(t, findFirstNodeByQueue(&currentHost, &hosts, &sync.RWMutex{}), EqualTo{&currentHost})
+}
+
+func TestWrongHostResponse(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.RequestURI {
+		case "/status":
+			res.WriteHeader(200)
+			res.Write([]byte(fmt.Sprintf("{\"queued\":%s, \"pending\":%d, \"used\":%d}", strconv.Itoa(rand.Intn(20)), 0, 0)))
+		}
+	}))
+
+	ip, _ := url.Parse(testServer.URL)
+	port, _ := strconv.Atoi(ip.Port())
+	currentHost := Host{Name: "", Port: 0, Count: 1}
+	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
+	defer testServer.Close()
+	target := findFirstNodeByQueue(&currentHost, &hosts, &sync.RWMutex{})
+	AssertThat(t, target, EqualTo{&currentHost})
+}
+
+func TestPartialHostResponse(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.RequestURI {
+		case "/status":
+			res.WriteHeader(200)
+			res.Write([]byte(fmt.Sprintf("{\"queued\":%s, \"pending\":%d, \"used\":%d}", strconv.Itoa(rand.Intn(20)), 0, 0)))
+		}
+	}))
+
+	testServer2 := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.RequestURI {
+		case "/status":
+			res.WriteHeader(200)
+			res.Write([]byte(fmt.Sprintf("{\"queued\":%s, \"pending\":%d, \"used\":%d, \"total\":%d}", strconv.Itoa(rand.Intn(20)), 0, 0, 0)))
+		}
+	}))
+
+	testServer3 := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.RequestURI {
+		case "/status":
+			res.WriteHeader(200)
+			res.Write([]byte(fmt.Sprintf("{\"queued\":%s, \"used\":%d, \"total\":%d}", strconv.Itoa(rand.Intn(20)), 0, 0)))
+		}
+	}))
+
+	testServer4 := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.RequestURI {
+		case "/status":
+			res.WriteHeader(200)
+			res.Write([]byte(fmt.Sprintf("{\"pending\":%d, \"used\":%d, \"total\":%d}", 0, 0, 0)))
+		}
+	}))
+
+	firstIp, _ := url.Parse(testServer.URL)
+	firstPort, _ := strconv.Atoi(firstIp.Port())
+
+	secondIp, _ := url.Parse(testServer2.URL)
+	secondPort, _ := strconv.Atoi(secondIp.Port())
+
+	thirdIp, _ := url.Parse(testServer3.URL)
+	thirdPort, _ := strconv.Atoi(thirdIp.Port())
+
+	fourthIp, _ := url.Parse(testServer4.URL)
+	fourthPort, _ := strconv.Atoi(fourthIp.Port())
+
+	currentHost := Host{Name: "", Port: 0, Count: 1}
+	hosts := Hosts{Host{Name: firstIp.Hostname(), Port: firstPort, Count: 1},
+		Host{Name: secondIp.Hostname(), Port: secondPort, Count: 1},
+		Host{Name: thirdIp.Hostname(), Port: thirdPort, Count: 1},
+		Host{Name: fourthIp.Hostname(), Port: fourthPort, Count: 1},
+		Host{Name: "last", Count: 1}}
+	defer testServer.Close()
+	defer testServer2.Close()
+	defer testServer3.Close()
+	defer testServer4.Close()
+	target := findFirstNodeByQueue(&currentHost, &hosts, &sync.RWMutex{})
+	AssertThat(t, target, EqualTo{&hosts[1]})
 }

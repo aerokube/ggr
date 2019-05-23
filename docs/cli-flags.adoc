@@ -18,8 +18,11 @@ The following flags are supported by ```ggr``` command:
     	htpasswd auth file path (default ".htpasswd")
   -verbose
     	enable verbose mode
+  -uniformDistribution
+        uniform load distribution mode (default "false")
   -version
     	show version and exit
+
 ```
 For example:
 ```
