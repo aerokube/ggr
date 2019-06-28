@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/abbot/go-http-auth"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,13 +15,11 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/abbot/go-http-auth"
 	. "github.com/aerokube/ggr/config"
 	"golang.org/x/net/websocket"
 )
@@ -695,27 +694,10 @@ func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sess
 	log.Printf("[%d] [-] [WS_CLIENT_DISCONNECTED] [-] [-] [-] [%s] [%s] [-] [-]", id, address, sessionID)
 }
 
-func devtools(wsconn *websocket.Conn) {
-	defer wsconn.Close()
-	confLock.RLock()
-	defer confLock.RUnlock()
-
-	id := serial()
-	head := len(paths.Devtools)
-	tail := head + md5SumLength
-	path := wsconn.Request().URL.Path
-	if len(path) < tail {
-		log.Printf("[%d] [-] [INVALID_DEVTOOLS_REQUEST_URL] [-] [-] [%s] [-] [-] [-] [-]", id, path)
-		return
-	}
-	sum := path[head:tail]
-	h, ok := routes[sum]
-	if ok {
-		sessionID := strings.Split(path, "/")[2][md5SumLength:]
-		proxyWebSockets(id, wsconn, sessionID, h.Name, strconv.Itoa(h.Port), "/devtools")
-	} else {
-		log.Printf("[%d] [-] [UNKNOWN_DEVTOOLS_HOST] [-] [-] [-] [-] [%s] [-] [-]", id, sum)
-	}
+func devtools(w http.ResponseWriter, r *http.Request) {
+	proxyStatic(w, r, paths.Devtools, "INVALID_DEVTOOLS_REQUEST_URL", "PROXYING_DEVTOOLS", "UNKNOWN_DEVTOOLS_HOST", func(remainder string) string {
+		return fmt.Sprintf("/devtools/%s", remainder)
+	})
 }
 
 func video(w http.ResponseWriter, r *http.Request) {
@@ -790,6 +772,6 @@ func mux() http.Handler {
 	mux.HandleFunc(paths.Logs, WithSuitableAuthentication(authenticator, logs))
 	mux.HandleFunc(paths.Download, WithSuitableAuthentication(authenticator, download))
 	mux.HandleFunc(paths.Clipboard, WithSuitableAuthentication(authenticator, clipboard))
-	mux.Handle(paths.Devtools, websocket.Handler(devtools))
+	mux.HandleFunc(paths.Devtools, devtools)
 	return mux
 }
