@@ -39,7 +39,7 @@ const (
 )
 
 var paths = struct {
-	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, Video, Logs, Download, Clipboard, Devtools string
+	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, Video, Logs, Download, Clipboard, Devtools, Pprof string
 }{
 	Ping:      "/ping",
 	Status:    "/wd/hub/status",
@@ -54,6 +54,7 @@ var paths = struct {
 	Download:  "/download/",
 	Clipboard: "/clipboard/",
 	Devtools:  "/devtools/",
+	Pprof:     "/debug/pprof/",
 }
 
 var keys = struct {
@@ -767,5 +768,6 @@ func mux() http.Handler {
 	mux.HandleFunc(paths.Download, WithSuitableAuthentication(authenticator, download))
 	mux.HandleFunc(paths.Clipboard, WithSuitableAuthentication(authenticator, clipboard))
 	mux.HandleFunc(paths.Devtools, devtools)
+	mux.Handle(paths.Pprof, http.DefaultServeMux)
 	return mux
 }
