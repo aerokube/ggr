@@ -400,6 +400,9 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 							r.Body = ioutil.NopCloser(bytes.NewReader(body))
 						}
 					}
+					if h.Scheme != "" {
+						r.URL.Scheme = h.Scheme
+					}
 					r.Host = h.Net()
 					r.URL.Host = h.Net()
 					r.URL.Path = proxyPath
