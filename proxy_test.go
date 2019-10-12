@@ -24,7 +24,6 @@ import (
 	"github.com/abbot/go-http-auth"
 	. "github.com/aerokube/ggr/config"
 	"golang.org/x/net/websocket"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -368,6 +367,27 @@ func TestProxyVideoFile(t *testing.T) {
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/video/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusNotFound})
+}
+
+func TestProxyVideoFileBadGateway(t *testing.T) {
+	test.Lock()
+	defer test.Unlock()
+
+	node := Host{Name: "missing-host.example.com", Port: 4444, Count: 1}
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	resp, err := doBasicHTTPRequest(http.MethodPost, gridrouter("/video/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, resp.StatusCode, EqualTo{http.StatusBadGateway})
 }
 
 func prepareMockFileServer(path string) (*httptest.Server, string) {
@@ -1604,85 +1624,6 @@ func TestFileExists(t *testing.T) {
 	f, err := ioutil.TempFile(tmpDir, "testfile")
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, fileExists(f.Name()), Is{true})
-}
-
-func TestCreateSessionChangeRegionOnFailure(t *testing.T) {
-	var selectedRegions []string
-
-	srv1 := httptest.NewServer(recordingMux("a", &selectedRegions))
-	defer srv1.Close()
-	srv1Url, _ := url.Parse(srv1.URL)
-	srv1Port, _ := strconv.Atoi(srv1Url.Port())
-
-	srv2 := httptest.NewServer(recordingMux("a", &selectedRegions))
-	defer srv2.Close()
-	srv2Url, _ := url.Parse(srv2.URL)
-	srv2Port, _ := strconv.Atoi(srv2Url.Port())
-
-	srv3 := httptest.NewServer(recordingMux("b", &selectedRegions))
-	defer srv3.Close()
-	srv3Url, _ := url.Parse(srv3.URL)
-	srv3Port, _ := strconv.Atoi(srv3Url.Port())
-
-	test.Lock()
-	defer test.Unlock()
-
-	browsers := Browsers{Browsers: []Browser{
-		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
-			{Number: "1.0", Regions: []Region{
-				{
-					Name: "a",
-					Hosts: Hosts{
-						Host{Name: srv1Url.Hostname(), Port: srv1Port, Count: 1},
-						Host{Name: srv2Url.Hostname(), Port: srv2Port, Count: 1},
-					},
-				},
-				{
-					Name: "b",
-					Hosts: Hosts{
-						Host{Name: srv3Url.Hostname(), Port: srv3Port, Count: 1},
-					},
-				},
-			}},
-		}}}}
-	updateQuota(user, browsers)
-
-	timeout := make(chan struct{})
-	go func(timeout chan struct{}) {
-		time.Sleep(1 * time.Second)
-		close(timeout)
-	}(timeout)
-loop:
-	for {
-		select {
-		case <-timeout:
-			break loop
-		default:
-		}
-		createThreeSessions(t, &selectedRegions)
-		if selectedRegions[0] == selectedRegions[1] {
-			t.Fatalf("Selected 2 same regions on failure: %v", selectedRegions)
-		}
-		selectedRegions = []string{}
-	}
-}
-
-func createThreeSessions(t *testing.T, storage *[]string) {
-	log.SetOutput(ioutil.Discard)
-
-	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
-
-	AssertThat(t, len(*storage), EqualTo{3})
-	log.SetOutput(os.Stderr)
-}
-
-func recordingMux(region string, storage *[]string) http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		*storage = append(*storage, region)
-		w.WriteHeader(http.StatusInternalServerError)
-	})
-	return mux
 }
 
 func TestPanicGuestQuotaMissingUsersFileAuthPresent(t *testing.T) {

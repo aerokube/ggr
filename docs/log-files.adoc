@@ -12,18 +12,18 @@ Every line contains:
 
 .Log entry contents
 |===
-| Field | Example | Notes 
- 
-| Time | 2017/04/18 03:52:36 | - 
-| Request counter | [12413389] | So far as session ID is unknown when doing attempts this counter is used to find all session attempts for each new session request. 
-| Status | [SESSION_ATTEMPTED] | See table below for complete list of statuses. 
-| Quota name | [my_quota] | Extracted from basic HTTP auth headers. 
-| User IP | [192.168.2.3] | IPv4 or IPv6 address 
-| Browser | [firefox-42.0] | Name and version. Only present for new session requests. 
-| Hub host | [firefox42-1.example.com:4444] | Host from quota XML file 
-| Attempt number | [1] | For SESSION_ATTEMPTED entries means current attempt number. For SESSION_CREATED entries means total number of attempts to create this session. 
-| Session ID | [0c500a6f-98d2-4871-acb7-637d85e1416a] | As arrived from hub 
-| Session start time | [5.86s] | - 
+| Field | Example | Notes
+
+| Time | 2017/04/18 03:52:36 | -
+| Request counter | [12413389] | So far as session ID is unknown when doing attempts this counter is used to find all session attempts for each new session request.
+| Status | [SESSION_ATTEMPTED] | See table below for complete list of statuses.
+| Quota name | [my_quota] | Extracted from basic HTTP auth headers.
+| User IP | [192.168.2.3] | IPv4 or IPv6 address
+| Browser | [firefox-42.0] | Name and version. Only present for new session requests.
+| Hub host | [firefox42-1.example.com:4444] | Host from quota XML file
+| Attempt number | [1] | For SESSION_ATTEMPTED entries means current attempt number. For SESSION_CREATED entries means total number of attempts to create this session.
+| Session ID | [0c500a6f-98d2-4871-acb7-637d85e1416a] | As arrived from hub
+| Session start time | [5.86s] | -
 | Error | Error forwarding the new session Request timed out waiting for a node to become available. | Only present for SESSION_FAILED
 |===
 
@@ -31,42 +31,43 @@ The following statuses are available:
 
 .Log entry statuses
 |===
-| Status | Description 
- 
-| BAD_CAPABILITY | User is passing non-string value for capability that should be string 
-| BAD_JSON | User request does not contain valid Selenium data 
-| BAD_RESPONSE | Upstream server returned data using unknown JSON protocol 
-| BROWSER_NOT_SET | Browser name is not present or empty string 
-| CLIENT_DISCONNECTED | User disconnected and doing session attempts was interrupted 
-| INIT | Server initialization messages 
-| INVALID_HOST_VNC_URL | Failed to parse VNC host URL specified in quota configuration 
-| INVALID_DOWNLOAD_REQUEST_URL | Download request URL do not contain enough information to determine upstream host 
-| INVALID_LOG_REQUEST_URL | Log request URL do not contain enough information to determine upstream host 
-| INVALID_VNC_REQUEST_URL | VNC request URL do not contain enough information to determine upstream host 
-| INVALID_VIDEO_REQUEST_URL | Video request URL do not contain enough information to determine upstream host 
-| INVALID_URL | Session ID does not contain information about host where it was created 
-| PROXYING | Proxying Selenium request (shown in verbose mode only) 
-| PROXYING_DOWNLOAD | Starting to proxy downloaded file from upstream host 
-| PROXYING_LOG | Starting to proxy log from upstream host 
-| PROXYING_TO_VNC | Starting to proxy VNC traffic 
-| PROXYING_VIDEO | Starting to proxy video from upstream host 
-| QUOTA_INFO_REQUESTED | Quota information request arrived 
-| ROUTE_NOT_FOUND | Trying to proxy session to unknown host. Usually means quota files inconsistency between multiple Ggr instances. 
-| SESSION_ATTEMPTED | New user request for session arrived 
-| SESSION_CREATED | A new session was created and returned to user 
-| SESSION_DELETED | Existing session was deleted by user request 
-| SESSION_FAILED | Session attempt on specified host failed 
-| SESSION_NOT_CREATED | Attempts to create a new session on all hosts failed. An error was returned to user. 
-| SHUTTING_DOWN | Server is shutting down and waiting graceful shutdown timeout for currently proxied requests to finish  
-| UNKNOWN_DEVTOOLS_HOST | Requested to proxy devtools to host not present in quota 
-| UNKNOWN_DOWNLOAD_HOST | Requested to proxy downloaded file to host not present in quota 
-| UNKNOWN_LOG_HOST | Requested to proxy log to host not present in quota 
-| UNKNOWN_VNC_HOST | Requested to proxy VNC to host not present in quota 
-| UNKNOWN_VIDEO_HOST | Requested to proxy video to host not present in quota 
-| UNSUPPORTED_BROWSER | Requested browser name and version is not present in quota 
-| UNSUPPORTED_HOST_VNC_SCHEME | Invalid URL protocol specified for host in quota VNC configuration (should be vnc:// or ws://) 
-| WS_CLIENT_DISCONNECTED | Client disconnected from websocket API 
-| WS_ERROR | An error occurred when trying to proxy websocket traffic 
+| Status | Description
+
+| BAD_CAPABILITY | User is passing non-string value for capability that should be string
+| BAD_JSON | User request does not contain valid Selenium data
+| BAD_RESPONSE | Upstream server returned data using unknown JSON protocol
+| BROWSER_NOT_SET | Browser name is not present or empty string
+| CLIENT_DISCONNECTED | User disconnected and doing session attempts was interrupted
+| INIT | Server initialization messages
+| INVALID_HOST_VNC_URL | Failed to parse VNC host URL specified in quota configuration
+| INVALID_DOWNLOAD_REQUEST_URL | Download request URL do not contain enough information to determine upstream host
+| INVALID_LOG_REQUEST_URL | Log request URL do not contain enough information to determine upstream host
+| INVALID_VNC_REQUEST_URL | VNC request URL do not contain enough information to determine upstream host
+| INVALID_VIDEO_REQUEST_URL | Video request URL do not contain enough information to determine upstream host
+| INVALID_URL | Session ID does not contain information about host where it was created
+| PROXY_ERROR | An error occurred while proxying request
+| PROXYING | Proxying Selenium request (shown in verbose mode only)
+| PROXYING_DOWNLOAD | Starting to proxy downloaded file from upstream host
+| PROXYING_LOG | Starting to proxy log from upstream host
+| PROXYING_TO_VNC | Starting to proxy VNC traffic
+| PROXYING_VIDEO | Starting to proxy video from upstream host
+| QUOTA_INFO_REQUESTED | Quota information request arrived
+| ROUTE_NOT_FOUND | Trying to proxy session to unknown host. Usually means quota files inconsistency between multiple Ggr instances.
+| SESSION_ATTEMPTED | New user request for session arrived
+| SESSION_CREATED | A new session was created and returned to user
+| SESSION_DELETED | Existing session was deleted by user request
+| SESSION_FAILED | Session attempt on specified host failed
+| SESSION_NOT_CREATED | Attempts to create a new session on all hosts failed. An error was returned to user.
+| SHUTTING_DOWN | Server is shutting down and waiting graceful shutdown timeout for currently proxied requests to finish
+| UNKNOWN_DEVTOOLS_HOST | Requested to proxy devtools to host not present in quota
+| UNKNOWN_DOWNLOAD_HOST | Requested to proxy downloaded file to host not present in quota
+| UNKNOWN_LOG_HOST | Requested to proxy log to host not present in quota
+| UNKNOWN_VNC_HOST | Requested to proxy VNC to host not present in quota
+| UNKNOWN_VIDEO_HOST | Requested to proxy video to host not present in quota
+| UNSUPPORTED_BROWSER | Requested browser name and version is not present in quota
+| UNSUPPORTED_HOST_VNC_SCHEME | Invalid URL protocol specified for host in quota VNC configuration (should be vnc:// or ws://)
+| WS_CLIENT_DISCONNECTED | Client disconnected from websocket API
+| WS_ERROR | An error occurred when trying to proxy websocket traffic
 | WS_SESSION_CLOSED | Client closed websocket session
 |===
 
