@@ -429,7 +429,8 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 
 func ping(w http.ResponseWriter, _ *http.Request) {
 	confLock.RLock()
-	defer confLock.RUnlock()
+	lrt := lastReloadTime.Format(time.RFC3339)
+	confLock.RUnlock()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(struct {
 		Uptime         string `json:"uptime"`
@@ -439,7 +440,7 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 		Version        string `json:"version"`
 	}{
 		time.Since(startTime).String(),
-		lastReloadTime.Format(time.RFC3339),
+		lrt,
 		atomic.LoadUint64(&numRequests),
 		atomic.LoadUint64(&numSessions),
 		gitRevision,
@@ -462,9 +463,6 @@ func err(w http.ResponseWriter, _ *http.Request) {
 }
 
 func host(w http.ResponseWriter, r *http.Request) {
-	confLock.RLock()
-	defer confLock.RUnlock()
-
 	id := serial()
 	user, remote := info(r)
 	head := len(paths.Host)
@@ -476,7 +474,9 @@ func host(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sum := path[head:tail]
+	confLock.RLock()
 	h, ok := routes[sum]
+	confLock.RUnlock()
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("unknown host"))
@@ -488,12 +488,12 @@ func host(w http.ResponseWriter, r *http.Request) {
 }
 
 func quotaInfo(w http.ResponseWriter, r *http.Request) {
-	confLock.RLock()
-	defer confLock.RUnlock()
 	id := serial()
 	user, remote := info(r)
 	log.Printf("[%d] [-] [QUOTA_INFO_REQUESTED] [%s] [%s] [-] [-] [-] [-] [-]\n", id, user, remote)
+	confLock.RLock()
 	browsers := quota[user]
+	confLock.RUnlock()
 	w.Header().Set("Content-Type", "application/json")
 	for i := 0; i < len(browsers.Browsers.Browsers); i++ {
 		browser := &browsers.Browsers.Browsers[i]
@@ -622,8 +622,6 @@ func WithSuitableAuthentication(authenticator *auth.BasicAuth, handler func(http
 
 func vnc(wsconn *websocket.Conn) {
 	defer wsconn.Close()
-	confLock.RLock()
-	defer confLock.RUnlock()
 
 	id := serial()
 	head := len(paths.VNC)
@@ -634,7 +632,9 @@ func vnc(wsconn *websocket.Conn) {
 		return
 	}
 	sum := path[head:tail]
+	confLock.RLock()
 	h, ok := routes[sum]
+	confLock.RUnlock()
 	if ok {
 		vncInfo := h.VncInfo
 		scheme := vncScheme
@@ -728,9 +728,6 @@ func clipboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUrlMessage string, proxyingMessage string, unknownHostMessage string, pathProvider func(string) string) {
-	confLock.RLock()
-	defer confLock.RUnlock()
-
 	id := serial()
 	user, remote := info(r)
 	head := len(route)
@@ -742,8 +739,10 @@ func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUr
 		return
 	}
 	sum := path[head:tail]
-	remainder := path[tail:]
+	confLock.RLock()
 	h, ok := routes[sum]
+	confLock.RUnlock()
+	remainder := path[tail:]
 	if ok {
 		(&httputil.ReverseProxy{
 			Director: func(r *http.Request) {
