@@ -173,6 +173,7 @@ func session(ctx context.Context, h *Host, header http.Header, c caps) (map[stri
 			req.Header.Add(key, value)
 		}
 	}
+	req.Header.Del("Accept-Encoding")
 	if h.Username != "" && h.Password != "" {
 		req.SetBasicAuth(h.Username, h.Password)
 	}
