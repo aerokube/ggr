@@ -597,6 +597,12 @@ func requireBasicAuth(authenticator *auth.BasicAuth, handler func(http.ResponseW
 //WithSuitableAuthentication handles basic authentication and guest quota processing
 func WithSuitableAuthentication(authenticator *auth.BasicAuth, handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if rootToken != "" {
+			if rootToken == r.Header.Get("X-Ggr-Root-Token") {
+				handler(w, r)
+				return
+			}
+		}
 		if !guestAccessAllowed {
 			//All requests require authentication
 			requireBasicAuth(authenticator, handler)(w, r)
