@@ -24,6 +24,7 @@ var (
 	gracefulPeriod     time.Duration
 	guestAccessAllowed bool
 	guestUserName      string
+	rootToken          string
 	verbose            bool
 
 	startTime      = time.Now()
@@ -90,6 +91,7 @@ func init() {
 	flag.StringVar(&users, "users", ".htpasswd", "htpasswd auth file path")
 	flag.DurationVar(&timeout, "timeout", 300*time.Second, "session creation timeout in time.Duration format, e.g. 300s or 500ms")
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
+	flag.StringVar(&rootToken, "root-token", "", "Root token value")
 	flag.BoolVar(&version, "version", false, "show version and exit")
 	flag.BoolVar(&verbose, "verbose", false, "enable verbose mode")
 	flag.Parse()

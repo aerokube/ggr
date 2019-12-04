@@ -348,6 +348,15 @@ func TestProxyVideoFileWithoutAuth(t *testing.T) {
 	AssertThat(t, rsp, Code{http.StatusUnauthorized})
 }
 
+func TestProxyVideoFileIncorrectRootToken(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, gridrouter("/video/123"), nil)
+	req.Header.Add("X-Ggr-Root-Token", "wrong-token")
+	rsp, err := http.DefaultClient.Do(req)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
 func TestProxyVideoFile(t *testing.T) {
 
 	test.Lock()
@@ -357,6 +366,16 @@ func TestProxyVideoFile(t *testing.T) {
 	defer fileServer.Close()
 
 	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionID)), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusOK})
+
+	rootToken = "correct-token"
+	defer func() {
+		rootToken = ""
+	}()
+	req, _ := http.NewRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionID)), nil)
+	req.Header.Add("X-Ggr-Root-Token", "correct-token")
+	rsp, err = http.DefaultClient.Do(req)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusOK})
 
