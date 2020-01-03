@@ -39,7 +39,7 @@ const (
 )
 
 var paths = struct {
-	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, Video, Logs, Download, Clipboard, Devtools string
+	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, Video, Logs, Download, Clipboard, Devtools, Pprof string
 }{
 	Ping:      "/ping",
 	Status:    "/wd/hub/status",
@@ -54,6 +54,7 @@ var paths = struct {
 	Download:  "/download/",
 	Clipboard: "/clipboard/",
 	Devtools:  "/devtools/",
+	Pprof:     "/debug/pprof/",
 }
 
 var keys = struct {
@@ -172,6 +173,7 @@ func session(ctx context.Context, h *Host, header http.Header, c caps) (map[stri
 			req.Header.Add(key, value)
 		}
 	}
+	req.Header.Del("Accept-Encoding")
 	if h.Username != "" && h.Password != "" {
 		req.SetBasicAuth(h.Username, h.Password)
 	}
@@ -380,53 +382,62 @@ func secondsSince(start time.Time) float64 {
 	return float64(time.Now().Sub(start).Seconds())
 }
 
-func proxy(r *http.Request) {
+func proxy(w http.ResponseWriter, r *http.Request) {
 	id := serial()
-	_, remote := info(r)
-	r.URL.Scheme = "http"
-	if len(r.URL.Path) > tail {
-		sum := r.URL.Path[head:tail]
-		proxyPath := r.URL.Path[:head] + r.URL.Path[tail:]
-		confLock.RLock()
-		h, ok := routes[sum]
-		confLock.RUnlock()
-		if ok {
-			if r.Body != nil {
-				if body, err := ioutil.ReadAll(r.Body); err == nil {
-					r.Body.Close()
-					var msg map[string]interface{}
-					if err := json.Unmarshal(body, &msg); err == nil {
-						delete(msg, "sessionId")
-						body, _ = json.Marshal(msg)
-						r.ContentLength = int64(len(body))
+	(&httputil.ReverseProxy{
+		Director: func(r *http.Request) {
+			_, remote := info(r)
+			r.URL.Scheme = "http"
+			if len(r.URL.Path) > tail {
+				sum := r.URL.Path[head:tail]
+				proxyPath := r.URL.Path[:head] + r.URL.Path[tail:]
+				confLock.RLock()
+				h, ok := routes[sum]
+				confLock.RUnlock()
+				if ok {
+					if r.Body != nil {
+						if body, err := ioutil.ReadAll(r.Body); err == nil {
+							r.Body.Close()
+							var msg map[string]interface{}
+							if err := json.Unmarshal(body, &msg); err == nil {
+								delete(msg, "sessionId")
+								body, _ = json.Marshal(msg)
+								r.ContentLength = int64(len(body))
+							}
+							r.Body = ioutil.NopCloser(bytes.NewReader(body))
+						}
 					}
-					r.Body = ioutil.NopCloser(bytes.NewReader(body))
+					if h.Scheme != "" {
+						r.URL.Scheme = h.Scheme
+					}
+					r.Host = h.Net()
+					r.URL.Host = h.Net()
+					r.URL.Path = proxyPath
+					fragments := strings.Split(proxyPath, "/")
+					sess := fragments[sessPart]
+					if verbose {
+						log.Printf("[%d] [-] [PROXYING] [-] [%s] [-] [%s] [%s] [-] [%s]\n", id, remote, h.Net(), sess, proxyPath)
+					}
+					if r.Method == http.MethodDelete && len(fragments) == sessPart+1 {
+						log.Printf("[%d] [-] [SESSION_DELETED] [-] [%s] [-] [%s] [%s] [-] [-]\n", id, remote, h.Net(), sess)
+					}
+					return
 				}
+				log.Printf("[%d] [-] [ROUTE_NOT_FOUND] [-] [%s] [%s] [-] [-] [-] [-]\n", id, remote, proxyPath)
+			} else {
+				log.Printf("[%d] [-] [INVALID_URL] [-] [%s] [%s] [-] [-] [-] [-]\n", id, remote, r.URL.Path)
 			}
-			r.Host = h.Net()
-			r.URL.Host = h.Net()
-			r.URL.Path = proxyPath
-			fragments := strings.Split(proxyPath, "/")
-			sess := fragments[sessPart]
-			if verbose {
-				log.Printf("[%d] [-] [PROXYING] [-] [%s] [-] [%s] [%s] [-] [%s]\n", id, remote, h.Net(), sess, proxyPath)
-			}
-			if r.Method == http.MethodDelete && len(fragments) == sessPart+1 {
-				log.Printf("[%d] [-] [SESSION_DELETED] [-] [%s] [-] [%s] [%s] [-] [-]\n", id, remote, h.Net(), sess)
-			}
-			return
-		}
-		log.Printf("[%d] [-] [ROUTE_NOT_FOUND] [-] [%s] [%s] [-] [-] [-] [-]\n", id, remote, proxyPath)
-	} else {
-		log.Printf("[%d] [-] [INVALID_URL] [-] [%s] [%s] [-] [-] [-] [-]\n", id, remote, r.URL.Path)
-	}
-	r.URL.Host = listen
-	r.URL.Path = paths.Err
+			r.URL.Host = listen
+			r.URL.Path = paths.Err
+		},
+		ErrorHandler: defaultErrorHandler(id),
+	}).ServeHTTP(w, r)
 }
 
 func ping(w http.ResponseWriter, _ *http.Request) {
 	confLock.RLock()
-	defer confLock.RUnlock()
+	lrt := lastReloadTime.Format(time.RFC3339)
+	confLock.RUnlock()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(struct {
 		Uptime         string `json:"uptime"`
@@ -436,7 +447,7 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 		Version        string `json:"version"`
 	}{
 		time.Since(startTime).String(),
-		lastReloadTime.Format(time.RFC3339),
+		lrt,
 		atomic.LoadUint64(&numRequests),
 		atomic.LoadUint64(&numSessions),
 		gitRevision,
@@ -459,9 +470,6 @@ func err(w http.ResponseWriter, _ *http.Request) {
 }
 
 func host(w http.ResponseWriter, r *http.Request) {
-	confLock.RLock()
-	defer confLock.RUnlock()
-
 	id := serial()
 	user, remote := info(r)
 	head := len(paths.Host)
@@ -473,7 +481,9 @@ func host(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sum := path[head:tail]
+	confLock.RLock()
 	h, ok := routes[sum]
+	confLock.RUnlock()
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("unknown host"))
@@ -485,12 +495,12 @@ func host(w http.ResponseWriter, r *http.Request) {
 }
 
 func quotaInfo(w http.ResponseWriter, r *http.Request) {
-	confLock.RLock()
-	defer confLock.RUnlock()
 	id := serial()
 	user, remote := info(r)
 	log.Printf("[%d] [-] [QUOTA_INFO_REQUESTED] [%s] [%s] [-] [-] [-] [-] [-]\n", id, user, remote)
+	confLock.RLock()
 	browsers := quota[user]
+	confLock.RUnlock()
 	w.Header().Set("Content-Type", "application/json")
 	for i := 0; i < len(browsers.Browsers.Browsers); i++ {
 		browser := &browsers.Browsers.Browsers[i]
@@ -619,8 +629,6 @@ func WithSuitableAuthentication(authenticator *auth.BasicAuth, handler func(http
 
 func vnc(wsconn *websocket.Conn) {
 	defer wsconn.Close()
-	confLock.RLock()
-	defer confLock.RUnlock()
 
 	id := serial()
 	head := len(paths.VNC)
@@ -631,7 +639,9 @@ func vnc(wsconn *websocket.Conn) {
 		return
 	}
 	sum := path[head:tail]
+	confLock.RLock()
 	h, ok := routes[sum]
+	confLock.RUnlock()
 	if ok {
 		vncInfo := h.VncInfo
 		scheme := vncScheme
@@ -725,9 +735,6 @@ func clipboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUrlMessage string, proxyingMessage string, unknownHostMessage string, pathProvider func(string) string) {
-	confLock.RLock()
-	defer confLock.RUnlock()
-
 	id := serial()
 	user, remote := info(r)
 	head := len(route)
@@ -739,18 +746,31 @@ func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUr
 		return
 	}
 	sum := path[head:tail]
-	remainder := path[tail:]
+	confLock.RLock()
 	h, ok := routes[sum]
+	confLock.RUnlock()
+	remainder := path[tail:]
 	if ok {
-		(&httputil.ReverseProxy{Director: func(r *http.Request) {
-			r.URL.Scheme = "http"
-			r.URL.Host = h.Net()
-			r.URL.Path = pathProvider(remainder)
-			log.Printf("[%d] [-] [%s] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, proxyingMessage, user, remote, r.URL, remainder)
-		}}).ServeHTTP(w, r)
+		(&httputil.ReverseProxy{
+			Director: func(r *http.Request) {
+				r.URL.Scheme = "http"
+				r.URL.Host = h.Net()
+				r.URL.Path = pathProvider(remainder)
+				log.Printf("[%d] [-] [%s] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, proxyingMessage, user, remote, r.URL, remainder)
+			},
+			ErrorHandler: defaultErrorHandler(id),
+		}).ServeHTTP(w, r)
 	} else {
 		log.Printf("[%d] [-] [%s] [%s] [%s] [-] [-] [%s] [-] [-]\n", id, unknownHostMessage, user, remote, sum)
 		reply(w, errMsg("unknown host"), http.StatusNotFound)
+	}
+}
+
+func defaultErrorHandler(requestId uint64) func(http.ResponseWriter, *http.Request, error) {
+	return func(w http.ResponseWriter, r *http.Request, err error) {
+		user, remote := info(r)
+		log.Printf("[%d] [-] [PROXY_ERROR] [%s] [%s] [%s] [-] [-] [-] [%v]", requestId, user, remote, r.URL, err)
+		w.WriteHeader(http.StatusBadGateway)
 	}
 }
 
@@ -766,12 +786,13 @@ func mux() http.Handler {
 	mux.HandleFunc(paths.Host, WithSuitableAuthentication(authenticator, host))
 	mux.HandleFunc(paths.Quota, WithSuitableAuthentication(authenticator, quotaInfo))
 	mux.HandleFunc(paths.Route, withCloseNotifier(WithSuitableAuthentication(authenticator, postOnly(route))))
-	mux.Handle(paths.Proxy, &httputil.ReverseProxy{Director: proxy})
+	mux.HandleFunc(paths.Proxy, proxy)
 	mux.Handle(paths.VNC, websocket.Handler(vnc))
 	mux.HandleFunc(paths.Video, WithSuitableAuthentication(authenticator, video))
 	mux.HandleFunc(paths.Logs, WithSuitableAuthentication(authenticator, logs))
 	mux.HandleFunc(paths.Download, WithSuitableAuthentication(authenticator, download))
 	mux.HandleFunc(paths.Clipboard, WithSuitableAuthentication(authenticator, clipboard))
 	mux.HandleFunc(paths.Devtools, devtools)
+	mux.Handle(paths.Pprof, http.DefaultServeMux)
 	return mux
 }
