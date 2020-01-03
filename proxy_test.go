@@ -24,7 +24,6 @@ import (
 	"github.com/abbot/go-http-auth"
 	. "github.com/aerokube/ggr/config"
 	"golang.org/x/net/websocket"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -368,6 +367,27 @@ func TestProxyVideoFile(t *testing.T) {
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/video/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusNotFound})
+}
+
+func TestProxyVideoFileBadGateway(t *testing.T) {
+	test.Lock()
+	defer test.Unlock()
+
+	node := Host{Name: "missing-host.example.com", Port: 4444, Count: 1}
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	resp, err := doBasicHTTPRequest(http.MethodPost, gridrouter("/video/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, resp, Code{http.StatusBadGateway})
 }
 
 func prepareMockFileServer(path string) (*httptest.Server, string) {
@@ -1419,6 +1439,40 @@ func TestProxyPlainRequest(t *testing.T) {
 	updateQuota(user, browsers)
 
 	doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
+}
+
+func TestProxyHttpsHost(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {})
+	selenium := httptest.NewTLSServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1, Scheme: "https"}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}}}}
+	updateQuota(user, browsers)
+
+	// We replace default HTTP transport to correctly handle self-signed test TLS certificate
+	oldTransport := http.DefaultTransport
+	http.DefaultTransport = selenium.Client().Transport
+	defer func() {
+		http.DefaultTransport = oldTransport
+	}()
+
+	resp, err := doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, resp, Code{http.StatusOK})
 }
 
 func TestRequest(t *testing.T) {
