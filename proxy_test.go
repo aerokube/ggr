@@ -349,6 +349,15 @@ func TestProxyVideoFileWithoutAuth(t *testing.T) {
 	AssertThat(t, rsp, Code{http.StatusUnauthorized})
 }
 
+func TestProxyVideoFileIncorrectRootToken(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, gridrouter("/video/123"), nil)
+	req.Header.Add("X-Ggr-Root-Token", "wrong-token")
+	rsp, err := http.DefaultClient.Do(req)
+
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+}
+
 func TestProxyVideoFile(t *testing.T) {
 
 	test.Lock()
@@ -358,6 +367,16 @@ func TestProxyVideoFile(t *testing.T) {
 	defer fileServer.Close()
 
 	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionID)), nil)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, rsp, Code{http.StatusOK})
+
+	rootToken = "correct-token"
+	defer func() {
+		rootToken = ""
+	}()
+	req, _ := http.NewRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionID)), nil)
+	req.Header.Add("X-Ggr-Root-Token", "correct-token")
+	rsp, err = http.DefaultClient.Do(req)
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, rsp, Code{http.StatusOK})
 
@@ -1690,6 +1709,30 @@ func TestFileExists(t *testing.T) {
 	AssertThat(t, fileExists(f.Name()), Is{true})
 }
 
+func TestPanicGuestQuotaMissingUsersFileAuthPresent(t *testing.T) {
+	guestAccessAllowed = true
+	users = "missing-file"
+	defer func() {
+		users = ".htpasswd"
+	}()
+	authenticator := auth.NewBasicAuthenticator(
+		"Some Realm",
+		auth.HtpasswdFileProvider(users),
+	)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", WithSuitableAuthentication(authenticator, func(_ http.ResponseWriter, _ *http.Request) {}))
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
+	req.SetBasicAuth("test", "test")
+	resp, err := http.DefaultClient.Do(req)
+	AssertThat(t, err, Is{nil})
+	AssertThat(t, resp, Code{http.StatusOK})
+}
+
 func TestCreateSessionChangeRegionOnFailure(t *testing.T) {
 	uniformDistribution = false
 	var selectedRegions []string
@@ -1768,28 +1811,4 @@ func recordingMux(region string, storage *[]string) http.Handler {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 	return mux
-}
-
-func TestPanicGuestQuotaMissingUsersFileAuthPresent(t *testing.T) {
-	guestAccessAllowed = true
-	users = "missing-file"
-	defer func() {
-		users = ".htpasswd"
-	}()
-	authenticator := auth.NewBasicAuthenticator(
-		"Some Realm",
-		auth.HtpasswdFileProvider(users),
-	)
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", WithSuitableAuthentication(authenticator, func(_ http.ResponseWriter, _ *http.Request) {}))
-
-	srv := httptest.NewServer(mux)
-	defer srv.Close()
-
-	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
-	req.SetBasicAuth("test", "test")
-	resp, err := http.DefaultClient.Do(req)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, resp, Code{http.StatusOK})
 }

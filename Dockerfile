@@ -1,6 +1,6 @@
 FROM alpine:3.8
 
-RUN apk add -U tzdata && rm -Rf /var/cache/apk/*
+RUN apk add -U tzdata ca-certificates && rm -Rf /var/cache/apk/*
 COPY ggr /usr/bin
 
 EXPOSE 4444
