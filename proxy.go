@@ -145,7 +145,11 @@ func (c caps) version() string {
 }
 
 func (c caps) platform() string {
-	return c.capabilityJsonWireW3C("platform", "platformName")
+	platform := c.capability("platform")
+	if platform != "" {
+		return platform
+	}
+	return c.capability("platformName")
 }
 
 func (c caps) labels() string {

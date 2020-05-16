@@ -1707,3 +1707,11 @@ func TestPanicGuestQuotaMissingUsersFileAuthPresent(t *testing.T) {
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, resp, Code{http.StatusOK})
 }
+
+func TestPlatformCapability(t *testing.T) {
+	var caps caps
+	testCaps := `{"desiredCapabilities": {"platformName": "WINDOWS"}, "capabilities": {"platformName": "windows"}}`
+	json.Unmarshal([]byte(testCaps), &caps)
+
+	AssertThat(t, caps.platform(), EqualTo{"WINDOWS"})
+}
