@@ -145,7 +145,11 @@ func (c caps) version() string {
 }
 
 func (c caps) platform() string {
-	return c.capabilityJsonWireW3C("platform", "platformName")
+	platform := c.capability("platform")
+	if platform != "" {
+		return platform
+	}
+	return c.capability("platformName")
 }
 
 func (c caps) labels() string {
@@ -235,10 +239,13 @@ func info(r *http.Request) (user, remote string) {
 	return
 }
 
-func fmtBrowser(browser, version, labels string) string {
+func fmtBrowser(browser, version, platform, labels string) string {
 	ret := browser
 	if version != "" {
 		ret += "-" + version
+	}
+	if platform != "" {
+		ret += "-" + platform
 	}
 	if labels != "" {
 		ret += " " + labels
@@ -295,8 +302,8 @@ func route(w http.ResponseWriter, r *http.Request) {
 	confLock.RUnlock()
 
 	if len(hosts) == 0 {
-		reply(w, errMsg(fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version, labels))), http.StatusNotFound)
-		log.Printf("[%d] [%.2fs] [UNSUPPORTED_BROWSER] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, labels))
+		reply(w, errMsg(fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version, platform, labels))), http.StatusNotFound)
+		log.Printf("[%d] [%.2fs] [UNSUPPORTED_BROWSER] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels))
 		return
 	}
 	lastHostError := ""
@@ -310,12 +317,12 @@ loop:
 		if h == nil {
 			break loop
 		}
-		log.Printf("[%d] [%.2fs] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, labels), h.Net(), count)
+		log.Printf("[%d] [%.2fs] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), count)
 		c.setVersion(version)
 		resp, status := session(r.Context(), h, r.Header, c)
 		select {
 		case <-r.Context().Done():
-			log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, labels), h.Net(), count)
+			log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), count)
 			return
 		default:
 		}
@@ -325,7 +332,7 @@ loop:
 			if !ok {
 				protocolError := func() {
 					reply(w, errMsg("protocol error"), http.StatusBadGateway)
-					log.Printf("[%d] [%.2fs] [BAD_RESPONSE] [%s] [%s] [%s] [%s] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, labels), h.Net())
+					log.Printf("[%d] [%.2fs] [BAD_RESPONSE] [%s] [%s] [%s] [%s] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net())
 				}
 				value, ok := resp["value"]
 				if !ok {
@@ -348,7 +355,7 @@ loop:
 			}
 			reply(w, resp, http.StatusOK)
 			atomic.AddUint64(&numSessions, 1)
-			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, labels), h.Net(), sess, count)
+			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), sess, count)
 			return
 		case browserFailed:
 			hosts = append(hosts[:i], hosts[i+1:]...)
@@ -358,18 +365,18 @@ loop:
 			hosts, version, excludedRegions = browsers.find(browser, version, platform, excludedHosts, excludedRegions)
 		}
 		errMsg := browserErrMsg(resp)
-		log.Printf("[%d] [%.2fs] [SESSION_FAILED] [%s] [%s] [%s] [%s] [-] [%d] [%s]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, labels), h.Net(), count, errMsg)
+		log.Printf("[%d] [%.2fs] [SESSION_FAILED] [%s] [%s] [%s] [%s] [-] [%d] [%s]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), count, errMsg)
 		lastHostError = errMsg
 		if len(hosts) == 0 {
 			break loop
 		}
 	}
-	notCreatedMsg := fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version, labels), count)
+	notCreatedMsg := fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version, platform, labels), count)
 	if len(lastHostError) > 0 {
 		notCreatedMsg = fmt.Sprintf("%s, last host error was: %s", notCreatedMsg, lastHostError)
 	}
 	reply(w, errMsg(notCreatedMsg), http.StatusInternalServerError)
-	log.Printf("[%d] [%.2fs] [SESSION_NOT_CREATED] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, labels))
+	log.Printf("[%d] [%.2fs] [SESSION_NOT_CREATED] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels))
 }
 
 func secondsSince(start time.Time) float64 {
