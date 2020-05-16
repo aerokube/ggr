@@ -1,5 +1,5 @@
 # Go Grid Router
-[![Build Status](https://travis-ci.org/aerokube/ggr.svg?branch=master)](https://travis-ci.org/aerokube/ggr)
+[![Build Status](https://github.com/aerokube/ggr/workflows/build/badge.svg)](https://github.com/aerokube/ggr/actions?query=workflow%3Abuild)
 [![Coverage](https://codecov.io/github/aerokube/ggr/coverage.svg)](https://codecov.io/gh/aerokube/ggr)
 [![GoReport](https://goreportcard.com/badge/github.com/aerokube/ggr)](https://goreportcard.com/report/github.com/aerokube/ggr)
 [![Release](https://img.shields.io/github/release/aerokube/ggr.svg)](https://github.com/aerokube/ggr/releases/latest)
