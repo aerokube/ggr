@@ -148,25 +148,25 @@ func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host) {
 		var cap capacity
 
 		if queued, ok := responseMap["queued"]; ok {
-			cap.queued = queued.(int)
+			cap.queued = int(queued.(float64))
 		} else {
 			continue
 		}
 
 		if pending, ok := responseMap["pending"]; ok {
-			cap.pending = pending.(int)
+			cap.pending = int(pending.(float64))
 		} else {
 			continue
 		}
 
 		if used, ok := responseMap["used"]; ok {
-			cap.used = used.(int)
+			cap.used = int(used.(float64))
 		} else {
 			continue
 		}
 
 		if total, ok := responseMap["total"]; ok {
-			cap.total = total.(int)
+			cap.total = int(total.(float64))
 		} else {
 			continue
 		}
