@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/abbot/go-http-auth"
 	"io"
 	"io/ioutil"
 	"log"
@@ -19,6 +18,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	auth "github.com/abbot/go-http-auth"
 
 	. "github.com/aerokube/ggr/config"
 	"golang.org/x/net/websocket"
@@ -309,9 +310,8 @@ loop:
 		}
 		if r.Header["X-Selenoid-No-Wait"] == nil && uniformDistribution {
 			confLock.RLock()
-			hosts, _, _ := browsers.find(browser, version, platform, newSet(), newSet())
+			h = findFirstNodeByQueue(&hosts, &confLock)
 			confLock.RUnlock()
-			h = findFirstNodeByQueue(h, &hosts, &confLock)
 		}
 		if h == nil {
 			break loop

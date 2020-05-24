@@ -20,13 +20,14 @@ import (
 
 	"strings"
 
-	. "github.com/aandryashin/matchers"
-	. "github.com/aandryashin/matchers/httpresp"
-	"github.com/abbot/go-http-auth"
-	. "github.com/aerokube/ggr/config"
-	"golang.org/x/net/websocket"
 	"os"
 	"path/filepath"
+
+	. "github.com/aandryashin/matchers"
+	. "github.com/aandryashin/matchers/httpresp"
+	auth "github.com/abbot/go-http-auth"
+	. "github.com/aerokube/ggr/config"
+	"golang.org/x/net/websocket"
 )
 
 var (

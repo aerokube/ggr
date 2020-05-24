@@ -9,23 +9,24 @@ import (
 	"strings"
 
 	"context"
-	. "github.com/aerokube/ggr/config"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	. "github.com/aerokube/ggr/config"
 )
 
 var (
-	listen             string
-	quotaDir           string
-	users              string
-	timeout            time.Duration
-	gracefulPeriod     time.Duration
-	guestAccessAllowed bool
-	guestUserName      string
-	rootToken          string
-	verbose            bool
+	listen              string
+	quotaDir            string
+	users               string
+	timeout             time.Duration
+	gracefulPeriod      time.Duration
+	guestAccessAllowed  bool
+	guestUserName       string
+	rootToken           string
+	verbose             bool
 	uniformDistribution bool
 
 	startTime      = time.Now()

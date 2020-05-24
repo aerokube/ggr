@@ -283,7 +283,7 @@ func TestHostCapacity(t *testing.T) {
 
 	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
 	defer testServer.Close()
-	target := findFirstNodeByQueue(&hosts[0], &hosts, &sync.RWMutex{})
+	target := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
 	AssertThat(t, target, EqualTo{&hosts[0]})
 }
 
@@ -300,13 +300,14 @@ func TestErrorResponseHostCapacity(t *testing.T) {
 
 	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
 	defer testServer.Close()
-	AssertThat(t, findFirstNodeByQueue(&hosts[0], &hosts, &sync.RWMutex{}), EqualTo{&hosts[0]})
+	AssertThat(t, findFirstNodeByQueue(&hosts, &sync.RWMutex{}), EqualTo{&hosts[0]})
 }
 
 func TestEmptyHostListCapacity(t *testing.T) {
 	currentHost := Host{Name: "", Port: 0, Count: 1}
 	hosts := Hosts{}
-	AssertThat(t, findFirstNodeByQueue(&currentHost, &hosts, &sync.RWMutex{}), EqualTo{&currentHost})
+	hosts = append(hosts, currentHost)
+	AssertThat(t, findFirstNodeByQueue(&hosts, &sync.RWMutex{}), EqualTo{&currentHost})
 }
 
 func TestWrongHostResponse(t *testing.T) {
@@ -320,11 +321,10 @@ func TestWrongHostResponse(t *testing.T) {
 
 	ip, _ := url.Parse(testServer.URL)
 	port, _ := strconv.Atoi(ip.Port())
-	currentHost := Host{Name: "", Port: 0, Count: 1}
 	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
 	defer testServer.Close()
-	target := findFirstNodeByQueue(&currentHost, &hosts, &sync.RWMutex{})
-	AssertThat(t, target, EqualTo{&currentHost})
+	target := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
+	AssertThat(t, target, EqualTo{&hosts[0]})
 }
 
 func TestPartialHostResponse(t *testing.T) {
@@ -372,7 +372,6 @@ func TestPartialHostResponse(t *testing.T) {
 	fourthIp, _ := url.Parse(testServer4.URL)
 	fourthPort, _ := strconv.Atoi(fourthIp.Port())
 
-	currentHost := Host{Name: "", Port: 0, Count: 1}
 	hosts := Hosts{Host{Name: firstIp.Hostname(), Port: firstPort, Count: 1},
 		Host{Name: secondIp.Hostname(), Port: secondPort, Count: 1},
 		Host{Name: thirdIp.Hostname(), Port: thirdPort, Count: 1},
@@ -382,6 +381,6 @@ func TestPartialHostResponse(t *testing.T) {
 	defer testServer2.Close()
 	defer testServer3.Close()
 	defer testServer4.Close()
-	target := findFirstNodeByQueue(&currentHost, &hosts, &sync.RWMutex{})
+	target := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
 	AssertThat(t, target, EqualTo{&hosts[1]})
 }

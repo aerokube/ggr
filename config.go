@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	. "github.com/aerokube/ggr/config"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	. "github.com/aerokube/ggr/config"
 )
 
 type set interface {
@@ -113,13 +114,13 @@ func choose(hosts Hosts) (*Host, int) {
 	return nil, -1
 }
 
-func findFirstNodeByQueue(currentHost *Host, hosts *Hosts, mutex *sync.RWMutex) (host *Host) {
-	if len(*hosts) < 1 {
-		return currentHost
+func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host) {
+	if len(*hosts) <= 1 {
+		return &(*hosts)[0]
 	}
 	hostMap := map[string]*Host{}
-	for v := range *hosts {
-		hostMap[fmt.Sprintf("%s%d%s", (*hosts)[v].Name, (*hosts)[v].Port, (*hosts)[v].Region)] = &(*hosts)[v]
+	for _, host := range *hosts {
+		hostMap[fmt.Sprintf("%s%d%s", host.Name, host.Port, host.Region)] = &host
 	}
 	var capacities []capacity
 	mutex.Lock()
@@ -127,8 +128,8 @@ func findFirstNodeByQueue(currentHost *Host, hosts *Hosts, mutex *sync.RWMutex) 
 	var netClient = &http.Client{
 		Timeout: time.Second * 10,
 	}
-	for i := range *hosts {
-		rsp, err := netClient.Get((*hosts)[i].StatusEndPoint())
+	for _, host := range *hosts {
+		rsp, err := netClient.Get(host.StatusEndPoint())
 		if err != nil {
 			continue
 		}
@@ -136,55 +137,55 @@ func findFirstNodeByQueue(currentHost *Host, hosts *Hosts, mutex *sync.RWMutex) 
 		responseMap := make(map[string]interface{})
 		body, err := ioutil.ReadAll(rsp.Body)
 		if err != nil {
-			return currentHost
+			return &(*hosts)[0]
 		}
 
 		err = json.Unmarshal(body, &responseMap)
 		if err != nil {
-			return currentHost
+			return &(*hosts)[0]
 		}
 
 		var cap capacity
 
 		if queued, ok := responseMap["queued"]; ok {
-			cap.queued = int(queued.(float64))
+			cap.queued = queued.(int)
 		} else {
 			continue
 		}
 
 		if pending, ok := responseMap["pending"]; ok {
-			cap.pending = int(pending.(float64))
+			cap.pending = pending.(int)
 		} else {
 			continue
 		}
 
 		if used, ok := responseMap["used"]; ok {
-			cap.used = int(used.(float64))
+			cap.used = used.(int)
 		} else {
 			continue
 		}
 
 		if total, ok := responseMap["total"]; ok {
-			cap.total = int(total.(float64))
+			cap.total = total.(int)
 		} else {
 			continue
 		}
 
-		cap.Key = &(*hosts)[i]
+		cap.Key = &host
 		capacities = append(capacities, cap)
 	}
 	if len(capacities) < 1 {
-		return currentHost
+		return &(*hosts)[0]
 	}
 	var target = mostFreeHost(capacities)
 	if v, ok := hostMap[fmt.Sprintf("%s%d%s", target.Name, target.Port, target.Region)]; ok {
-		if &v == &currentHost {
-			return currentHost
+		if v == &(*hosts)[0] {
+			return &(*hosts)[0]
 		}
 		return v
 	}
 
-	return currentHost
+	return &(*hosts)[0]
 }
 
 func mostFreeHost(values []capacity) *Host {
