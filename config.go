@@ -117,8 +117,8 @@ func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host, err er
 		return &(*hosts)[0], nil
 	}
 	hostMap := map[string]*Host{}
-	for _, host := range *hosts {
-		hostMap[fmt.Sprintf("%s%d%s", host.Name, host.Port, host.Region)] = &host
+	for i, v := range *hosts {
+		hostMap[fmt.Sprintf("%s%d%s", v.Name, v.Port, v.Region)] = &(*hosts)[i]
 	}
 	mutex.Lock()
 	resultMap := make(map[*Host]*capacity)
@@ -145,15 +145,14 @@ func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host, err er
 	}
 	netClient.CloseIdleConnections()
 	if len(resultMap) < 1 {
-		for k := range resultMap {
-			return k, nil
-		}
-	}
-	targetHost, err := mostFreeHost(resultMap)
-	if err != nil {
 		return nil, errors.New("no valid host found")
 	}
-	return targetHost, nil
+	var target, _ = mostFreeHost(resultMap)
+	if v, ok := hostMap[fmt.Sprintf("%s%d%s", target.Name, target.Port, target.Region)]; ok {
+		return v, nil
+	}
+	return nil, errors.New("no valid host found")
+
 }
 
 func mostFreeHost(target map[*Host]*capacity) (*Host, error) {
