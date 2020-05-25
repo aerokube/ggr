@@ -118,7 +118,7 @@ type SensorReading struct {
 	Time     string `json:"time"`
 }
 
-func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host, err error) {
+func findFirstNodeByQueue(hosts *Hosts, mutex *sync.Mutex) (host *Host, err error) {
 
 	if len(*hosts) <= 1 {
 		return &(*hosts)[0], nil
@@ -150,6 +150,7 @@ func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host, err er
 		}
 		resultMap[&(*hosts)[i]] = &capa
 	}
+	netClient.CloseIdleConnections()
 	if len(resultMap) < 1 {
 		for k := range resultMap {
 			return k, nil
