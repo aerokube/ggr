@@ -310,9 +310,9 @@ loop:
 		}
 		if r.Header["X-Selenoid-No-Wait"] == nil && uniformDistribution {
 			confLock.RLock()
-			hosts, version, excludedRegions = browsers.find(browser, version, platform, newSet(), newSet())
+			hosts, _, _ := browsers.find(browser, version, platform, newSet(), newSet())
 			confLock.RUnlock()
-			h, _ = findFirstNodeByQueue(&hosts, &confLock)
+			h = findFirstNodeByQueue(h, &hosts, &confLock)
 		}
 		if h == nil {
 			break loop
