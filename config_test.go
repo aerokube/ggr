@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -18,6 +19,10 @@ import (
 
 func init() {
 	verbose = true
+}
+
+func newIntPointer(i int) *int {
+	return &i
 }
 
 func TestEmptyListOfHosts(t *testing.T) {
@@ -264,9 +269,14 @@ func TestChoosingAllHosts(t *testing.T) {
 }
 
 func TestFindMostFreeHostCapacity(t *testing.T) {
-	cap := []capacity{{Key: &Host{Name: "MaxLoad", Count: 1}, queued: 10, pending: 0, used: 0, total: 1}, {Key: &Host{Name: "MidLoad", Count: 1}, queued: 5, pending: 0, used: 0, total: 1}, {Key: &Host{Name: "Free", Count: 1}, queued: 0, pending: 0, used: 0, total: 1}}
-	targetHost := mostFreeHost(cap)
-	AssertThat(t, targetHost.Name, EqualTo{"Free"})
+	var capacity = map[*Host]*capacity{
+		&Host{Name: "MaxLoad", Count: 1}: {Queued: newIntPointer(10), Pending: newIntPointer(0), Used: newIntPointer(0), Total: newIntPointer(1)},
+		&Host{Name: "MidLoad", Count: 1}: {Queued: newIntPointer(5), Pending: newIntPointer(0), Used: newIntPointer(0), Total: newIntPointer(1)},
+		&Host{Name: "Free", Count: 1}:    {Queued: newIntPointer(0), Pending: newIntPointer(0), Used: newIntPointer(0), Total: newIntPointer(1)},
+	}
+	targetHost, erro := mostFreeHost(capacity)
+	AssertThat(t, erro, EqualTo{})
+	AssertThat(t, targetHost, EqualTo{V: &Host{Name: "Free", Count: 1}})
 }
 
 func TestHostCapacity(t *testing.T) {
@@ -274,7 +284,7 @@ func TestHostCapacity(t *testing.T) {
 		switch req.RequestURI {
 		case "/status":
 			res.WriteHeader(200)
-			res.Write([]byte(fmt.Sprintf("{\"queued\":%s, \"pending\":%d, \"used\":%d, \"total\":%d }", strconv.Itoa(rand.Intn(20)), 0, 0, 0)))
+			res.Write([]byte(fmt.Sprintf("{\"Queued\":%s, \"Pending\":%d, \"Used\":%d, \"Total\":%d }", strconv.Itoa(rand.Intn(20)), 0, 0, 0)))
 		}
 	}))
 
@@ -283,7 +293,7 @@ func TestHostCapacity(t *testing.T) {
 
 	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
 	defer testServer.Close()
-	target := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
+	target, _ := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
 	AssertThat(t, target, EqualTo{&hosts[0]})
 }
 
@@ -300,14 +310,17 @@ func TestErrorResponseHostCapacity(t *testing.T) {
 
 	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
 	defer testServer.Close()
-	AssertThat(t, findFirstNodeByQueue(&hosts, &sync.RWMutex{}), EqualTo{&hosts[0]})
+	_, err := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
+	AssertThat(t, err, Not{})
+	AssertThat(t, err, EqualTo{V: errors.New("no valid host found")})
 }
 
 func TestEmptyHostListCapacity(t *testing.T) {
 	currentHost := Host{Name: "", Port: 0, Count: 1}
 	hosts := Hosts{}
 	hosts = append(hosts, currentHost)
-	AssertThat(t, findFirstNodeByQueue(&hosts, &sync.RWMutex{}), EqualTo{&currentHost})
+	target, _ := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
+	AssertThat(t, target, EqualTo{V: &currentHost})
 }
 
 func TestWrongHostResponse(t *testing.T) {
@@ -315,7 +328,7 @@ func TestWrongHostResponse(t *testing.T) {
 		switch req.RequestURI {
 		case "/status":
 			res.WriteHeader(200)
-			res.Write([]byte(fmt.Sprintf("{\"queued\":%s, \"pending\":%d, \"used\":%d}", strconv.Itoa(rand.Intn(20)), 0, 0)))
+			res.Write([]byte(fmt.Sprintf("{\"Queued\":%s, \"Pending\":%d, \"Used\":%d}", strconv.Itoa(rand.Intn(20)), 0, 0)))
 		}
 	}))
 
@@ -323,8 +336,8 @@ func TestWrongHostResponse(t *testing.T) {
 	port, _ := strconv.Atoi(ip.Port())
 	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
 	defer testServer.Close()
-	target := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
-	AssertThat(t, target, EqualTo{&hosts[0]})
+	_, err := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
+	AssertThat(t, err, Not{V: nil})
 }
 
 func TestPartialHostResponse(t *testing.T) {
@@ -332,7 +345,7 @@ func TestPartialHostResponse(t *testing.T) {
 		switch req.RequestURI {
 		case "/status":
 			res.WriteHeader(200)
-			res.Write([]byte(fmt.Sprintf("{\"queued\":%s, \"pending\":%d, \"used\":%d}", strconv.Itoa(rand.Intn(20)), 0, 0)))
+			res.Write([]byte(fmt.Sprintf("{\"Queued\":%d, \"Pending\":%d, \"Used\":%d}", 2, 0, 0)))
 		}
 	}))
 
@@ -340,7 +353,7 @@ func TestPartialHostResponse(t *testing.T) {
 		switch req.RequestURI {
 		case "/status":
 			res.WriteHeader(200)
-			res.Write([]byte(fmt.Sprintf("{\"queued\":%s, \"pending\":%d, \"used\":%d, \"total\":%d}", strconv.Itoa(rand.Intn(20)), 0, 0, 0)))
+			res.Write([]byte(fmt.Sprintf("{\"Queued\":%d, \"Pending\":%d, \"Used\":%d, \"Total\":%d}", 3, 0, 0, 0)))
 		}
 	}))
 
@@ -348,7 +361,7 @@ func TestPartialHostResponse(t *testing.T) {
 		switch req.RequestURI {
 		case "/status":
 			res.WriteHeader(200)
-			res.Write([]byte(fmt.Sprintf("{\"queued\":%s, \"used\":%d, \"total\":%d}", strconv.Itoa(rand.Intn(20)), 0, 0)))
+			res.Write([]byte(fmt.Sprintf("{\"Queued\":%s, \"Used\":%d, \"Total\":%d}", strconv.Itoa(rand.Intn(20)), 0, 0)))
 		}
 	}))
 
@@ -356,7 +369,7 @@ func TestPartialHostResponse(t *testing.T) {
 		switch req.RequestURI {
 		case "/status":
 			res.WriteHeader(200)
-			res.Write([]byte(fmt.Sprintf("{\"pending\":%d, \"used\":%d, \"total\":%d}", 0, 0, 0)))
+			res.Write([]byte(fmt.Sprintf("{\"Pending\":%d, \"Used\":%d, \"Total\":%d}", 0, 0, 0)))
 		}
 	}))
 
@@ -381,6 +394,6 @@ func TestPartialHostResponse(t *testing.T) {
 	defer testServer2.Close()
 	defer testServer3.Close()
 	defer testServer4.Close()
-	target := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
-	AssertThat(t, target, EqualTo{&hosts[1]})
+	target, _ := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
+	AssertThat(t, *target, EqualTo{V: hosts[1]})
 }

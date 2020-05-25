@@ -2,11 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -29,11 +28,10 @@ func newSet(data ...string) *setImpl {
 }
 
 type capacity struct {
-	Key     *Host
-	queued  int
-	pending int
-	used    int
-	total   int
+	Queued  *int `json:"queued,omitempty" binding:"required"`
+	Pending *int `json:"pending,omitempty" binding:"required"`
+	Used    *int `json:"used,omitempty" binding:"required"`
+	Total   *int `json:"total,omitempty" binding:"required"`
 }
 
 type setImpl struct {
@@ -114,83 +112,74 @@ func choose(hosts Hosts) (*Host, int) {
 	return nil, -1
 }
 
-func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host) {
+type SensorReading struct {
+	Name     string `json:"name"`
+	Capacity int    `json:"capacity"`
+	Time     string `json:"time"`
+}
+
+func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host, err error) {
+
 	if len(*hosts) <= 1 {
-		return &(*hosts)[0]
+		return &(*hosts)[0], nil
 	}
 	hostMap := map[string]*Host{}
 	for _, host := range *hosts {
 		hostMap[fmt.Sprintf("%s%d%s", host.Name, host.Port, host.Region)] = &host
 	}
-	var capacities []capacity
 	mutex.Lock()
+	resultMap := make(map[*Host]*capacity)
 	defer mutex.Unlock()
 	var netClient = &http.Client{
 		Timeout: time.Second * 10,
 	}
-	for _, host := range *hosts {
-		rsp, err := netClient.Get(host.StatusEndPoint())
+	for i := 0; i < len(*hosts); i++ {
+		rsp, err := netClient.Get((*hosts)[i].StatusEndPoint())
 		if err != nil {
 			continue
 		}
-
-		responseMap := make(map[string]interface{})
-		body, err := ioutil.ReadAll(rsp.Body)
-		if err != nil {
-			return &(*hosts)[0]
-		}
-
-		err = json.Unmarshal(body, &responseMap)
-		if err != nil {
-			return &(*hosts)[0]
-		}
-
-		var cap capacity
-
-		if queued, ok := responseMap["queued"]; ok {
-			cap.queued = int(queued.(float64))
-		} else {
+		var capa capacity
+		decoder := json.NewDecoder(rsp.Body)
+		decoder.DisallowUnknownFields()
+		err = decoder.Decode(&capa)
+		if err != nil && i < len(*hosts) {
 			continue
 		}
-
-		if pending, ok := responseMap["pending"]; ok {
-			cap.pending = int(pending.(float64))
-		} else {
+		if capa.Pending == nil || capa.Queued == nil || capa.Total == nil || capa.Used == nil {
 			continue
 		}
-
-		if used, ok := responseMap["used"]; ok {
-			cap.used = int(used.(float64))
-		} else {
-			continue
-		}
-
-		if total, ok := responseMap["total"]; ok {
-			cap.total = int(total.(float64))
-		} else {
-			continue
-		}
-
-		cap.Key = &host
-		capacities = append(capacities, cap)
+		resultMap[&(*hosts)[i]] = &capa
 	}
-	if len(capacities) < 1 {
-		return &(*hosts)[0]
-	}
-	var target = mostFreeHost(capacities)
-	if v, ok := hostMap[fmt.Sprintf("%s%d%s", target.Name, target.Port, target.Region)]; ok {
-		if v == &(*hosts)[0] {
-			return &(*hosts)[0]
+	if len(resultMap) < 1 {
+		for k := range resultMap {
+			return k, nil
 		}
-		return v
 	}
-
-	return &(*hosts)[0]
+	targetHost, err := mostFreeHost(resultMap)
+	if err != nil {
+		return nil, errors.New("no valid host found")
+	}
+	return targetHost, nil
 }
 
-func mostFreeHost(values []capacity) *Host {
-	sort.Slice(values, func(i, j int) bool {
-		return values[i].queued < values[j].queued
-	})
-	return values[0].Key
+func mostFreeHost(target map[*Host]*capacity) (*Host, error) {
+	var queued int
+	var targetHost *Host
+	i := len(target)
+	for k, v := range target {
+		if i == len(target) {
+			queued = *v.Queued
+			targetHost = k
+		}
+		if *v.Queued < queued {
+			queued = *v.Queued
+			targetHost = k
+		}
+		i--
+	}
+
+	if targetHost == nil {
+		return nil, errors.New("failed to find free hosts")
+	}
+	return targetHost, nil
 }
