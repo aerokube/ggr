@@ -293,7 +293,7 @@ func TestHostCapacity(t *testing.T) {
 
 	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
 	defer testServer.Close()
-	target, _ := findFirstNodeByQueue(&hosts, &sync.Mutex{})
+	target, _ := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
 	AssertThat(t, target, EqualTo{V: &hosts[0]})
 }
 
@@ -310,7 +310,7 @@ func TestErrorResponseHostCapacity(t *testing.T) {
 
 	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
 	defer testServer.Close()
-	_, err := findFirstNodeByQueue(&hosts, &sync.Mutex{})
+	_, err := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
 	AssertThat(t, err, Not{})
 	AssertThat(t, err, EqualTo{V: errors.New("no valid host found")})
 }
@@ -319,7 +319,7 @@ func TestEmptyHostListCapacity(t *testing.T) {
 	currentHost := Host{Name: "", Port: 0, Count: 1}
 	hosts := Hosts{}
 	hosts = append(hosts, currentHost)
-	target, _ := findFirstNodeByQueue(&hosts, &sync.Mutex{})
+	target, _ := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
 	AssertThat(t, target, EqualTo{V: &currentHost})
 }
 
@@ -336,7 +336,7 @@ func TestWrongHostResponse(t *testing.T) {
 	port, _ := strconv.Atoi(ip.Port())
 	hosts := Hosts{Host{Name: ip.Hostname(), Port: port, Count: 1}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 1}}
 	defer testServer.Close()
-	_, err := findFirstNodeByQueue(&hosts, &sync.Mutex{})
+	_, err := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
 	AssertThat(t, err, Not{V: nil})
 }
 
@@ -394,6 +394,6 @@ func TestPartialHostResponse(t *testing.T) {
 	defer testServer2.Close()
 	defer testServer3.Close()
 	defer testServer4.Close()
-	target, _ := findFirstNodeByQueue(&hosts, &sync.Mutex{})
+	target, _ := findFirstNodeByQueue(&hosts, &sync.RWMutex{})
 	AssertThat(t, *target, EqualTo{V: hosts[1]})
 }

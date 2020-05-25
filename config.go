@@ -112,14 +112,7 @@ func choose(hosts Hosts) (*Host, int) {
 	return nil, -1
 }
 
-type SensorReading struct {
-	Name     string `json:"name"`
-	Capacity int    `json:"capacity"`
-	Time     string `json:"time"`
-}
-
-func findFirstNodeByQueue(hosts *Hosts, mutex *sync.Mutex) (host *Host, err error) {
-
+func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host, err error) {
 	if len(*hosts) <= 1 {
 		return &(*hosts)[0], nil
 	}

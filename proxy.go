@@ -309,12 +309,10 @@ loop:
 			r.Header.Add("X-Selenoid-No-Wait", "")
 		}
 		if r.Header["X-Selenoid-No-Wait"] == nil && uniformDistribution {
-			//confLock.Lock()
-			mutex := sync.Mutex{}
-			mutex.Lock()
+			confLock.Lock()
 			listHosts, _, _ := browsers.find(browser, version, platform, newSet(), newSet())
-			mutex.Unlock()
-			h, _ = findFirstNodeByQueue(&listHosts, &mutex)
+			confLock.Unlock()
+			h, _ = findFirstNodeByQueue(&listHosts, &confLock)
 		}
 		if h == nil {
 			break loop
