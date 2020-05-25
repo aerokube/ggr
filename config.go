@@ -2,15 +2,15 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	. "github.com/aerokube/ggr/config"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
-
-	. "github.com/aerokube/ggr/config"
 )
 
 type set interface {
@@ -28,10 +28,11 @@ func newSet(data ...string) *setImpl {
 }
 
 type capacity struct {
-	Queued  *int `json:"queued,omitempty" binding:"required"`
-	Pending *int `json:"pending,omitempty" binding:"required"`
-	Used    *int `json:"used,omitempty" binding:"required"`
-	Total   *int `json:"total,omitempty" binding:"required"`
+	Key     *Host
+	queued  int
+	pending int
+	used    int
+	total   int
 }
 
 type setImpl struct {
@@ -112,63 +113,81 @@ func choose(hosts Hosts) (*Host, int) {
 	return nil, -1
 }
 
-func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host, err error) {
-	if len(*hosts) == 1 {
-		return &(*hosts)[0], nil
+func findFirstNodeByQueue(currentHost *Host, hosts *Hosts, mutex *sync.RWMutex) (host *Host) {
+	if len(*hosts) < 1 {
+		return currentHost
 	}
 	hostMap := map[string]*Host{}
-	for i, v := range *hosts {
-		hostMap[fmt.Sprintf("%s%d%s", v.Name, v.Port, v.Region)] = &(*hosts)[i]
+	for v := range *hosts {
+		hostMap[fmt.Sprintf("%s%d%s", (*hosts)[v].Name, (*hosts)[v].Port, (*hosts)[v].Region)] = &(*hosts)[v]
 	}
+	var capacities []capacity
 	mutex.Lock()
-	resultMap := make(map[*Host]*capacity)
 	defer mutex.Unlock()
 	var netClient = &http.Client{
 		Timeout: time.Second * 10,
 	}
-	for i := 0; i < len(*hosts); i++ {
+	for i := range *hosts {
 		rsp, err := netClient.Get((*hosts)[i].StatusEndPoint())
 		if err != nil {
 			continue
 		}
-		var capa capacity
-		decoder := json.NewDecoder(rsp.Body)
-		decoder.DisallowUnknownFields()
-		err = decoder.Decode(&capa)
-		if err != nil && i < len(*hosts) {
-			continue
-		}
-		if capa.Pending == nil || capa.Queued == nil || capa.Total == nil || capa.Used == nil {
-			continue
-		}
-		resultMap[&(*hosts)[i]] = &capa
-	}
-	netClient.CloseIdleConnections()
-	if len(resultMap) < 1 {
-		return nil, errors.New("no valid host found")
-	}
-	var target = mostFreeHost(resultMap)
-	if v, ok := hostMap[fmt.Sprintf("%s%d%s", target.Name, target.Port, target.Region)]; ok {
-		return v, nil
-	}
-	return nil, errors.New("no valid host found")
 
+		responseMap := make(map[string]interface{})
+		body, err := ioutil.ReadAll(rsp.Body)
+		if err != nil {
+			return currentHost
+		}
+
+		err = json.Unmarshal(body, &responseMap)
+		if err != nil {
+			return currentHost
+		}
+		var cap capacity
+		if queued, ok := responseMap["queued"]; ok {
+			cap.queued = int(queued.(float64))
+		} else {
+			continue
+		}
+
+		if pending, ok := responseMap["pending"]; ok {
+			cap.pending = int(pending.(float64))
+		} else {
+			continue
+		}
+
+		if used, ok := responseMap["used"]; ok {
+			cap.used = int(used.(float64))
+		} else {
+			continue
+		}
+
+		if total, ok := responseMap["total"]; ok {
+			cap.total = int(total.(float64))
+		} else {
+			continue
+		}
+
+		cap.Key = &(*hosts)[i]
+		capacities = append(capacities, cap)
+	}
+	if len(capacities) < 1 {
+		return currentHost
+	}
+	var target = mostFreeHost(capacities)
+	if v, ok := hostMap[fmt.Sprintf("%s%d%s", target.Name, target.Port, target.Region)]; ok {
+		if &v == &currentHost {
+			return currentHost
+		}
+		return v
+	}
+
+	return currentHost
 }
 
-func mostFreeHost(target map[*Host]*capacity) *Host {
-	var queued int
-	var targetHost *Host
-	i := len(target)
-	for k, v := range target {
-		if i == len(target) {
-			queued = *v.Queued
-			targetHost = k
-		}
-		if *v.Queued < queued {
-			queued = *v.Queued
-			targetHost = k
-		}
-		i--
-	}
-	return targetHost
+func mostFreeHost(values []capacity) *Host {
+	sort.Slice(values, func(i, j int) bool {
+		return values[i].queued < values[j].queued
+	})
+	return values[0].Key
 }
