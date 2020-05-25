@@ -309,9 +309,9 @@ loop:
 			r.Header.Add("X-Selenoid-No-Wait", "")
 		}
 		if r.Header["X-Selenoid-No-Wait"] == nil && uniformDistribution {
-			confLock.Lock()
+			confLock.RLock()
 			listHosts, _, _ := browsers.find(browser, version, platform, newSet(), newSet())
-			confLock.Unlock()
+			confLock.RUnlock()
 			h, _ = findFirstNodeByQueue(&listHosts, &confLock)
 		}
 		if h == nil {
