@@ -274,8 +274,7 @@ func TestFindMostFreeHostCapacity(t *testing.T) {
 		&Host{Name: "MidLoad", Count: 1}: {Queued: newIntPointer(5), Pending: newIntPointer(0), Used: newIntPointer(0), Total: newIntPointer(1)},
 		&Host{Name: "Free", Count: 1}:    {Queued: newIntPointer(0), Pending: newIntPointer(0), Used: newIntPointer(0), Total: newIntPointer(1)},
 	}
-	targetHost, erro := mostFreeHost(capacity)
-	AssertThat(t, erro, EqualTo{})
+	targetHost := mostFreeHost(capacity)
 	AssertThat(t, targetHost, EqualTo{V: &Host{Name: "Free", Count: 1}})
 }
 

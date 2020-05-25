@@ -709,6 +709,8 @@ func TestStartSessionUniformDistribution(t *testing.T) {
 	}
 
 	testStartSession(t, mux, browsersProvider, "browser", "1.0")
+	testStartSession(t, mux, browsersProvider, "browser", "1.0")
+	testStartSessionCustomCaps(t, mux, browsersProvider, `{"desiredCapabilities":{"deviceName":"someDevice", "version":"2.0"}}`)
 	testStartSessionCustomCaps(t, mux, browsersProvider, `{"desiredCapabilities":{"deviceName":"someDevice", "version":"2.0"}}`)
 }
 

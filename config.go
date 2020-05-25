@@ -113,7 +113,7 @@ func choose(hosts Hosts) (*Host, int) {
 }
 
 func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host, err error) {
-	if len(*hosts) <= 1 {
+	if len(*hosts) == 1 {
 		return &(*hosts)[0], nil
 	}
 	hostMap := map[string]*Host{}
@@ -147,7 +147,7 @@ func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host, err er
 	if len(resultMap) < 1 {
 		return nil, errors.New("no valid host found")
 	}
-	var target, _ = mostFreeHost(resultMap)
+	var target = mostFreeHost(resultMap)
 	if v, ok := hostMap[fmt.Sprintf("%s%d%s", target.Name, target.Port, target.Region)]; ok {
 		return v, nil
 	}
@@ -155,7 +155,7 @@ func findFirstNodeByQueue(hosts *Hosts, mutex *sync.RWMutex) (host *Host, err er
 
 }
 
-func mostFreeHost(target map[*Host]*capacity) (*Host, error) {
+func mostFreeHost(target map[*Host]*capacity) *Host {
 	var queued int
 	var targetHost *Host
 	i := len(target)
@@ -170,9 +170,5 @@ func mostFreeHost(target map[*Host]*capacity) (*Host, error) {
 		}
 		i--
 	}
-
-	if targetHost == nil {
-		return nil, errors.New("failed to find free hosts")
-	}
-	return targetHost, nil
+	return targetHost
 }
