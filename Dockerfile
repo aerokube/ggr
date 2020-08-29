@@ -1,4 +1,4 @@
-FROM alpine:3.8
+FROM alpine:3.12
 
 RUN apk add -U tzdata ca-certificates && rm -Rf /var/cache/apk/*
 COPY ggr /usr/bin
