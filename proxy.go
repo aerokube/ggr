@@ -580,7 +580,7 @@ func createVNCInfo(h Host) *VncInfo {
 			log.Printf("[-] [-] [INVALID_HOST_VNC_URL] [-] [-] [%s] [%s] [-] [-] [-]\n", vncURL, fmt.Sprintf("%s:%d", h.Name, h.Port))
 			return nil
 		}
-		if u.Scheme != vncScheme && u.Scheme != wsScheme {
+		if u.Scheme != vncScheme && u.Scheme != wsScheme && u.Scheme != (wsScheme + "s") {
 			log.Printf("[-] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [%s] [-] [-] [-]\n", vncURL, fmt.Sprintf("%s:%d", h.Name, h.Port))
 			return nil
 		}
