@@ -36,6 +36,7 @@ const (
 	defaultVNCPort = "5900"
 	vncScheme      = "vnc"
 	wsScheme       = "ws"
+	wssScheme      = "wss"
 )
 
 var paths = struct {
@@ -580,7 +581,7 @@ func createVNCInfo(h Host) *VncInfo {
 			log.Printf("[-] [-] [INVALID_HOST_VNC_URL] [-] [-] [%s] [%s] [-] [-] [-]\n", vncURL, fmt.Sprintf("%s:%d", h.Name, h.Port))
 			return nil
 		}
-		if u.Scheme != vncScheme && u.Scheme != wsScheme && u.Scheme != (wsScheme + "s") {
+		if u.Scheme != vncScheme && u.Scheme != wsScheme && u.Scheme != wssScheme {
 			log.Printf("[-] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [%s] [-] [-] [-]\n", vncURL, fmt.Sprintf("%s:%d", h.Name, h.Port))
 			return nil
 		}
@@ -662,11 +663,14 @@ func vnc(wsconn *websocket.Conn) {
 			path = vncInfo.Path
 		}
 		sessionID := strings.Split(wsconn.Request().URL.Path, "/")[2][md5SumLength:]
+		
 		switch scheme {
 		case vncScheme:
 			proxyVNC(id, wsconn, sessionID, host, port)
 		case wsScheme:
-			proxyWebSockets(id, wsconn, sessionID, host, port, path)
+			proxyWebSockets(id, wsconn, sessionID, scheme, host, port, path)
+		case wssScheme:
+			proxyWebSockets(id, wsconn, sessionID, scheme, host, port, path)
 		default:
 			{
 				log.Printf("[%d] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [-] [-] [-] [-]\n", id, scheme)
@@ -686,9 +690,9 @@ func proxyVNC(id uint64, wsconn *websocket.Conn, sessionID string, host string, 
 	proxyConn(id, wsconn, conn, err, sessionID, address)
 }
 
-func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, host string, port string, path string) {
+func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, scheme string, host string, port string, path string) {
 	origin := "http://localhost/"
-	u := fmt.Sprintf("ws://%s:%s%s/%s", host, port, path, sessionID)
+	u := fmt.Sprintf("%s://%s:%s%s/%s", scheme, host, port, path, sessionID)
 	//TODO: consider context from wsconn
 	conn, err := websocket.Dial(u, "", origin)
 	proxyConn(id, wsconn, conn, err, sessionID, u)
