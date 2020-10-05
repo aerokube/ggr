@@ -668,9 +668,9 @@ func vnc(wsconn *websocket.Conn) {
 		case vncScheme:
 			proxyVNC(id, wsconn, sessionID, host, port)
 		case wsScheme:
-			proxyWebSockets(id, wsconn, sessionID, scheme, host, port, path)
+			proxyWebSockets(id, wsconn, sessionID, scheme, host, port, path, h.Username, h.Password)
 		case wssScheme:
-			proxyWebSockets(id, wsconn, sessionID, scheme, host, port, path)
+			proxyWebSockets(id, wsconn, sessionID, scheme, host, port, path, h.Username, h.Password)
 		default:
 			{
 				log.Printf("[%d] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [-] [-] [-] [-]\n", id, scheme)
@@ -690,12 +690,25 @@ func proxyVNC(id uint64, wsconn *websocket.Conn, sessionID string, host string, 
 	proxyConn(id, wsconn, conn, err, sessionID, address)
 }
 
-func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, scheme string, host string, port string, path string) {
+func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, scheme string, host string, port string, path string, username string, password string) {
 	origin := "http://localhost/"
 	u := fmt.Sprintf("%s://%s:%s%s/%s", scheme, host, port, path, sessionID)
-	//TODO: consider context from wsconn
-	conn, err := websocket.Dial(u, "", origin)
+	config, err := websocket.NewConfig(u.String(), origin)
+	if err != nil {
+		log.Printf("[WEBSOCKET] [Failed to create websocket config %s: %v]", u, err)
+		return
+	}
+	setupAuth(config, host.Username, host.Password)
+	conn, err := websocket.DialConfig(config)
 	proxyConn(id, wsconn, conn, err, sessionID, u)
+}
+
+func setupAuth(config *websocket.Config, username string, password string) {
+	if username == "" && password == "" {
+		return
+	}
+	auth := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
+	config.Header.Add("Authorization", "Basic "+auth)
 }
 
 func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sessionID string, address string) {
