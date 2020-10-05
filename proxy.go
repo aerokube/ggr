@@ -19,6 +19,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"encoding/base64"
 
 	. "github.com/aerokube/ggr/config"
 	"golang.org/x/net/websocket"
