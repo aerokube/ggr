@@ -699,7 +699,7 @@ func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, scheme
 		log.Printf("[WEBSOCKET] [Failed to create websocket config %s: %v]", u, err)
 		return
 	}
-	setupAuth(config, host.Username, host.Password)
+	setupAuth(config, username, password)
 	conn, err := websocket.DialConfig(config)
 	proxyConn(id, wsconn, conn, err, sessionID, u)
 }
