@@ -418,6 +418,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 					r.URL.Path = proxyPath
 					fragments := strings.Split(proxyPath, "/")
 					sess := fragments[sessPart]
+					setupAuthHttp(r, h.Username, h.Password)
 					if verbose {
 						log.Printf("[%d] [-] [PROXYING] [-] [%s] [-] [%s] [%s] [-] [%s]\n", id, remote, h.Net(), sess, proxyPath)
 					}
@@ -699,17 +700,25 @@ func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, scheme
 		log.Printf("[WEBSOCKET] [Failed to create websocket config %s: %v]", u, err)
 		return
 	}
-	setupAuth(config, username, password)
+	setupAuthWS(config, username, password)
 	conn, err := websocket.DialConfig(config)
 	proxyConn(id, wsconn, conn, err, sessionID, u)
 }
 
-func setupAuth(config *websocket.Config, username string, password string) {
+func setupAuthWS(config *websocket.Config, username string, password string) {
 	if username == "" && password == "" {
 		return
 	}
 	auth := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
 	config.Header.Add("Authorization", "Basic "+auth)
+}
+
+func setupAuthHttp(r *http.Request, username string, password string) {
+	if username == "" && password == "" {
+		return
+	}
+	auth := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
+	r.Header.Add("Authorization", "Basic "+auth)
 }
 
 func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sessionID string, address string) {
