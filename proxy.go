@@ -694,7 +694,7 @@ func proxyVNC(id uint64, wsconn *websocket.Conn, sessionID string, host string, 
 func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, scheme string, host string, port string, path string, username string, password string) {
 	origin := "http://localhost/"
 	u := fmt.Sprintf("%s://%s:%s%s/%s", scheme, host, port, path, sessionID)
-	config, err := websocket.NewConfig(u.String(), origin)
+	config, err := websocket.NewConfig(u, origin)
 	if err != nil {
 		log.Printf("[WEBSOCKET] [Failed to create websocket config %s: %v]", u, err)
 		return
