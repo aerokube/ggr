@@ -512,8 +512,8 @@ func quotaInfo(w http.ResponseWriter, r *http.Request) {
 				region := &version.Regions[k]
 				for l := 0; l < len(region.Hosts); l++ {
 					host := &region.Hosts[l]
-					host.Username = ""
-					host.Password = ""
+					host.Username = "" + host.Username
+					host.Password = "" + host.Password
 				}
 			}
 		}
