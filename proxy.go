@@ -420,7 +420,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 					sess := fragments[sessPart]
 					setupAuthHttp(r, h.Username, h.Password)
 					if verbose {
-						log.Printf("[%d] [-] [PROXYING] [-] [%s] [-] [%s] [%s] [-] [%s]\n", id, remote, h.Net(), sess, proxyPath)
+						log.Printf("[%d] [-] [PROXYING] [-] [%s] [-] [%s] [-] [%s] [%s] [-] [%s]\n", id, r.URL.String(), remote, h.Net(), sess, proxyPath)
 					}
 					if r.Method == http.MethodDelete && len(fragments) == sessPart+1 {
 						log.Printf("[%d] [-] [SESSION_DELETED] [-] [%s] [-] [%s] [%s] [-] [-]\n", id, remote, h.Net(), sess)
