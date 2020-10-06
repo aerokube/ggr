@@ -710,7 +710,7 @@ func setupAuthWS(config *websocket.Config, username string, password string) {
 		return
 	}
 	auth := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
-	config.Header.Add("Authorization", "Basic "+auth)
+	config.Header.Set("Authorization", "Basic "+auth)
 }
 
 func setupAuthHttp(r *http.Request, username string, password string) {
@@ -718,7 +718,7 @@ func setupAuthHttp(r *http.Request, username string, password string) {
 		return
 	}
 	auth := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
-	r.Header.Add("Authorization", "Basic "+auth)
+	r.Header.Set("Authorization", "Basic "+auth)
 }
 
 func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sessionID string, address string) {
