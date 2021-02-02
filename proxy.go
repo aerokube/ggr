@@ -790,6 +790,7 @@ func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUr
 				r.URL.Scheme = "http"
 				r.URL.Host = h.Net()
 				r.URL.Path = pathProvider(remainder)
+				setupAuthHttp(r, h.Username, h.Password)
 				log.Printf("[%d] [-] [%s] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, proxyingMessage, user, remote, r.URL, remainder)
 			},
 			ErrorHandler: defaultErrorHandler(id),
