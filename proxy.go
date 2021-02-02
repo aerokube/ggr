@@ -787,7 +787,11 @@ func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUr
 	if ok {
 		(&httputil.ReverseProxy{
 			Director: func(r *http.Request) {
-				r.URL.Scheme = "http"
+				if h.Scheme != "" {
+					r.URL.Scheme = h.Scheme
+				} else {
+					r.URL.Scheme = "http"
+				}
 				r.URL.Host = h.Net()
 				r.URL.Path = pathProvider(remainder)
 				setupAuthHttp(r, h.Username, h.Password)
