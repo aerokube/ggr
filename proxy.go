@@ -98,6 +98,11 @@ func (c caps) capabilities(fn func(m map[string]interface{}, w3c bool)) {
 				if alwaysMatch, ok := m[keys.alwaysMatch]; ok {
 					if m, ok := alwaysMatch.(map[string]interface{}); ok {
 						fn(m, true)
+						for k, v := range m { // Extension capabilities have ":" in key
+							if ec, ok := v.(map[string]interface{}); ok && strings.Contains(k, ":") {
+								fn(ec, true)
+							}
+						}
 					}
 				}
 			}
