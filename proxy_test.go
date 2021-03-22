@@ -880,7 +880,7 @@ func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := ioutil.ReadAll(r.Body)
 		r.Body.Close()
-		var sess map[string]map[string]map[string]string
+		var sess map[string]map[string]map[string]interface{}
 		err := json.Unmarshal(body, &sess)
 		w.Write([]byte(`{"sessionId":"123"}`))
 		AssertThat(t, err, Is{nil})
@@ -911,7 +911,7 @@ func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	createSession(`{"capabilities":{"alwaysMatch":{"browserName":"browser"}}}`)
+	createSession(`{"capabilities":{"alwaysMatch":{"browserName":"browser", "selenoid:options": {"labels": {"some-key": "some-value"}}}}}`)
 }
 
 func TestClientClosedConnection(t *testing.T) {
