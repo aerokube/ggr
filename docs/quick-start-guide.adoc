@@ -8,37 +8,31 @@ To use Go Grid Router do the following:
 ----
 $ mkdir -p /etc/grid-router/quota
 ----
+
 . Create ```users.htpasswd``` file:
 +
 ----
 $ htpasswd -bc /etc/grid-router/users.htpasswd test test-password
 ----
-. Start Selenium standalone server on port 4445:
-+
-----
-$ java -jar selenium-server-standalone.jar -port 4445
-----
-NOTE: We are showing Selenium server command here because it is a well-known example. We recommend you to use http://aerokube.com/selenoid/latest/[Selenoid] instead - it is more efficient.  
+
+. Start https://aerokube.com/selenoid/latest/[Selenoid] on host `selenoid.example.com` and port `4444`.
 . Create quota file (use correct browser name and version):
 +
 ----
 $ cat /etc/grid-router/quota/test.xml
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
-<browser name="firefox" defaultVersion="45.0">
-    <version number="45.0">
+<browser name="firefox" defaultVersion="88.0">
+    <version number="88.0">
         <region name="1">
-            <host name="localhost" port="4445" count="1"/>
+            <host name="selenoid.example.com" port="4444" count="1"/>
         </region>
     </version>
 </browser>
 </qa:browsers>
 ----
 +
-NOTE: File name should correspond to user name you added to `htpasswd` file. For user ```test``` we added on previous steps you should create ```test.xml```.
-+
-NOTE: For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost". 
-link:++https://docs.docker.com/docker-for-mac/networking/#use-cases-and-workarounds++[Docker for Mac - Networking].
-+
+NOTE: File name should correspond to user name you added to `htpasswd` file.
+For user `test` we added on previous steps you should create `test.xml`.
 . Start Ggr container:
 +
 ----
@@ -46,6 +40,7 @@ link:++https://docs.docker.com/docker-for-mac/networking/#use-cases-and-workarou
     ggr -v /etc/grid-router/:/etc/grid-router:ro \
     --net host aerokube/ggr:latest-release
 ----
+
 . Access Ggr on port 4444 in the same way you do for Selenium Hub but using the following url:
 +
 ----
