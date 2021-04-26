@@ -624,24 +624,7 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 </div>
 </li>
 <li>
-<p>Start Selenium standalone server on port 4445:</p>
-<div class="listingblock">
-<div class="content">
-<pre>$ java -jar selenium-server-standalone.jar -port 4445</pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-We are showing Selenium server command here because it is a well-known example. We recommend you to use <a href="http://aerokube.com/selenoid/latest/">Selenoid</a> instead - it is more efficient.
-</td>
-</tr>
-</table>
-</div>
+<p>Start <a href="https://aerokube.com/selenoid/latest/">Selenoid</a> on host <code>selenoid.example.com</code> and port <code>4444</code>.</p>
 </li>
 <li>
 <p>Create quota file (use correct browser name and version):</p>
@@ -649,10 +632,10 @@ We are showing Selenium server command here because it is a well-known example. 
 <div class="content">
 <pre>$ cat /etc/grid-router/quota/test.xml
 &lt;qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru"&gt;
-&lt;browser name="firefox" defaultVersion="45.0"&gt;
-    &lt;version number="45.0"&gt;
+&lt;browser name="firefox" defaultVersion="88.0"&gt;
+    &lt;version number="88.0"&gt;
         &lt;region name="1"&gt;
-            &lt;host name="localhost" port="4445" count="1"/&gt;
+            &lt;host name="selenoid.example.com" port="4444" count="1"/&gt;
         &lt;/region&gt;
     &lt;/version&gt;
 &lt;/browser&gt;
@@ -666,20 +649,8 @@ We are showing Selenium server command here because it is a well-known example. 
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-File name should correspond to user name you added to <code>htpasswd</code> file. For user <code><code>test</code></code> we added on previous steps you should create <code><code>test.xml</code></code>.
-</td>
-</tr>
-</table>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-For Mac OS instead of "localhost" you have to use "docker.for.mac.localhost".
-<a href="https://docs.docker.com/docker-for-mac/networking/#use-cases-and-workarounds">Docker for Mac - Networking</a>.
+File name should correspond to user name you added to <code>htpasswd</code> file.
+For user <code>test</code> we added on previous steps you should create <code>test.xml</code>.
 </td>
 </tr>
 </table>
@@ -1651,7 +1622,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2021-04-26 12:01:49 UTC
+Last updated 2021-04-26 12:49:07 UTC
 </div>
 </div>
 <!-- Global site tag (gtag.js) - Google Analytics -->
