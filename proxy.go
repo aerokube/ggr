@@ -92,23 +92,23 @@ func (c caps) capabilities(fn func(m map[string]interface{}, w3c bool)) {
 		if m, ok := desiredCapabilities.(map[string]interface{}); ok {
 			fn(m, false)
 		}
-	} else {
-		if w3cCapabilities, ok := c[keys.w3cCapabilities]; ok {
-			if m, ok := w3cCapabilities.(map[string]interface{}); ok {
-				if alwaysMatch, ok := m[keys.alwaysMatch]; ok {
-					if m, ok := alwaysMatch.(map[string]interface{}); ok {
-						fn(m, true)
-						for k, v := range m { // Extension capabilities have ":" in key
-							if ec, ok := v.(map[string]interface{}); ok && strings.Contains(k, ":") {
-								fn(ec, true)
-							}
+	}
+	if w3cCapabilities, ok := c[keys.w3cCapabilities]; ok {
+		if m, ok := w3cCapabilities.(map[string]interface{}); ok {
+			if alwaysMatch, ok := m[keys.alwaysMatch]; ok {
+				if m, ok := alwaysMatch.(map[string]interface{}); ok {
+					fn(m, true)
+					for k, v := range m { // Extension capabilities have ":" in key
+						if ec, ok := v.(map[string]interface{}); ok && strings.Contains(k, ":") {
+							fn(ec, true)
 						}
 					}
 				}
 			}
 		}
+	} else {
+		fn(make(map[string]interface{}), false)
 	}
-	fn(make(map[string]interface{}), false)
 }
 
 func (c caps) capability(k string) string {
