@@ -87,27 +87,27 @@ type Routes map[string]*Host
 
 type caps map[string]interface{}
 
-func (c caps) capabilities(fn func(m map[string]interface{}, w3c bool)) {
+func (c caps) capabilities(fn func(m map[string]interface{}, w3c bool, extension bool)) {
 	if desiredCapabilities, ok := c[keys.desiredCapabilities]; ok {
 		if m, ok := desiredCapabilities.(map[string]interface{}); ok {
-			fn(m, false)
+			fn(m, false, false)
 		}
 	}
 	if w3cCapabilities, ok := c[keys.w3cCapabilities]; ok {
 		if m, ok := w3cCapabilities.(map[string]interface{}); ok {
 			if alwaysMatch, ok := m[keys.alwaysMatch]; ok {
 				if m, ok := alwaysMatch.(map[string]interface{}); ok {
-					fn(m, true)
+					fn(m, true, false)
 					for k, v := range m { // Extension capabilities have ":" in key
 						if ec, ok := v.(map[string]interface{}); ok && strings.Contains(k, ":") {
-							fn(ec, true)
+							fn(ec, true, true)
 						}
 					}
 				}
 			}
 		}
 	} else {
-		fn(make(map[string]interface{}), false)
+		fn(make(map[string]interface{}), false, false)
 	}
 }
 
@@ -117,7 +117,7 @@ func (c caps) capability(k string) string {
 
 func (c caps) capabilityJsonWireW3C(jsonWire, W3C string) string {
 	result := ""
-	c.capabilities(func(m map[string]interface{}, w3c bool) {
+	c.capabilities(func(m map[string]interface{}, w3c bool, _ bool) {
 		k := jsonWire
 		if w3c {
 			k = W3C
@@ -162,7 +162,10 @@ func (c caps) labels() string {
 }
 
 func (c caps) setVersion(version string) {
-	c.capabilities(func(m map[string]interface{}, w3c bool) {
+	c.capabilities(func(m map[string]interface{}, w3c bool, extension bool) {
+		if extension {
+			return
+		}
 		if w3c {
 			m["browserVersion"] = version
 		} else {

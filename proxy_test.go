@@ -886,6 +886,12 @@ func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
 		AssertThat(t, err, Is{nil})
 		AssertThat(t, sess["capabilities"]["alwaysMatch"]["browserVersion"], EqualTo{"2.0"})
 
+		so, ok := sess["capabilities"]["alwaysMatch"]["selenoid:options"]
+		AssertThat(t, ok, Is{true})
+		selenoidOptions, ok := so.(map[string]interface{})
+		AssertThat(t, ok, Is{true})
+		_, ok = selenoidOptions["browserVersion"]
+		AssertThat(t, ok, Is{false})
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
