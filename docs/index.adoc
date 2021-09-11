@@ -9,6 +9,8 @@
 :icons: font
 :source-highlighter: coderay
 :docinfo: shared
+:title: Ggr - A lightweight active load balancer used to create scalable and highly-available Selenium clusters
+:description: A lightweight active load balancer used to create scalable and highly-available Selenium clusters.
 :favicon: img/favicon.png
 
 This reference covers version: _{revnumber}_.
