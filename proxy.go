@@ -15,6 +15,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -39,7 +40,7 @@ const (
 )
 
 var paths = struct {
-	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, Video, Logs, Download, Clipboard, Devtools, Pprof string
+	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, CDP, Video, Logs, Download, Clipboard, Devtools, Pprof string
 }{
 	Ping:      "/ping",
 	Status:    "/wd/hub/status",
@@ -49,6 +50,7 @@ var paths = struct {
 	Route:     "/wd/hub/session",
 	Proxy:     "/wd/hub/session/",
 	VNC:       "/vnc/",
+	CDP:       "/session/",
 	Video:     "/video/",
 	Logs:      "/logs/",
 	Download:  "/download/",
@@ -75,11 +77,12 @@ var (
 			return http.ErrUseLastResponse
 		},
 	}
-	quota       = make(map[string]ggrBrowsers)
-	routes      = make(Routes)
-	numSessions uint64
-	numRequests uint64
-	confLock    sync.RWMutex
+	webSocketServer = websocket.Server{Handler: websocket.Handler(cdp)}
+	quota           = make(map[string]ggrBrowsers)
+	routes          = make(Routes)
+	numSessions     uint64
+	numRequests     uint64
+	confLock        sync.RWMutex
 )
 
 // Routes - an MD5 to host map
@@ -336,12 +339,12 @@ loop:
 		}
 		switch status {
 		case browserStarted:
+			protocolError := func() {
+				reply(w, errMsg("protocol error"), http.StatusBadGateway)
+				log.Printf("[%d] [%.2fs] [BAD_RESPONSE] [%s] [%s] [%s] [%s] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net())
+			}
 			sess, ok := resp["sessionId"].(string)
 			if !ok {
-				protocolError := func() {
-					reply(w, errMsg("protocol error"), http.StatusBadGateway)
-					log.Printf("[%d] [%.2fs] [BAD_RESPONSE] [%s] [%s] [%s] [%s] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net())
-				}
 				value, ok := resp["value"]
 				if !ok {
 					protocolError()
@@ -359,7 +362,20 @@ loop:
 				}
 				resp["value"].(map[string]interface{})["sessionId"] = h.Sum() + sess
 			} else {
-				resp["sessionId"] = h.Sum() + sess
+				newSessionId := h.Sum() + sess
+				resp["sessionId"] = newSessionId
+
+				value, ok := resp["value"]
+				valueMap, ok := value.(map[string]interface{})
+				cdpUrl, ok := valueMap["se:cdp"].(string)
+				if ok {
+					valueMap["se:cdp"] = strings.Replace(cdpUrl, sess, newSessionId, -1)
+				}
+				vncUrl, ok := valueMap["se:vnc"].(string)
+				if ok {
+					valueMap["se:vnc"] = strings.Replace(vncUrl, sess, newSessionId, -1)
+				}
+
 			}
 			reply(w, resp, http.StatusOK)
 			atomic.AddUint64(&numSessions, 1)
@@ -674,7 +690,7 @@ func vnc(wsconn *websocket.Conn) {
 		case vncScheme:
 			proxyVNC(id, wsconn, sessionID, host, port)
 		case wsScheme:
-			proxyWebSockets(id, wsconn, sessionID, host, port, path)
+			proxyWebSockets(id, wsconn, sessionID, host, port, path, "")
 		default:
 			{
 				log.Printf("[%d] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [-] [-] [-] [-]\n", id, scheme)
@@ -687,6 +703,35 @@ func vnc(wsconn *websocket.Conn) {
 
 }
 
+func cdp(wsconn *websocket.Conn) {
+	defer wsconn.Close()
+
+	id := serial()
+	head := len(paths.CDP)
+	tail := head + md5SumLength
+	path := wsconn.Request().URL.Path
+	log.Printf(path)
+	if len(path) < tail {
+		log.Printf("[%d] [-] [INVALID_CDP_REQUEST_URL] [-] [-] [%s] [-] [-] [-] [-]\n", id, path)
+		return
+	}
+	sum := path[head:tail]
+	confLock.RLock()
+	h, ok := routes[sum]
+	confLock.RUnlock()
+	if ok {
+		host := h.Name
+		port := strconv.Itoa(h.Port)
+		path := paths.CDP[:len(paths.CDP)-1]
+		pathParts := strings.Split(wsconn.Request().URL.Path, "/")
+		sessionID := pathParts[2][md5SumLength:]
+		subpath := pathParts[3:]
+		proxyWebSockets(id, wsconn, sessionID, host, port, path, "/"+strings.Join(subpath, "/"))
+	} else {
+		log.Printf("[%d] [-] [UNKNOWN_VNC_HOST] [-] [-] [-] [-] [%s] [-] [-]\n", id, sum)
+	}
+}
+
 func proxyVNC(id uint64, wsconn *websocket.Conn, sessionID string, host string, port string) {
 	var d net.Dialer
 	address := fmt.Sprintf("%s:%s", host, port)
@@ -694,9 +739,9 @@ func proxyVNC(id uint64, wsconn *websocket.Conn, sessionID string, host string, 
 	proxyConn(id, wsconn, conn, err, sessionID, address)
 }
 
-func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, host string, port string, path string) {
+func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, host string, port string, path string, subpath string) {
 	origin := "http://localhost/"
-	u := fmt.Sprintf("ws://%s:%s%s/%s", host, port, path, sessionID)
+	u := fmt.Sprintf("ws://%s:%s%s/%s%s", host, port, path, sessionID, subpath)
 	//TODO: consider context from wsconn
 	conn, err := websocket.Dial(u, "", origin)
 	proxyConn(id, wsconn, conn, err, sessionID, u)
@@ -781,6 +826,10 @@ func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUr
 	}
 }
 
+func upgradeWebsocket(w http.ResponseWriter, r *http.Request) {
+	webSocketServer.ServeHTTP(w, r)
+}
+
 func defaultErrorHandler(requestId uint64) func(http.ResponseWriter, *http.Request, error) {
 	return func(w http.ResponseWriter, r *http.Request, err error) {
 		user, remote := info(r)
@@ -803,6 +852,7 @@ func mux() http.Handler {
 	mux.HandleFunc(paths.Route, withCloseNotifier(WithSuitableAuthentication(authenticator, postOnly(route))))
 	mux.HandleFunc(paths.Proxy, proxy)
 	mux.Handle(paths.VNC, websocket.Handler(vnc))
+	mux.HandleFunc(paths.CDP, upgradeWebsocket)
 	mux.HandleFunc(paths.Video, WithSuitableAuthentication(authenticator, video))
 	mux.HandleFunc(paths.Logs, WithSuitableAuthentication(authenticator, logs))
 	mux.HandleFunc(paths.Download, WithSuitableAuthentication(authenticator, download))
