@@ -19,13 +19,16 @@ import (
 
 	"strings"
 
-	. "github.com/aandryashin/matchers"
-	. "github.com/aandryashin/matchers/httpresp"
-	"github.com/abbot/go-http-auth"
-	. "github.com/aerokube/ggr/config"
-	"golang.org/x/net/websocket"
 	"os"
 	"path/filepath"
+
+	auth "github.com/abbot/go-http-auth"
+
+	. "github.com/aandryashin/matchers"
+	. "github.com/aandryashin/matchers/httpresp"
+
+	. "github.com/aerokube/ggr/config"
+	"golang.org/x/net/websocket"
 )
 
 var _ = func() bool {
@@ -880,13 +883,13 @@ func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := ioutil.ReadAll(r.Body)
 		r.Body.Close()
-		var sess map[string]map[string]map[string]interface{}
+		var sess Capabilities
 		err := json.Unmarshal(body, &sess)
 		w.Write([]byte(`{"sessionId":"123"}`))
 		AssertThat(t, err, Is{nil})
-		AssertThat(t, sess["capabilities"]["alwaysMatch"]["browserVersion"], EqualTo{"2.0"})
+		AssertThat(t, sess.W3CCaps.AlwaysMatch["browserVersion"], EqualTo{"2.0"})
 
-		so, ok := sess["capabilities"]["alwaysMatch"]["selenoid:options"]
+		so, ok := sess.W3CCaps.AlwaysMatch["selenoid:options"]
 		AssertThat(t, ok, Is{true})
 		selenoidOptions, ok := so.(map[string]interface{})
 		AssertThat(t, ok, Is{true})
@@ -918,6 +921,134 @@ func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
 	updateQuota(user, browsers)
 
 	createSession(`{"capabilities":{"alwaysMatch":{"browserName":"browser", "selenoid:options": {"labels": {"some-key": "some-value"}}}}}`)
+}
+
+func TestStartSessionWithDefaultVersionW3CFirstMatch(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := ioutil.ReadAll(r.Body)
+		r.Body.Close()
+		var sess Capabilities
+		err := json.Unmarshal(body, &sess)
+		w.Write([]byte(`{"sessionId":"123"}`))
+		AssertThat(t, err, Is{nil})
+		AssertThat(t, len(sess.DesiredCaps), Is{0})
+		AssertThat(t, len(sess.W3CCaps.AlwaysMatch), Is{0})
+		AssertThat(t, len(sess.W3CCaps.FirstMatch), Is{1})
+		firstMatchCaps := sess.W3CCaps.FirstMatch[0]
+		AssertThat(t, firstMatchCaps["browserName"], EqualTo{"browser2"})
+		AssertThat(t, firstMatchCaps["browserVersion"], EqualTo{"2.0"})
+
+		selenoidOptions, ok := firstMatchCaps["selenoid:options"].(map[string]interface{})
+		AssertThat(t, ok, Is{true})
+		_, ok = selenoidOptions["browserVersion"]
+		AssertThat(t, ok, Is{false})
+
+		chromeOptions, ok := firstMatchCaps["goog:chromeOptions"].(map[string]interface{})
+		AssertThat(t, ok, Is{true})
+		_, ok = chromeOptions["args"]
+		AssertThat(t, ok, Is{true})
+
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+			{Number: "2.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}},
+		{Name: "browser2", DefaultVersion: "2.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+			{Number: "2.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}},
+	}}
+	updateQuota(user, browsers)
+
+	createSession(`{"capabilities":{"firstMatch":[
+		{"browserName":"nonExistingBrowser","selenoid:options": {"labels": {"some-key": "some-value"}}},
+		{"browserName":"browser2", "goog:chromeOptions":{"args":["--start-maximized","--disable-infobars"]}, "selenoid:options": {"labels": {"some-key2": "some-value2"}}},
+		{"browserName":"browser", "goog:chromeOptions":{"args":["--start-maximized","--disable-infobars"]}, "selenoid:options": {"labels": {"some-key": "some-value"}}}
+		]}}`)
+}
+
+func TestStartSessionWithDefaultVersionW3CMixedCapabilities(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := ioutil.ReadAll(r.Body)
+		r.Body.Close()
+		var sess Capabilities
+		err := json.Unmarshal(body, &sess)
+		w.Write([]byte(`{"sessionId":"123"}`))
+		AssertThat(t, err, Is{nil})
+		AssertThat(t, len(sess.DesiredCaps), Is{0})
+		AssertThat(t, len(sess.W3CCaps.FirstMatch), Is{1})
+		AssertThat(t, sess.W3CCaps.AlwaysMatch["browserName"], EqualTo{"browser"})
+		AssertThat(t, sess.W3CCaps.AlwaysMatch["browserVersion"], EqualTo{"2.0"})
+		AssertThat(t, sess.W3CCaps.AlwaysMatch["platformName"], Is{nil})
+		firstMatchCaps := sess.W3CCaps.FirstMatch[0]
+		AssertThat(t, firstMatchCaps["platformName"], EqualTo{"linux"})
+
+	}))
+	selenium := httptest.NewServer(mux)
+	defer selenium.Close()
+
+	host, port := hostportnum(selenium.URL)
+	node := Host{Name: host, Port: port, Count: 1}
+
+	test.Lock()
+	defer test.Unlock()
+
+	browsers := Browsers{Browsers: []Browser{
+		{Name: "browser", DefaultVersion: "2.0", Versions: []Version{
+			{Number: "1.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+			{Number: "2.0", Regions: []Region{
+				{Hosts: Hosts{
+					node,
+				}},
+			}},
+		}},
+	}}
+	updateQuota(user, browsers)
+
+	createSession(`{
+		"capabilities": {
+			"alwaysMatch": {
+				"browserName": "browser"
+			},
+			"firstMatch": [
+				{
+					"platformName": "linux"
+				}
+			]
+		}
+	}`)
 }
 
 func TestClientClosedConnection(t *testing.T) {
@@ -1715,9 +1846,9 @@ func TestPanicGuestQuotaMissingUsersFileAuthPresent(t *testing.T) {
 }
 
 func TestPlatformCapability(t *testing.T) {
-	var caps caps
+	var caps Capabilities
 	testCaps := `{"desiredCapabilities": {"platformName": "WINDOWS"}, "capabilities": {"platformName": "windows"}}`
 	json.Unmarshal([]byte(testCaps), &caps)
 
-	AssertThat(t, caps.platform(), EqualTo{"WINDOWS"})
+	AssertThat(t, getPlatform(caps.DesiredCaps), EqualTo{"WINDOWS"})
 }

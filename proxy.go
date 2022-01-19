@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/abbot/go-http-auth"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,11 +13,12 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	auth "github.com/abbot/go-http-auth"
 
 	. "github.com/aerokube/ggr/config"
 	"golang.org/x/net/websocket"
@@ -85,96 +85,204 @@ var (
 // Routes - an MD5 to host map
 type Routes map[string]*Host
 
-type caps map[string]interface{}
+type Capabilities struct {
+	DesiredCaps map[string]interface{} `json:"desiredCapabilities,omitempty"`
+	W3CCaps     struct {
+		AlwaysMatch map[string]interface{}   `json:"alwaysMatch,omitempty"`
+		FirstMatch  []map[string]interface{} `json:"firstMatch,omitempty"`
+	} `json:"capabilities,omitempty"`
+}
 
-func (c caps) capabilities(fn func(m map[string]interface{}, w3c bool, extension bool)) {
-	if desiredCapabilities, ok := c[keys.desiredCapabilities]; ok {
-		if m, ok := desiredCapabilities.(map[string]interface{}); ok {
-			fn(m, false, false)
-		}
+func getCapabilityValue(caps map[string]interface{}, capName string) string {
+	if value, ok := caps[capName].(string); ok {
+		return value
 	}
-	if w3cCapabilities, ok := c[keys.w3cCapabilities]; ok {
-		if m, ok := w3cCapabilities.(map[string]interface{}); ok {
-			if alwaysMatch, ok := m[keys.alwaysMatch]; ok {
-				if m, ok := alwaysMatch.(map[string]interface{}); ok {
-					fn(m, true, false)
-					for k, v := range m { // Extension capabilities have ":" in key
-						if ec, ok := v.(map[string]interface{}); ok && strings.Contains(k, ":") {
-							fn(ec, true, true)
-						}
-					}
-				}
-			}
-		}
-	} else {
-		fn(make(map[string]interface{}), false, false)
-	}
+	return ""
 }
 
-func (c caps) capability(k string) string {
-	return c.capabilityJsonWireW3C(k, k)
-}
-
-func (c caps) capabilityJsonWireW3C(jsonWire, W3C string) string {
-	result := ""
-	c.capabilities(func(m map[string]interface{}, w3c bool, _ bool) {
-		k := jsonWire
-		if w3c {
-			k = W3C
-		}
-		if v, ok := m[k].(string); ok {
-			result = v
-		} else if v, ok := m[k].(map[string]interface{}); ok {
-			var pairs []string
-			for k, v := range v {
-				pairs = append(pairs, fmt.Sprintf("%s=%v", k, v))
-			}
-			result = strings.Join(pairs, " ")
-		} else if v, ok := m[k]; ok && v != nil {
-			log.Printf(`[-] [-] [BAD_CAPABILITY] [Using default value for capability %s: unsupported value type "%s"] [-] [-] [-] [-] [-] [-]`, k, reflect.TypeOf(m[k]).String())
-		}
-	})
-	return result
-}
-
-func (c *caps) browser() string {
-	browserName := c.capability("browserName")
+func getBrowserName(caps map[string]interface{}) string {
+	var browserName = getCapabilityValue(caps, "browserName")
 	if browserName != "" {
 		return browserName
 	}
-	return c.capability("deviceName")
+	return getCapabilityValue(caps, "deviceName")
 }
 
-func (c caps) version() string {
-	return c.capabilityJsonWireW3C("version", "browserVersion")
+func getVersion(caps map[string]interface{}) string {
+	var version = getCapabilityValue(caps, "browserVersion")
+	if version != "" {
+		return version
+	}
+	return getCapabilityValue(caps, "version")
 }
 
-func (c caps) platform() string {
-	platform := c.capability("platform")
+func getPlatform(caps map[string]interface{}) string {
+	var platform = getCapabilityValue(caps, "platformName")
 	if platform != "" {
 		return platform
 	}
-	return c.capability("platformName")
+	return getCapabilityValue(caps, "platform")
 }
 
-func (c caps) labels() string {
-	return c.capability("labels")
-}
-
-func (c caps) setVersion(version string) {
-	c.capabilities(func(m map[string]interface{}, w3c bool, extension bool) {
-		if extension {
-			return
+func getLabels(caps map[string]interface{}) string {
+	if selenoidOptions, ok := caps["selenoid:options"].(map[string]interface{}); ok {
+		if labels, ok := selenoidOptions["labels"]; ok {
+			var pairs []string
+			for k, v := range labels.(map[string]interface{}) {
+				pairs = append(pairs, fmt.Sprintf("%s=%v", k, v))
+			}
+			return strings.Join(pairs, " ")
 		}
-		if w3c {
-			m["browserVersion"] = version
-		} else {
-			m["version"] = version
-		}
-	})
+	}
+	return ""
 }
 
-func session(ctx context.Context, h *Host, header http.Header, c caps) (map[string]interface{}, int) {
+func setVersion(caps map[string]interface{}, version string, w3c bool) {
+	if w3c {
+		caps["browserVersion"] = version
+	} else {
+		caps["version"] = version
+	}
+}
+
+func route(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	id := serial()
+	user, remote := info(r)
+	var sourceCaps Capabilities
+	err := json.NewDecoder(r.Body).Decode(&sourceCaps)
+	if err != nil {
+		reply(w, errMsg(fmt.Sprintf("bad json format: %s", err.Error())), http.StatusBadRequest)
+		log.Printf("[%d] [%.2fs] [BAD_JSON] [%s] [%s] [-] [-] [-] [-] [%v]\n", id, secondsSince(start), user, remote, err)
+		return
+	}
+	var c = sourceCaps
+	if getBrowserName(c.W3CCaps.AlwaysMatch) != "" && getBrowserName(c.DesiredCaps) == "" {
+		c.DesiredCaps = c.W3CCaps.AlwaysMatch
+	}
+	firstMatchCaps := c.W3CCaps.FirstMatch
+	if len(firstMatchCaps) == 0 {
+		firstMatchCaps = append(firstMatchCaps, map[string]interface{}{})
+	}
+	var caps map[string]interface{}
+	for _, fmc := range firstMatchCaps {
+		caps = make(map[string]interface{})
+		for k, v := range c.DesiredCaps {
+			caps[k] = v
+		}
+		for k, v := range fmc {
+			caps[k] = v
+		}
+		browser, version, platform, labels := getBrowserName(caps), getVersion(caps), getPlatform(caps), getLabels(caps)
+		count := 0
+		var isLastAttempt = count == len(firstMatchCaps)-1
+		if browser == "" {
+			if isLastAttempt {
+				reply(w, errMsg("browser not set"), http.StatusBadRequest)
+			}
+			log.Printf("[%d] [%.2fs] [BROWSER_NOT_SET] [%s] [%s] [-] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote)
+			continue
+		}
+		confLock.RLock()
+		browsers := quota[user]
+		excludedHosts := newSet()
+		hosts, version, excludedRegions := browsers.find(browser, version, platform, excludedHosts, newSet())
+		confLock.RUnlock()
+		if len(hosts) == 0 {
+			if isLastAttempt {
+				reply(w, errMsg(fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version, platform, labels))), http.StatusNotFound)
+			}
+			log.Printf("[%d] [%.2fs] [UNSUPPORTED_BROWSER] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels))
+			continue
+		}
+		lastHostError := ""
+	loop:
+		for h, i := choose(hosts); ; h, i = choose(hosts) {
+			count++
+			r.Header.Del("X-Selenoid-No-Wait")
+			if len(hosts) != 1 {
+				r.Header.Add("X-Selenoid-No-Wait", "")
+			}
+			if h == nil {
+				break loop
+			}
+			log.Printf("[%d] [%.2fs] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), count)
+			var sessionCaps Capabilities
+			sessionCaps = sourceCaps
+			if len(sessionCaps.DesiredCaps) != 0 {
+				setVersion(sessionCaps.DesiredCaps, version, false)
+			}
+			w3cVersionHasBeenSet := false
+			if len(sessionCaps.W3CCaps.AlwaysMatch) != 0 {
+				setVersion(sessionCaps.W3CCaps.AlwaysMatch, version, true)
+				w3cVersionHasBeenSet = true
+			}
+			if len(sourceCaps.W3CCaps.FirstMatch) != 0 && !w3cVersionHasBeenSet {
+				setVersion(fmc, version, true)
+				sessionCaps.W3CCaps.FirstMatch = []map[string]interface{}{fmc}
+			}
+			resp, status := session(r.Context(), h, r.Header, sessionCaps)
+			select {
+			case <-r.Context().Done():
+				log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), count)
+				return
+			default:
+			}
+			switch status {
+			case browserStarted:
+				sess, ok := resp["sessionId"].(string)
+				if !ok {
+					protocolError := func() {
+						reply(w, errMsg("protocol error"), http.StatusBadGateway)
+						log.Printf("[%d] [%.2fs] [BAD_RESPONSE] [%s] [%s] [%s] [%s] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net())
+					}
+					value, ok := resp["value"]
+					if !ok {
+						protocolError()
+						return
+					}
+					valueMap, ok := value.(map[string]interface{})
+					if !ok {
+						protocolError()
+						return
+					}
+					sess, ok = valueMap["sessionId"].(string)
+					if !ok {
+						protocolError()
+						return
+					}
+					resp["value"].(map[string]interface{})["sessionId"] = h.Sum() + sess
+				} else {
+					resp["sessionId"] = h.Sum() + sess
+				}
+				reply(w, resp, http.StatusOK)
+				atomic.AddUint64(&numSessions, 1)
+				log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), sess, count)
+				return
+			case browserFailed:
+				hosts = append(hosts[:i], hosts[i+1:]...)
+			case seleniumError:
+				excludedHosts.add(h.Net())
+				excludedRegions.add(h.Region)
+				hosts, version, excludedRegions = browsers.find(browser, version, platform, excludedHosts, excludedRegions)
+			}
+			errMsg := browserErrMsg(resp)
+			log.Printf("[%d] [%.2fs] [SESSION_FAILED] [%s] [%s] [%s] [%s] [-] [%d] [%s]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), count, errMsg)
+			lastHostError = errMsg
+			if len(hosts) == 0 {
+				break loop
+			}
+		}
+		notCreatedMsg := fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version, platform, labels), count)
+		if len(lastHostError) > 0 {
+			notCreatedMsg = fmt.Sprintf("%s, last host error was: %s", notCreatedMsg, lastHostError)
+		}
+		reply(w, errMsg(notCreatedMsg), http.StatusInternalServerError)
+		log.Printf("[%d] [%.2fs] [SESSION_NOT_CREATED] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels))
+	}
+}
+
+func session(ctx context.Context, h *Host, header http.Header, c Capabilities) (map[string]interface{}, int) {
 	b, _ := json.Marshal(c)
 	req, err := http.NewRequest(http.MethodPost, sessionURL(h), bytes.NewReader(b))
 	if err != nil {
@@ -283,108 +391,6 @@ func errMsg(msg string) map[string]interface{} {
 		},
 		"status": 13,
 	}
-}
-
-func route(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
-	id := serial()
-	user, remote := info(r)
-	var c caps
-	err := json.NewDecoder(r.Body).Decode(&c)
-	if err != nil {
-		reply(w, errMsg(fmt.Sprintf("bad json format: %s", err.Error())), http.StatusBadRequest)
-		log.Printf("[%d] [%.2fs] [BAD_JSON] [%s] [%s] [-] [-] [-] [-] [%v]\n", id, secondsSince(start), user, remote, err)
-		return
-	}
-	browser, version, platform, labels := c.browser(), c.version(), c.platform(), c.labels()
-	if browser == "" {
-		reply(w, errMsg("browser not set"), http.StatusBadRequest)
-		log.Printf("[%d] [%.2fs] [BROWSER_NOT_SET] [%s] [%s] [-] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote)
-		return
-	}
-	count := 0
-	confLock.RLock()
-	browsers := quota[user]
-	excludedHosts := newSet()
-	hosts, version, excludedRegions := browsers.find(browser, version, platform, excludedHosts, newSet())
-	confLock.RUnlock()
-
-	if len(hosts) == 0 {
-		reply(w, errMsg(fmt.Sprintf("unsupported browser: %s", fmtBrowser(browser, version, platform, labels))), http.StatusNotFound)
-		log.Printf("[%d] [%.2fs] [UNSUPPORTED_BROWSER] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels))
-		return
-	}
-	lastHostError := ""
-loop:
-	for h, i := choose(hosts); ; h, i = choose(hosts) {
-		count++
-		r.Header.Del("X-Selenoid-No-Wait")
-		if len(hosts) != 1 {
-			r.Header.Add("X-Selenoid-No-Wait", "")
-		}
-		if h == nil {
-			break loop
-		}
-		log.Printf("[%d] [%.2fs] [SESSION_ATTEMPTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), count)
-		c.setVersion(version)
-		resp, status := session(r.Context(), h, r.Header, c)
-		select {
-		case <-r.Context().Done():
-			log.Printf("[%d] [%.2fs] [CLIENT_DISCONNECTED] [%s] [%s] [%s] [%s] [-] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), count)
-			return
-		default:
-		}
-		switch status {
-		case browserStarted:
-			sess, ok := resp["sessionId"].(string)
-			if !ok {
-				protocolError := func() {
-					reply(w, errMsg("protocol error"), http.StatusBadGateway)
-					log.Printf("[%d] [%.2fs] [BAD_RESPONSE] [%s] [%s] [%s] [%s] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net())
-				}
-				value, ok := resp["value"]
-				if !ok {
-					protocolError()
-					return
-				}
-				valueMap, ok := value.(map[string]interface{})
-				if !ok {
-					protocolError()
-					return
-				}
-				sess, ok = valueMap["sessionId"].(string)
-				if !ok {
-					protocolError()
-					return
-				}
-				resp["value"].(map[string]interface{})["sessionId"] = h.Sum() + sess
-			} else {
-				resp["sessionId"] = h.Sum() + sess
-			}
-			reply(w, resp, http.StatusOK)
-			atomic.AddUint64(&numSessions, 1)
-			log.Printf("[%d] [%.2fs] [SESSION_CREATED] [%s] [%s] [%s] [%s] [%s] [%d] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), sess, count)
-			return
-		case browserFailed:
-			hosts = append(hosts[:i], hosts[i+1:]...)
-		case seleniumError:
-			excludedHosts.add(h.Net())
-			excludedRegions.add(h.Region)
-			hosts, version, excludedRegions = browsers.find(browser, version, platform, excludedHosts, excludedRegions)
-		}
-		errMsg := browserErrMsg(resp)
-		log.Printf("[%d] [%.2fs] [SESSION_FAILED] [%s] [%s] [%s] [%s] [-] [%d] [%s]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels), h.Net(), count, errMsg)
-		lastHostError = errMsg
-		if len(hosts) == 0 {
-			break loop
-		}
-	}
-	notCreatedMsg := fmt.Sprintf("cannot create session %s on any hosts after %d attempt(s)", fmtBrowser(browser, version, platform, labels), count)
-	if len(lastHostError) > 0 {
-		notCreatedMsg = fmt.Sprintf("%s, last host error was: %s", notCreatedMsg, lastHostError)
-	}
-	reply(w, errMsg(notCreatedMsg), http.StatusInternalServerError)
-	log.Printf("[%d] [%.2fs] [SESSION_NOT_CREATED] [%s] [%s] [%s] [-] [-] [-] [-]\n", id, secondsSince(start), user, remote, fmtBrowser(browser, version, platform, labels))
 }
 
 func secondsSince(start time.Time) float64 {
