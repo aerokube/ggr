@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/abbot/go-http-auth"
 	"io"
 	"io/ioutil"
 	"log"
@@ -20,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/abbot/go-http-auth"
 	. "github.com/aerokube/ggr/config"
 	"golang.org/x/net/websocket"
 )
@@ -61,10 +61,12 @@ var keys = struct {
 	desiredCapabilities string
 	w3cCapabilities     string
 	alwaysMatch         string
+	firstMatch          string
 }{
 	desiredCapabilities: "desiredCapabilities",
 	w3cCapabilities:     "capabilities",
 	alwaysMatch:         "alwaysMatch",
+	firstMatch:          "firstMatch",
 }
 
 var (
@@ -95,13 +97,23 @@ func (c caps) capabilities(fn func(m map[string]interface{}, w3c bool, extension
 	}
 	if w3cCapabilities, ok := c[keys.w3cCapabilities]; ok {
 		if m, ok := w3cCapabilities.(map[string]interface{}); ok {
+			var match map[string]interface{}
 			if alwaysMatch, ok := m[keys.alwaysMatch]; ok {
 				if m, ok := alwaysMatch.(map[string]interface{}); ok {
-					fn(m, true, false)
-					for k, v := range m { // Extension capabilities have ":" in key
-						if ec, ok := v.(map[string]interface{}); ok && strings.Contains(k, ":") {
-							fn(ec, true, true)
-						}
+					match = m
+				}
+			} else if firstMatch, ok := m[keys.firstMatch]; ok {
+				if m, ok := firstMatch.([]interface{}); ok && len(m) > 0 {
+					if m, ok := m[0].(map[string]interface{}); ok {
+						match = m
+					}
+				}
+			}
+			if match != nil {
+				fn(match, true, false)
+				for k, v := range m { // Extension capabilities have ":" in key
+					if ec, ok := v.(map[string]interface{}); ok && strings.Contains(k, ":") {
+						fn(ec, true, true)
 					}
 				}
 			}
