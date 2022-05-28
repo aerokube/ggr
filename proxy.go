@@ -154,6 +154,10 @@ func (c *caps) browser() string {
 	if browserName != "" {
 		return browserName
 	}
+	appiumDeviceName := c.capability("appium:deviceName")
+	if appiumDeviceName != "" {
+		return appiumDeviceName
+	}
 	return c.capability("deviceName")
 }
 
