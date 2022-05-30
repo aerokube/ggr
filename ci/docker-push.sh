@@ -2,7 +2,7 @@
 
 set -e
 
-docker build -t $GITHUB_REPOSITORY .
+docker build --pull -t $GITHUB_REPOSITORY .
 docker tag $GITHUB_REPOSITORY $GITHUB_REPOSITORY:$1
 mkdir -p watch
 cp ggr-watch watch/ggr
