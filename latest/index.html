@@ -789,7 +789,7 @@ A frequent question being asked is the meaning of <code>count</code> attribute b
 </div>
 </li>
 <li>
-<p>Browser name is matched against <code>browserName</code> capability. Values are compared as strings and should be exactly equal. When testing mobile applications (e.g. with <a href="http://github.com/appium/appium">Appium</a>) <code>browserName</code> capability makes no sense and can be replaced by <code>deviceName</code> capability. Ggr will try to match both against browser name specified in XML.</p>
+<p>Browser name is matched against <code>browserName</code> capability. Values are compared as strings and should be exactly equal. When testing mobile applications (e.g. with <a href="http://github.com/appium/appium">Appium</a>) <code>browserName</code> capability makes no sense and can be replaced by <code>deviceName</code> or <code>appium:deviceName</code> capability. Ggr will try to match both against browser name specified in XML.</p>
 </li>
 <li>
 <p>Version <code>number</code> is matched against <code>version</code> or <code>browserVersion</code> capability by prefix. For example both <code>61</code> and <code>61.0</code> in version capability (i.e. in your code) will match version number <code>61.0</code>.</p>
@@ -1632,7 +1632,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2022-05-30 07:50:44 UTC
+Last updated 2022-05-30 07:55:38 UTC
 </div>
 </div>
 <!-- Global site tag (gtag.js) - Google Analytics -->
