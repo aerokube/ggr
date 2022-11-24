@@ -111,7 +111,10 @@ func init() {
 	go func() {
 		for {
 			<-sig
-			loadQuotaFiles(quotaDir)
+			err := loadQuotaFiles(quotaDir)
+			if err != nil {
+				log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [%v]\n", err)
+			}
 		}
 	}()
 }

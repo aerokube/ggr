@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -167,7 +166,7 @@ func TestFindWithPlatformPrefix(t *testing.T) {
 }
 
 func TestReadNotExistingConfig(t *testing.T) {
-	tmp, err := ioutil.TempFile("", "config")
+	tmp, err := os.CreateTemp("", "config")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +182,7 @@ func TestReadNotExistingConfig(t *testing.T) {
 }
 
 func TestParseInvalidConfig(t *testing.T) {
-	tmp, err := ioutil.TempFile("", "config")
+	tmp, err := os.CreateTemp("", "config")
 	defer os.Remove(tmp.Name())
 	if err != nil {
 		t.Fatal(err)
@@ -212,7 +211,7 @@ func TestParseConfigWithoutNamespace(t *testing.T) {
 }
 
 func testParseConfig(t *testing.T, config string) {
-	tmp, err := ioutil.TempFile("", "config")
+	tmp, err := os.CreateTemp("", "config")
 	defer os.Remove(tmp.Name())
 	if err != nil {
 		t.Fatal(err)

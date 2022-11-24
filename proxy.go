@@ -7,12 +7,12 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -421,7 +421,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 				confLock.RUnlock()
 				if ok {
 					if r.Body != nil {
-						if body, err := ioutil.ReadAll(r.Body); err == nil {
+						if body, err := io.ReadAll(r.Body); err == nil {
 							r.Body.Close()
 							var msg map[string]interface{}
 							if err := json.Unmarshal(body, &msg); err == nil {
@@ -429,7 +429,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 								body, _ = json.Marshal(msg)
 								r.ContentLength = int64(len(body))
 							}
-							r.Body = ioutil.NopCloser(bytes.NewReader(body))
+							r.Body = io.NopCloser(bytes.NewReader(body))
 						}
 					}
 					if h.Scheme != "" {
@@ -570,7 +570,7 @@ func withCloseNotifier(handler http.HandlerFunc) http.HandlerFunc {
 }
 
 func readConfig(fn string, browsers *Browsers) error {
-	file, err := ioutil.ReadFile(fn)
+	file, err := os.ReadFile(fn)
 	if err != nil {
 		return fmt.Errorf("error reading configuration file %s: %v", fn, err)
 	}
@@ -625,7 +625,7 @@ func requireBasicAuth(authenticator *auth.BasicAuth, handler func(http.ResponseW
 	})
 }
 
-//WithSuitableAuthentication handles basic authentication and guest quota processing
+// WithSuitableAuthentication handles basic authentication and guest quota processing
 func WithSuitableAuthentication(authenticator *auth.BasicAuth, handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if rootToken != "" {
