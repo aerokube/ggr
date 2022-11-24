@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -100,7 +99,7 @@ func TestPing(t *testing.T) {
 	AssertThat(t, rsp.Body, Is{Not{nil}})
 
 	var data map[string]interface{}
-	bt, readErr := ioutil.ReadAll(rsp.Body)
+	bt, readErr := io.ReadAll(rsp.Body)
 	AssertThat(t, readErr, Is{nil})
 	jsonErr := json.Unmarshal(bt, &data)
 	AssertThat(t, jsonErr, Is{nil})
@@ -125,7 +124,7 @@ func TestStatus(t *testing.T) {
 	AssertThat(t, rsp.Body, Is{Not{nil}})
 
 	var data map[string]interface{}
-	bt, readErr := ioutil.ReadAll(rsp.Body)
+	bt, readErr := io.ReadAll(rsp.Body)
 	AssertThat(t, readErr, Is{nil})
 	jsonErr := json.Unmarshal(bt, &data)
 	AssertThat(t, jsonErr, Is{nil})
@@ -785,7 +784,7 @@ func TestStartSessionWithOverriddenBasicAuth(t *testing.T) {
 func TestStartSessionWithPrefixVersion(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := ioutil.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body)
 		r.Body.Close()
 		var sess map[string]map[string]string
 		err := json.Unmarshal(body, &sess)
@@ -839,7 +838,7 @@ func TestCreateSessionW3CBrowserNotSet2(t *testing.T) {
 func TestStartSessionWithDefaultVersion(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := ioutil.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body)
 		r.Body.Close()
 		w.Write([]byte(`{"sessionId":"123"}`))
 		var sess map[string]map[string]string
@@ -878,7 +877,7 @@ func TestStartSessionWithDefaultVersion(t *testing.T) {
 func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := ioutil.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body)
 		r.Body.Close()
 		var sess map[string]map[string]map[string]interface{}
 		err := json.Unmarshal(body, &sess)
@@ -1416,7 +1415,7 @@ func TestProxyJsonRequest(t *testing.T) {
 func TestProxyPlainRequest(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
-		body, _ := ioutil.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body)
 		r.Body.Close()
 		AssertThat(t, string(body), EqualTo{"request"})
 	})
@@ -1685,7 +1684,7 @@ func TestFileExists(t *testing.T) {
 	tmpDir := os.TempDir()
 	AssertThat(t, fileExists(tmpDir), Is{false})
 	AssertThat(t, fileExists(filepath.Join(tmpDir, "missing-file")), Is{false})
-	f, err := ioutil.TempFile(tmpDir, "testfile")
+	f, err := os.CreateTemp(tmpDir, "testfile")
 	AssertThat(t, err, Is{nil})
 	AssertThat(t, fileExists(f.Name()), Is{true})
 }
