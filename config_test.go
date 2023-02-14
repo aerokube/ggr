@@ -158,6 +158,13 @@ func TestFindWithPlatform(t *testing.T) {
 	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0-linux"})
 }
 
+func TestFindWithPlatformLowercase(t *testing.T) {
+	hosts, version, _ := browsersWithMultiplePlatforms.find("browser", "2.0", "windows", newSet(), newSet())
+	AssertThat(t, version, EqualTo{"2.0"})
+	AssertThat(t, len(hosts), EqualTo{1})
+	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0-windows"})
+}
+
 func TestFindWithPlatformPrefix(t *testing.T) {
 	hosts, version, _ := browsersWithMultiplePlatforms.find("browser", "2.0", "WIN", newSet(), newSet())
 	AssertThat(t, version, EqualTo{"2.0"})
