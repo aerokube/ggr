@@ -1,6 +1,6 @@
 module github.com/aerokube/ggr
 
-go 1.19
+go 1.20
 
 require (
 	github.com/aandryashin/matchers v0.0.0-20161126170413-435295ea180e
