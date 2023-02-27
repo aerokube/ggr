@@ -210,12 +210,10 @@ func session(ctx context.Context, h *Host, header http.Header, c caps) (map[stri
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	resp, err := httpClient.Do(req)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, seleniumError
 	}
+	defer resp.Body.Close()
 	location := resp.Header.Get("Location")
 	if location != "" {
 		l, err := url.Parse(location)
