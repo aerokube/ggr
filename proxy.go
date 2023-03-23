@@ -18,6 +18,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"encoding/base64"
 
 	"github.com/abbot/go-http-auth"
 	. "github.com/aerokube/ggr/config"
@@ -36,6 +37,7 @@ const (
 	defaultVNCPort = "5900"
 	vncScheme      = "vnc"
 	wsScheme       = "ws"
+	wssScheme      = "wss"
 )
 
 var paths = struct {
@@ -438,8 +440,9 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 					r.URL.Path = proxyPath
 					fragments := strings.Split(proxyPath, "/")
 					sess := fragments[sessPart]
+					setupAuthHttp(r, h.Username, h.Password)
 					if verbose {
-						log.Printf("[%d] [-] [PROXYING] [-] [%s] [-] [%s] [%s] [-] [%s]\n", id, remote, h.Net(), sess, proxyPath)
+						log.Printf("[%d] [-] [PROXYING] [-] [%s] [-] [%s] [-] [%s] [-] [%s]\n", id, remote, sess, proxyPath, r.URL.String())
 					}
 					if r.Method == http.MethodDelete && len(fragments) == sessPart+1 {
 						log.Printf("[%d] [-] [SESSION_DELETED] [-] [%s] [-] [%s] [%s] [-] [-]\n", id, remote, h.Net(), sess)
@@ -533,8 +536,8 @@ func quotaInfo(w http.ResponseWriter, r *http.Request) {
 				region := &version.Regions[k]
 				for l := 0; l < len(region.Hosts); l++ {
 					host := &region.Hosts[l]
-					host.Username = ""
-					host.Password = ""
+					host.Username = "" + host.Username
+					host.Password = "" + host.Password
 				}
 			}
 		}
@@ -602,7 +605,7 @@ func createVNCInfo(h Host) *VncInfo {
 			log.Printf("[-] [-] [INVALID_HOST_VNC_URL] [-] [-] [%s] [%s] [-] [-] [-]\n", vncURL, fmt.Sprintf("%s:%d", h.Name, h.Port))
 			return nil
 		}
-		if u.Scheme != vncScheme && u.Scheme != wsScheme {
+		if u.Scheme != vncScheme && u.Scheme != wsScheme && u.Scheme != wssScheme {
 			log.Printf("[-] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [%s] [-] [-] [-]\n", vncURL, fmt.Sprintf("%s:%d", h.Name, h.Port))
 			return nil
 		}
@@ -684,11 +687,14 @@ func vnc(wsconn *websocket.Conn) {
 			path = vncInfo.Path
 		}
 		sessionID := strings.Split(wsconn.Request().URL.Path, "/")[2][md5SumLength:]
+		
 		switch scheme {
 		case vncScheme:
 			proxyVNC(id, wsconn, sessionID, host, port)
 		case wsScheme:
-			proxyWebSockets(id, wsconn, sessionID, host, port, path)
+			proxyWebSockets(id, wsconn, sessionID, scheme, host, port, path, h.Username, h.Password)
+		case wssScheme:
+			proxyWebSockets(id, wsconn, sessionID, scheme, host, port, path, h.Username, h.Password)
 		default:
 			{
 				log.Printf("[%d] [-] [UNSUPPORTED_HOST_VNC_SCHEME] [-] [-] [%s] [-] [-] [-] [-]\n", id, scheme)
@@ -708,12 +714,33 @@ func proxyVNC(id uint64, wsconn *websocket.Conn, sessionID string, host string, 
 	proxyConn(id, wsconn, conn, err, sessionID, address)
 }
 
-func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, host string, port string, path string) {
+func proxyWebSockets(id uint64, wsconn *websocket.Conn, sessionID string, scheme string, host string, port string, path string, username string, password string) {
 	origin := "http://localhost/"
-	u := fmt.Sprintf("ws://%s:%s%s/%s", host, port, path, sessionID)
-	//TODO: consider context from wsconn
-	conn, err := websocket.Dial(u, "", origin)
+	u := fmt.Sprintf("%s://%s:%s%s/%s", scheme, host, port, path, sessionID)
+	config, err := websocket.NewConfig(u, origin)
+	if err != nil {
+		log.Printf("[WEBSOCKET] [Failed to create websocket config %s: %v]", u, err)
+		return
+	}
+	setupAuthWS(config, username, password)
+	conn, err := websocket.DialConfig(config)
 	proxyConn(id, wsconn, conn, err, sessionID, u)
+}
+
+func setupAuthWS(config *websocket.Config, username string, password string) {
+	if username == "" && password == "" {
+		return
+	}
+	auth := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
+	config.Header.Set("Authorization", "Basic "+auth)
+}
+
+func setupAuthHttp(r *http.Request, username string, password string) {
+	if username == "" && password == "" {
+		return
+	}
+	auth := base64.URLEncoding.EncodeToString([]byte(username + ":" + password))
+	r.Header.Set("Authorization", "Basic "+auth)
 }
 
 func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sessionID string, address string) {
@@ -782,9 +809,14 @@ func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUr
 	if ok {
 		(&httputil.ReverseProxy{
 			Director: func(r *http.Request) {
-				r.URL.Scheme = "http"
+				if h.Scheme != "" {
+					r.URL.Scheme = h.Scheme
+				} else {
+					r.URL.Scheme = "http"
+				}
 				r.URL.Host = h.Net()
 				r.URL.Path = pathProvider(remainder)
+				setupAuthHttp(r, h.Username, h.Password)
 				log.Printf("[%d] [-] [%s] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, proxyingMessage, user, remote, r.URL, remainder)
 			},
 			ErrorHandler: defaultErrorHandler(id),
