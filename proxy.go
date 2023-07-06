@@ -804,39 +804,6 @@ func defaultErrorHandler(requestId uint64) func(http.ResponseWriter, *http.Reque
 	}
 }
 
-func notify(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return
-	}
-	defer r.Body.Close()
-
-	fmt.Println("Received notification:", string(body))
-
-	// Handle the notification as per your requirements
-	err := loadQuotaFiles(quotaDir)
-	if err != nil {
-		log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [%v]\n", err)
-	}
-
-	response := map[string]bool{"success": true}
-	jsonResponse, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, "Failed to marshal JSON response", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonResponse)
-}
-
 func mux() http.Handler {
 	mux := http.NewServeMux()
 	authenticator := auth.NewBasicAuthenticator(
@@ -856,7 +823,7 @@ func mux() http.Handler {
 	mux.HandleFunc(paths.Download, WithSuitableAuthentication(authenticator, download))
 	mux.HandleFunc(paths.Clipboard, WithSuitableAuthentication(authenticator, clipboard))
 	mux.HandleFunc(paths.Devtools, devtools)
-        mux.HandleFunc(paths.Notify, notify)
+        mux.HandleFunc(paths.Notify, handleNotification)
 	mux.Handle(paths.Pprof, http.DefaultServeMux)
 	return mux
 }
