@@ -39,7 +39,7 @@ const (
 )
 
 var paths = struct {
-	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, Video, Logs, Download, Clipboard, Devtools, Pprof string
+	Ping, Status, Err, Host, Quota, Route, Proxy, VNC, Video, Logs, Download, Clipboard, Devtools, Pprof, Notify string
 }{
 	Ping:      "/ping",
 	Status:    "/wd/hub/status",
@@ -55,6 +55,7 @@ var paths = struct {
 	Clipboard: "/clipboard/",
 	Devtools:  "/devtools/",
 	Pprof:     "/debug/pprof/",
+	Notify:    "/notify"
 }
 
 var keys = struct {
@@ -803,6 +804,27 @@ func defaultErrorHandler(requestId uint64) func(http.ResponseWriter, *http.Reque
 	}
 }
 
+func notify(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	fmt.Println("Received notification:", string(body))
+
+	// Handle the notification as per your requirements
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Notification received successfully!"))
+}
+
 func mux() http.Handler {
 	mux := http.NewServeMux()
 	authenticator := auth.NewBasicAuthenticator(
@@ -822,6 +844,7 @@ func mux() http.Handler {
 	mux.HandleFunc(paths.Download, WithSuitableAuthentication(authenticator, download))
 	mux.HandleFunc(paths.Clipboard, WithSuitableAuthentication(authenticator, clipboard))
 	mux.HandleFunc(paths.Devtools, devtools)
+        mux.HandleFunc(paths.Notify, notify)
 	mux.Handle(paths.Pprof, http.DefaultServeMux)
 	return mux
 }
