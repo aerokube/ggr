@@ -6,34 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	
+	. "github.com/aerokube/ggr/config"	
 )
-
-type Browsers struct {
-	XMLName xml.Name `xml:"browsers"`
-	Browser []Browser `xml:"browser"`
-}
-
-type Browser struct {
-	Name           string   `xml:"name,attr"`
-	DefaultVersion string   `xml:"defaultVersion,attr"`
-	Version        Version  `xml:"version"`
-}
-
-type Version struct {
-	Number string  `xml:"number,attr"`
-	Region []Region `xml:"region"`
-}
-
-type Region struct {
-	Name string `xml:"name,attr"`
-	Host []Host `xml:"host"`
-}
-
-type Host struct {
-	Name  string `xml:"name,attr"`
-	Port  string `xml:"port,attr"`
-	Count string `xml:"count,attr"`
-}
 
 func handleNotification(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -48,20 +23,37 @@ func handleNotification(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	fmt.Println("Received notification:", string(body))
-
+	var requestData struct {
+		User string `json:"user"`
+	}
+	if err := json.Unmarshal(body, &requestData); err != nil {
+		http.Error(w, "Failed to unmarshal JSON request", http.StatusBadRequest)
+		return
+	}
+	fmt.Println("Received notification for user:", requestData.User)
+	// Extract IP address and port from the request
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		http.Error(w, "Failed to extract IP address and port", http.StatusInternalServerError)
+		return
+	}
+	port := strconv.Itoa(r.RemoteAddr)
+	fmt.Println("Caller IP:", ip)
+	fmt.Println("Caller Port:", port)
+	
 	// Update XML file
-	filename := "default.xml" // Replace with the actual XML filename
-	newHost := "localhost"
-	newPort := "4444"
+	filename := requestData.User + ".xml" // Replace with the actual XML filename
+	newHost := ip
+	newPort := port
 	newCount := "1"
 
+	fmt.Println("Updating XML file for user:", requestData.User)
 	err = updateXMLFiles(quotaDir, filename, newHost, newPort, newCount)
 	if err != nil {
 		http.Error(w, "Failed to update XML file", http.StatusInternalServerError)
 		return
 	}
-  // reload quotas
+  	// reload quotas
 	err := loadQuotaFiles(quotaDir)
 	if err != nil {
 		log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [%v]\n", err)
