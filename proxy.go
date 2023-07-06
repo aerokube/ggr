@@ -820,9 +820,21 @@ func notify(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Received notification:", string(body))
 
 	// Handle the notification as per your requirements
+	err := loadQuotaFiles(quotaDir)
+	if err != nil {
+		log.Printf("[-] [-] [INIT] [-] [-] [-] [-] [-] [-] [%v]\n", err)
+	}
 
+	response := map[string]bool{"success": true}
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, "Failed to marshal JSON response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Notification received successfully!"))
+	w.Write(jsonResponse)
 }
 
 func mux() http.Handler {
