@@ -783,6 +783,9 @@ func proxyStatic(w http.ResponseWriter, r *http.Request, route string, invalidUr
 		(&httputil.ReverseProxy{
 			Director: func(r *http.Request) {
 				r.URL.Scheme = "http"
+				if h.Scheme != "" {
+					r.URL.Scheme = h.Scheme
+				}
 				r.URL.Host = h.Net()
 				r.URL.Path = pathProvider(remainder)
 				log.Printf("[%d] [-] [%s] [%s] [%s] [%s] [-] [%s] [-] [-]\n", id, proxyingMessage, user, remote, r.URL, remainder)
