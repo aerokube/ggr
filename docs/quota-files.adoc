@@ -36,7 +36,7 @@ NOTE: A frequent question being asked is the meaning of `count` attribute becaus
 
 . Browser name is matched against `browserName` capability. Values are compared as strings and should be exactly equal. When testing mobile applications (e.g. with http://github.com/appium/appium[Appium]) `browserName` capability makes no sense and can be replaced by `deviceName` or `appium:deviceName` capability. Ggr will try to match both against browser name specified in XML.
 . Version `number` is matched against `version` or `browserVersion` capability by prefix. For example both `61` and `61.0` in version capability (i.e. in your code) will match version number `61.0`.
-. Similarly version `platform` attribute is matched against `platform` or `platformName` capability by prefix. When platform from capabilities equals to `ANY` - default platform will be chosen.
+. Similarly, version `platform` attribute is matched against `platform` or `platformName` capability by prefix. When platform from capabilities equals to `ANY` - default platform will be chosen.
 . Sometimes you may need to have the same browser name and version on different platforms, e.g. Firefox on both Linux and Windows. To achieve this you need to add `defaultPlatform` and `platform` attributes to quota file as follows:
 +
 .Adding platform information to quota file
@@ -63,7 +63,7 @@ Sometimes for debugging purposes you need to see the screen of the browser where
 ----
 ws://ggr-host.example.com:4444/vnc/<session-id>
 ----
-Browser VNC clients like https://github.com/novnc/noVNC[noVNC] work with such URLs out of the box. By default having an XML host entry like this...
+Browser VNC clients like https://github.com/novnc/noVNC[noVNC] work with such URLs out of the box. By default, having an XML host entry like this...
 [source,xml]
 ----
 <host name="host1.example.com" port="4444" count="1"/>
@@ -94,7 +94,7 @@ Having this URL Ggr will append session ID and proxy VNC traffic from:
 
 Although Ggr is mainly used for creating your own Selenium cluster you can also configure it to obtain some browsers in external Selenium services such as http://saucelabs.com/[Saucelabs], http://browserstack.com/[BrowserStack] or https://testingbot.com/[TestingBot]. These services always require username and password to be specified. Credentials should be set for each browser version in respective quota file:
 
-.Providing user name and password for external Selenium service
+.Providing username and password for external Selenium service
 [source,xml]
 ----
 <qa:browsers xmlns:qa="urn:config.gridrouter.qatools.ru">
@@ -110,7 +110,7 @@ Although Ggr is mainly used for creating your own Selenium cluster you can also 
 
 === Guest Quota
 
-By default every quota file corresponds to a user. In some cases you may need to give anonymous (guest) access to some users. This is very useful to maintain a sandbox where users can debug their tests without disturbing other tests. Guest quota is enabled using Ggr flags:
+By default, every quota file corresponds to a user. In some cases you may need to give anonymous (guest) access to some users. This is very useful to maintain a sandbox where users can debug their tests without disturbing other tests. Guest quota is enabled using Ggr flags:
 
     $ ./ggr -guests-allowed -guests-quota test <the-rest-of-the-flags...>
 
