@@ -1,7 +1,8 @@
 == Ggr CLI Flags
 
 The following flags are supported by ```ggr``` command:
-```
+[source,bash]
+----
   -graceful-period duration
     	graceful shutdown period in time.Duration format, e.g. 300s or 500ms (default 5m0s)
   -guests-allowed
@@ -20,13 +21,15 @@ The following flags are supported by ```ggr``` command:
     	enable verbose mode
   -version
     	show version and exit
-```
-For example:
-```
-$ ./ggr -quotaDir /my/custom/quota/dir
-```
-When using Ggr inside Docker container these flags are passed like the following:
+----
 
+For example:
+[source,bash]
+----
+$ ./ggr -quotaDir /my/custom/quota/dir
+----
+
+When using Ggr inside Docker container these flags are passed like the following:
 
 [source,bash,subs="attributes+"]
 ----
