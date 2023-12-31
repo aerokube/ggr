@@ -1695,10 +1695,10 @@ func TestPanicGuestQuotaMissingUsersFileAuthPresent(t *testing.T) {
 	defer func() {
 		users = ".htpasswd"
 	}()
-	authenticator := auth.NewBasicAuthenticator(
-		"Some Realm",
-		auth.HtpasswdFileProvider(users),
-	)
+	authenticator := &auth.BasicAuth{
+		Realm:   "Some Realm",
+		Secrets: auth.HtpasswdFileProvider(users),
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", WithSuitableAuthentication(authenticator, func(_ http.ResponseWriter, _ *http.Request) {}))
@@ -1719,4 +1719,11 @@ func TestPlatformCapability(t *testing.T) {
 	json.Unmarshal([]byte(testCaps), &caps)
 
 	AssertThat(t, caps.platform(), EqualTo{"WINDOWS"})
+}
+
+func TestLabelsCapabilityFromExtensions(t *testing.T) {
+	var caps caps
+	testCaps := `{"capabilities": {"alwaysMatch":{"ggr:options": {"labels": {"some-key": "some-value"}}}}}`
+	_ = json.Unmarshal([]byte(testCaps), &caps)
+	AssertThat(t, caps.labels(), EqualTo{"some-key=some-value"})
 }

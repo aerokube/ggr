@@ -111,7 +111,7 @@ func (c caps) capabilities(fn func(m map[string]interface{}, w3c bool, extension
 			}
 			if match != nil {
 				fn(match, true, false)
-				for k, v := range m { // Extension capabilities have ":" in key
+				for k, v := range match { // Extension capabilities have ":" in key
 					if ec, ok := v.(map[string]interface{}); ok && strings.Contains(k, ":") {
 						fn(ec, true, true)
 					}
@@ -808,10 +808,10 @@ func defaultErrorHandler(requestId uint64) func(http.ResponseWriter, *http.Reque
 
 func mux() http.Handler {
 	mux := http.NewServeMux()
-	authenticator := auth.NewBasicAuthenticator(
-		"Selenium Grid Router",
-		auth.HtpasswdFileProvider(users),
-	)
+	authenticator := &auth.BasicAuth{
+		Realm:   "Selenium Grid Router",
+		Secrets: auth.HtpasswdFileProvider(users),
+	}
 	mux.HandleFunc(paths.Ping, ping)
 	mux.HandleFunc(paths.Status, status)
 	mux.HandleFunc(paths.Err, err)

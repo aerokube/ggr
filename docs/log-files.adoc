@@ -1,13 +1,14 @@
 == Log Files
 A typical log file looks like the following:
-```
+----
 2017/04/18 03:52:36 [12413389] [SESSION_ATTEMPTED] [my_quota] [192.168.2.3] [firefox-42.0] [firefox42-1.example.com:4444] [1]
 2017/04/18 03:52:40 [12413389] [SESSION_FAILED] [my_quota] [192.168.2.3] [firefox-42.0] [firefox42-1.example.com:4444] Error forwarding the new session Request timed out waiting for a node to become available.
 2017/04/18 03:52:40 [12413390] [SESSION_ATTEMPTED] [my_quota] [192.168.2.3] [firefox-42.0] [firefox42-5.example.com:4444] [2]
 2017/04/18 03:52:45 [12413390] [5.86s] [SESSION_CREATED] [my_quota] [192.168.2.3] [firefox-42.0] [firefox42-5.example.com:4444] [0c500a6f-98d2-4871-acb7-637d85e1416a] [2]
 ....
 2017/04/18 03:53:05 [SESSION_DELETED] [192.168.2.3] [firefox42-5.example.com:4444] [0c500a6f-98d2-4871-acb7-637d85e1416a]
-```
+----
+
 Every line contains:
 
 .Log entry contents
@@ -72,7 +73,7 @@ The following statuses are available:
 |===
 
 === Custom Labels in Log File
-Sometimes you may need to add some custom metadata like build number or branch name to Selenium logs. Just add the following capability to your tests:
+Sometimes you may need to add some custom metadata like build number or branch name to Selenium logs. Just add the following capability to your tests under `ggr:options`:
 
 .Type: map, format: "<key>": "<value>"
 ----
@@ -80,7 +81,7 @@ labels: {"buildNumber": 122, "branch": "feature-XXX"}
 ----
 
 With this capability browser column will look like this:
-```
+----
 [firefox-42.0 buildNumber=122 branch=feature-XXX]
-```
+----
 Such additional metadata in logs allows to better analyze respective Selenium sessions.
