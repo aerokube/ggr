@@ -18,10 +18,9 @@ import (
 
 	"strings"
 
-	. "github.com/aandryashin/matchers"
-	. "github.com/aandryashin/matchers/httpresp"
 	"github.com/abbot/go-http-auth"
 	. "github.com/aerokube/ggr/config"
+	assert "github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
 	"os"
 	"path/filepath"
@@ -42,31 +41,23 @@ const (
 	password = "test"
 )
 
-type Message struct {
-	B string
-}
-
-func (m Message) Match(i interface{}) bool {
+func message(i interface{}) string {
 	rsp := i.(*http.Response)
 	var reply map[string]interface{}
 	err := json.NewDecoder(rsp.Body).Decode(&reply)
 	_ = rsp.Body.Close()
 	if err != nil {
-		return false
+		return ""
 	}
 	val, ok := reply["value"].(map[string]interface{})
 	if !ok {
-		return false
+		return ""
 	}
 	msg, ok := val["message"].(string)
 	if !ok {
-		return false
+		return ""
 	}
-	return EqualTo{m.B}.Match(msg)
-}
-
-func (m Message) String() string {
-	return fmt.Sprintf("json error message %v", m.B)
+	return msg
 }
 
 func hostport(u string) string {
@@ -94,68 +85,69 @@ func gridrouter(p string) string {
 func TestPing(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/ping"))
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusOK})
-	AssertThat(t, rsp.Body, Is{Not{nil}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
+	assert.NotNil(t, rsp.Body)
 
 	var data map[string]interface{}
 	bt, readErr := io.ReadAll(rsp.Body)
-	AssertThat(t, readErr, Is{nil})
+	assert.NoError(t, readErr)
 	jsonErr := json.Unmarshal(bt, &data)
-	AssertThat(t, jsonErr, Is{nil})
+	assert.NoError(t, jsonErr)
 	_, hasUptime := data["uptime"]
-	AssertThat(t, hasUptime, Is{true})
+	assert.True(t, hasUptime)
 	_, hasLastReloadTime := data["lastReloadTime"]
-	AssertThat(t, hasLastReloadTime, Is{true})
+	assert.True(t, hasLastReloadTime)
 	_, hasNumRequests := data["numRequests"]
-	AssertThat(t, hasNumRequests, Is{true})
+	assert.True(t, hasNumRequests)
 	_, hasNumSessions := data["numSessions"]
-	AssertThat(t, hasNumSessions, Is{true})
+	assert.True(t, hasNumSessions)
 	version, hasVersion := data["version"]
-	AssertThat(t, hasVersion, Is{true})
-	AssertThat(t, version, EqualTo{"test-revision"})
+	assert.True(t, hasVersion)
+	assert.Equal(t, version, "test-revision")
 }
 
 func TestStatus(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/wd/hub/status"))
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusOK})
-	AssertThat(t, rsp.Body, Is{Not{nil}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
+	assert.NotNil(t, rsp.Body)
 
 	var data map[string]interface{}
 	bt, readErr := io.ReadAll(rsp.Body)
-	AssertThat(t, readErr, Is{nil})
+	assert.NoError(t, readErr)
 	jsonErr := json.Unmarshal(bt, &data)
-	AssertThat(t, jsonErr, Is{nil})
+	assert.NoError(t, jsonErr)
 	value, hasValue := data["value"]
-	AssertThat(t, hasValue, Is{true})
+	assert.True(t, hasValue)
 	valueMap := value.(map[string]interface{})
 	ready, hasReady := valueMap["ready"]
-	AssertThat(t, hasReady, Is{true})
-	AssertThat(t, ready, Is{true})
+	assert.True(t, hasReady)
+	assert.Equal(t, ready, true)
 	_, hasMessage := valueMap["message"]
-	AssertThat(t, hasMessage, Is{true})
+	assert.True(t, hasMessage)
 }
 
 func TestErr(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/err"))
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"route not found"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
+	assert.Equal(t, message(rsp), "route not found")
 }
 
 func TestGetHostUnauthorized(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/host/some-id"))
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusUnauthorized)
 }
 
 func TestGetExistingHost(t *testing.T) {
 	correctHost := Host{Name: "example.com", Port: 4444, Count: 1}
 	host := testGetHost(t, correctHost.Sum()+"123", http.StatusOK)
-	AssertThat(t, host, Not{nil})
-	AssertThat(t, *host, EqualTo{correctHost})
+	assert.NotNil(t, host)
+	assert.Equal(t, *host, correctHost)
 }
 
 func TestGetMissingHost(t *testing.T) {
@@ -183,8 +175,8 @@ func testGetHost(t *testing.T, sessionID string, statusCode int) *Host {
 	updateQuota(user, browsers)
 
 	rsp, err := doBasicHTTPRequest(http.MethodPost, gridrouter(fmt.Sprintf("/host/%s", sessionID)), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{statusCode})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, statusCode)
 	if statusCode != http.StatusOK {
 		return nil
 	}
@@ -195,8 +187,8 @@ func testGetHost(t *testing.T, sessionID string, statusCode int) *Host {
 
 func TestGetQuotaInfoUnauthorized(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/quota"))
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusUnauthorized)
 }
 
 func TestGetQuotaInfo(t *testing.T) {
@@ -213,12 +205,12 @@ func TestGetQuotaInfo(t *testing.T) {
 	updateQuota(user, browsers)
 
 	rsp, err := doBasicHTTPRequest(http.MethodPost, gridrouter("/quota"), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusOK})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
 
 	var fetchedBrowsers []Browser
 	err = json.NewDecoder(rsp.Body).Decode(&fetchedBrowsers)
-	AssertThat(t, err, Is{nil})
+	assert.NoError(t, err)
 
 	browsersWithoutCredentials := []Browser{
 		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
@@ -228,7 +220,7 @@ func TestGetQuotaInfo(t *testing.T) {
 				}},
 			}},
 		}}}
-	AssertThat(t, fetchedBrowsers, EqualTo{browsersWithoutCredentials})
+	assert.Equal(t, fetchedBrowsers, browsersWithoutCredentials)
 }
 
 func TestProxyScreenVNCProtocol(t *testing.T) {
@@ -261,12 +253,12 @@ func testDataReceived(host Host, api string, correctData string, t *testing.T) {
 	origin := "http://localhost/"
 	u := fmt.Sprintf("ws://%s/%s/%s", srv.Listener.Addr(), api, sessionID)
 	ws, err := websocket.Dial(u, "", origin)
-	AssertThat(t, err, Is{nil})
+	assert.NoError(t, err)
 
 	var data = make([]byte, len(correctData))
 	_, err = ws.Read(data)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, strings.TrimSpace(string(data)), EqualTo{correctData})
+	assert.NoError(t, err)
+	assert.Equal(t, strings.TrimSpace(string(data)), correctData)
 }
 
 func testTCPServer(data string) net.Listener {
@@ -277,8 +269,8 @@ func testTCPServer(data string) net.Listener {
 			if err != nil {
 				continue
 			}
-			defer conn.Close()
 			_, _ = io.WriteString(conn, data)
+			_ = conn.Close()
 			return
 		}
 	}()
@@ -348,8 +340,8 @@ func TestProxyDevtools(t *testing.T) {
 func TestProxyVideoFileWithoutAuth(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/video/123"))
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusUnauthorized)
 }
 
 func TestProxyVideoFileIncorrectRootToken(t *testing.T) {
@@ -357,8 +349,8 @@ func TestProxyVideoFileIncorrectRootToken(t *testing.T) {
 	req.Header.Add("X-Ggr-Root-Token", "wrong-token")
 	rsp, err := http.DefaultClient.Do(req)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusUnauthorized)
 }
 
 func TestProxyVideoFile(t *testing.T) {
@@ -370,8 +362,8 @@ func TestProxyVideoFile(t *testing.T) {
 	defer fileServer.Close()
 
 	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionID)), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusOK})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
 
 	rootToken = "correct-token"
 	defer func() {
@@ -380,16 +372,16 @@ func TestProxyVideoFile(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, gridrouter(fmt.Sprintf("/video/%s", sessionID)), nil)
 	req.Header.Add("X-Ggr-Root-Token", "correct-token")
 	rsp, err = http.DefaultClient.Do(req)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusOK})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
 
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/video/missing-file"), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusNotFound})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
 
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/video/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusNotFound})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
 }
 
 func TestProxyVideoFileBadGateway(t *testing.T) {
@@ -408,9 +400,9 @@ func TestProxyVideoFileBadGateway(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	resp, err := doBasicHTTPRequest(http.MethodPost, gridrouter("/video/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, resp, Code{http.StatusBadGateway})
+	rsp, err := doBasicHTTPRequest(http.MethodPost, gridrouter("/video/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadGateway)
 }
 
 func prepareMockFileServer(path string) (*httptest.Server, string) {
@@ -442,8 +434,8 @@ func prepareMockFileServer(path string) (*httptest.Server, string) {
 func TestProxyLogsWithoutAuth(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/logs/123"))
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusUnauthorized)
 }
 
 func TestProxyLogs(t *testing.T) {
@@ -455,23 +447,23 @@ func TestProxyLogs(t *testing.T) {
 	defer fileServer.Close()
 
 	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/logs/%s", sessionID)), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusOK})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
 
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/logs/missing-session-id"), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusNotFound})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
 
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/logs/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusNotFound})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
 }
 
 func TestProxyDownloadWithoutAuth(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/download/123"))
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusUnauthorized)
 }
 
 func TestProxyDownload(t *testing.T) {
@@ -483,23 +475,23 @@ func TestProxyDownload(t *testing.T) {
 	defer fileServer.Close()
 
 	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/download/%s/somefile.txt", sessionID)), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusOK})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
 
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/download/missing-file"), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusNotFound})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
 
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/download/f7fd94f75c79c36e547c091632da440f_missing-file"), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusNotFound})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
 }
 
 func TestProxyClipboardWithoutAuth(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/clipboard/123"))
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusUnauthorized)
 }
 
 func TestProxyClipboard(t *testing.T) {
@@ -511,16 +503,16 @@ func TestProxyClipboard(t *testing.T) {
 	defer fileServer.Close()
 
 	rsp, err := doBasicHTTPRequest(http.MethodGet, gridrouter(fmt.Sprintf("/clipboard/%s", sessionID)), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusOK})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
 
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/clipboard/missing-session"), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusNotFound})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
 
 	rsp, err = doBasicHTTPRequest(http.MethodGet, gridrouter("/clipboard/f7fd94f75c79c36e547c091632da440f_missing-session"), nil)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusNotFound})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
 }
 
 func TestCreateSessionGet(t *testing.T) {
@@ -529,64 +521,72 @@ func TestCreateSessionGet(t *testing.T) {
 	client := &http.Client{}
 	rsp, err := client.Do(req)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusMethodNotAllowed}, Message{"method not allowed"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusMethodNotAllowed)
+	assert.Equal(t, message(rsp), "method not allowed")
 }
 
 func TestUnauthorized(t *testing.T) {
 	rsp, err := http.Post(gridrouter("/wd/hub/session"), "", bytes.NewReader([]byte(`{"desiredCapabilities":{}}`)))
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusUnauthorized})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusUnauthorized)
 }
 
 func TestCreateSessionEmptyBody(t *testing.T) {
 	rsp, err := createSessionFromReader(nil)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"bad json format: EOF"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, message(rsp), "bad json format: EOF")
 }
 
 func TestCreateSessionBadJson(t *testing.T) {
 	rsp, err := createSession("")
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"bad json format: EOF"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, message(rsp), "bad json format: EOF")
 }
 
 func TestCreateSessionCapsNotSet(t *testing.T) {
 	rsp, err := createSession("{}")
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, message(rsp), "browser not set")
 }
 
 func TestCreateSessionBrowserNotSet(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, message(rsp), "browser not set")
 }
 
 func TestCreateSessionBadBrowserName(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":false}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, message(rsp), "browser not set")
 }
 
 func TestCreateSessionUnsupportedBrowser(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"mosaic"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"unsupported browser: mosaic"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
+	assert.Equal(t, message(rsp), "unsupported browser: mosaic")
 }
 
 func TestCreateSessionUnsupportedBrowserVersion(t *testing.T) {
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"mosaic", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"unsupported browser: mosaic-1.0"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
+	assert.Equal(t, message(rsp), "unsupported browser: mosaic-1.0")
 }
 
 func createSession(capabilities string) (*http.Response, error) {
@@ -620,8 +620,10 @@ func TestCreateSessionNoHosts(t *testing.T) {
 	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
+
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusInternalServerError)
+	assert.Equal(t, message(rsp), "cannot create session browser-1.0 on any hosts after 1 attempt(s)")
 }
 
 func TestCreateSessionHostDown(t *testing.T) {
@@ -639,22 +641,25 @@ func TestCreateSessionHostDown(t *testing.T) {
 	updateQuota(user, browsers)
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusInternalServerError)
+	assert.Equal(t, message(rsp), "cannot create session browser-1.0 on any hosts after 1 attempt(s)")
 }
 
 func TestSessionEmptyHash(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/wd/hub/session/"))
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"route not found"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
+	assert.Equal(t, message(rsp), "route not found")
 }
 
 func TestSessionWrongHash(t *testing.T) {
 	rsp, err := http.Get(gridrouter("/wd/hub/session/012345678901234567890123456789012"))
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusNotFound}, Message{"route not found"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusNotFound)
+	assert.Equal(t, message(rsp), "route not found")
 }
 
 func TestStartSession(t *testing.T) {
@@ -724,10 +729,11 @@ func testStartSessionCustomCaps(t *testing.T, mux *http.ServeMux, browsersProvid
 
 	rsp, err := createSession(capsJSON)
 
-	AssertThat(t, err, Is{nil})
+	assert.NoError(t, err)
 	var sess map[string]interface{}
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
-	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.Sum())})
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
+	assert.NoError(t, json.NewDecoder(rsp.Body).Decode(&sess))
+	assert.Equal(t, sess["sessionId"], fmt.Sprintf("%s123", node.Sum()))
 }
 
 func testStartSession(t *testing.T, mux *http.ServeMux, browsersProvider func(Host) Browsers, browserName string, version string) {
@@ -788,8 +794,8 @@ func TestStartSessionWithPrefixVersion(t *testing.T) {
 		_ = r.Body.Close()
 		var sess map[string]map[string]string
 		err := json.Unmarshal(body, &sess)
-		AssertThat(t, err, Is{nil})
-		AssertThat(t, sess["desiredCapabilities"]["version"], EqualTo{"1.0"})
+		assert.NoError(t, err)
+		assert.Equal(t, sess["desiredCapabilities"]["version"], "1.0")
 
 	}))
 	selenium := httptest.NewServer(mux)
@@ -817,22 +823,25 @@ func TestStartSessionWithPrefixVersion(t *testing.T) {
 func TestCreateSessionW3CBrowserNotSet0(t *testing.T) {
 	rsp, err := createSession(`{"capabilities":{}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, message(rsp), "browser not set")
 }
 
 func TestCreateSessionW3CBrowserNotSet1(t *testing.T) {
 	rsp, err := createSession(`{"capabilities":{"alwaysMatch":{}}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, message(rsp), "browser not set")
 }
 
 func TestCreateSessionW3CBrowserNotSet2(t *testing.T) {
 	rsp, err := createSession(`{"capabilities":{"alwaysMatch":{"browserName":false}}}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadRequest}, Message{"browser not set"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, message(rsp), "browser not set")
 }
 
 func TestStartSessionWithDefaultVersion(t *testing.T) {
@@ -843,8 +852,8 @@ func TestStartSessionWithDefaultVersion(t *testing.T) {
 		_, _ = w.Write([]byte(`{"sessionId":"123"}`))
 		var sess map[string]map[string]string
 		err := json.Unmarshal(body, &sess)
-		AssertThat(t, err, Is{nil})
-		AssertThat(t, sess["desiredCapabilities"]["version"], EqualTo{"2.0"})
+		assert.NoError(t, err)
+		assert.Equal(t, sess["desiredCapabilities"]["version"], "2.0")
 
 	}))
 	selenium := httptest.NewServer(mux)
@@ -882,15 +891,15 @@ func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
 		var sess map[string]map[string]map[string]interface{}
 		err := json.Unmarshal(body, &sess)
 		_, _ = w.Write([]byte(`{"sessionId":"123"}`))
-		AssertThat(t, err, Is{nil})
-		AssertThat(t, sess["capabilities"]["alwaysMatch"]["browserVersion"], EqualTo{"2.0"})
+		assert.NoError(t, err)
+		assert.Equal(t, sess["capabilities"]["alwaysMatch"]["browserVersion"], "2.0")
 
 		so, ok := sess["capabilities"]["alwaysMatch"]["selenoid:options"]
-		AssertThat(t, ok, Is{true})
+		assert.True(t, ok)
 		selenoidOptions, ok := so.(map[string]interface{})
-		AssertThat(t, ok, Is{true})
+		assert.True(t, ok)
 		_, ok = selenoidOptions["browserVersion"]
-		AssertThat(t, ok, Is{false})
+		assert.False(t, ok)
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -988,21 +997,22 @@ func TestStartSessionFail(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusInternalServerError)
+	assert.Equal(t, message(rsp), "cannot create session browser-1.0 on any hosts after 1 attempt(s)")
 }
 
 func TestStartSessionFailMultiRegion(t *testing.T) {
 	node := []Host{
-		Host{Name: "localhost", Port: 9991, Count: 1},
-		Host{Name: "localhost", Port: 9992, Count: 1},
-		Host{Name: "localhost", Port: 9993, Count: 1},
-		Host{Name: "localhost", Port: 9994, Count: 1},
-		Host{Name: "localhost", Port: 9995, Count: 1},
-		Host{Name: "localhost", Port: 9996, Count: 1},
-		Host{Name: "localhost", Port: 9997, Count: 1},
-		Host{Name: "localhost", Port: 9998, Count: 1},
-		Host{Name: "localhost", Port: 9999, Count: 1},
+		{Name: "localhost", Port: 9991, Count: 1},
+		{Name: "localhost", Port: 9992, Count: 1},
+		{Name: "localhost", Port: 9993, Count: 1},
+		{Name: "localhost", Port: 9994, Count: 1},
+		{Name: "localhost", Port: 9995, Count: 1},
+		{Name: "localhost", Port: 9996, Count: 1},
+		{Name: "localhost", Port: 9997, Count: 1},
+		{Name: "localhost", Port: 9998, Count: 1},
+		{Name: "localhost", Port: 9999, Count: 1},
 	}
 
 	test.Lock()
@@ -1011,19 +1021,19 @@ func TestStartSessionFailMultiRegion(t *testing.T) {
 	browsers := Browsers{Browsers: []Browser{
 		{Name: "browser", DefaultVersion: "1.0", Versions: []Version{
 			{Number: "1.0", Regions: []Region{
-				Region{
+				{
 					Name: "us-west-1",
 					Hosts: Hosts{
 						node[0], node[1], node[2],
 					},
 				},
-				Region{
+				{
 					Name: "us-west-2",
 					Hosts: Hosts{
 						node[3], node[4], node[5],
 					},
 				},
-				Region{
+				{
 					Name: "us-west-3",
 					Hosts: Hosts{
 						node[6], node[7], node[8],
@@ -1035,8 +1045,9 @@ func TestStartSessionFailMultiRegion(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 9 attempt(s)"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusInternalServerError)
+	assert.Equal(t, message(rsp), "cannot create session browser-1.0 on any hosts after 9 attempt(s)")
 }
 
 func TestStartSessionBrowserFail(t *testing.T) {
@@ -1066,8 +1077,9 @@ func TestStartSessionBrowserFail(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 5 attempt(s), last host error was: Browser startup failure..."}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusInternalServerError)
+	assert.Equal(t, message(rsp), "cannot create session browser-1.0 on any hosts after 5 attempt(s), last host error was: Browser startup failure...")
 }
 
 func TestStartSessionBrowserFailUnknownError(t *testing.T) {
@@ -1097,8 +1109,9 @@ func TestStartSessionBrowserFailUnknownError(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusInternalServerError)
+	assert.Equal(t, message(rsp), "cannot create session browser-1.0 on any hosts after 1 attempt(s)")
 }
 
 func TestStartSessionBrowserFailWrongValue(t *testing.T) {
@@ -1128,8 +1141,9 @@ func TestStartSessionBrowserFailWrongValue(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusInternalServerError)
+	assert.Equal(t, message(rsp), "cannot create session browser-1.0 on any hosts after 1 attempt(s)")
 }
 
 func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
@@ -1159,8 +1173,9 @@ func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusInternalServerError}, Message{"cannot create session browser-1.0 on any hosts after 1 attempt(s)"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusInternalServerError)
+	assert.Equal(t, message(rsp), "cannot create session browser-1.0 on any hosts after 1 attempt(s)")
 }
 
 func TestStartSessionFailJSONWireProtocol(t *testing.T) {
@@ -1190,8 +1205,9 @@ func TestStartSessionFailJSONWireProtocol(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadGateway}, Message{"protocol error"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadGateway)
+	assert.Equal(t, message(rsp), "protocol error")
 }
 
 func TestStartSessionFailJSONWireProtocolNoSessionID(t *testing.T) {
@@ -1220,8 +1236,9 @@ func TestStartSessionFailJSONWireProtocolNoSessionID(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadGateway}, Message{"protocol error"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadGateway)
+	assert.Equal(t, message(rsp), "protocol error")
 }
 
 func TestStartSessionFailJSONWireProtocolWrongType(t *testing.T) {
@@ -1250,8 +1267,9 @@ func TestStartSessionFailJSONWireProtocolWrongType(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusBadGateway}, Message{"protocol error"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadGateway)
+	assert.Equal(t, message(rsp), "protocol error")
 }
 
 func TestStartSessionJSONWireProtocol(t *testing.T) {
@@ -1280,10 +1298,11 @@ func TestStartSessionJSONWireProtocol(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
+	assert.NoError(t, err)
 	var value map[string]interface{}
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&value}})
-	AssertThat(t, value["value"].(map[string]interface{})["sessionId"], EqualTo{fmt.Sprintf("%s123", node.Sum())})
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
+	assert.NoError(t, json.NewDecoder(rsp.Body).Decode(&value))
+	assert.Equal(t, value["value"].(map[string]interface{})["sessionId"], fmt.Sprintf("%s123", node.Sum()))
 }
 
 func TestPanicRouteProtocolError(t *testing.T) {
@@ -1312,8 +1331,8 @@ func TestPanicRouteProtocolError(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp.StatusCode, Is{http.StatusBadGateway})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusBadGateway)
 }
 
 func TestDeleteSession(t *testing.T) {
@@ -1343,8 +1362,8 @@ func TestDeleteSession(t *testing.T) {
 	r.SetBasicAuth("test", "test")
 	rsp, err := http.DefaultClient.Do(r)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, Code{http.StatusOK})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
 }
 
 func TestProxyRequest(t *testing.T) {
@@ -1375,8 +1394,9 @@ func TestProxyRequest(t *testing.T) {
 	r.SetBasicAuth("test", "test")
 	rsp, err := http.DefaultClient.Do(r)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, Message{"response"}})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
+	assert.Equal(t, message(rsp), "response")
 }
 
 func TestProxyJsonRequest(t *testing.T) {
@@ -1384,7 +1404,7 @@ func TestProxyJsonRequest(t *testing.T) {
 	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
 		var msg map[string]interface{}
 		_ = json.NewDecoder(r.Body).Decode(&msg)
-		AssertThat(t, msg["sessionId"], Is{nil})
+		assert.Nil(t, msg["sessionId"])
 	})
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1417,7 +1437,7 @@ func TestProxyPlainRequest(t *testing.T) {
 	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		_ = r.Body.Close()
-		AssertThat(t, string(body), EqualTo{"request"})
+		assert.Equal(t, string(body), "request")
 	})
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1438,7 +1458,7 @@ func TestProxyPlainRequest(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
+	_, _ = doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
 }
 
 func TestProxyHttpsHost(t *testing.T) {
@@ -1470,16 +1490,17 @@ func TestProxyHttpsHost(t *testing.T) {
 		http.DefaultTransport = oldTransport
 	}()
 
-	resp, err := doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, resp, Code{http.StatusOK})
+	rsp, err := doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.Sum()+"123"), bytes.NewReader([]byte("request")))
+
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
 }
 
 func TestRequest(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, remote := info(r)
-		AssertThat(t, user, EqualTo{"unknown"})
-		AssertThat(t, remote, EqualTo{"127.0.0.1"})
+		assert.Equal(t, user, "unknown")
+		assert.Equal(t, remote, "127.0.0.1")
 	}))
 
 	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
@@ -1489,8 +1510,8 @@ func TestRequest(t *testing.T) {
 func TestRequestAuth(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, remote := info(r)
-		AssertThat(t, user, EqualTo{"user"})
-		AssertThat(t, remote, EqualTo{"127.0.0.1"})
+		assert.Equal(t, user, "user")
+		assert.Equal(t, remote, "127.0.0.1")
 	}))
 
 	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
@@ -1501,8 +1522,8 @@ func TestRequestAuth(t *testing.T) {
 func TestRequestForwarded(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, remote := info(r)
-		AssertThat(t, user, EqualTo{"unknown"})
-		AssertThat(t, remote, EqualTo{"proxy"})
+		assert.Equal(t, user, "unknown")
+		assert.Equal(t, remote, "proxy")
 	}))
 
 	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
@@ -1513,8 +1534,8 @@ func TestRequestForwarded(t *testing.T) {
 func TestRequestAuthForwarded(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, remote := info(r)
-		AssertThat(t, user, EqualTo{"user"})
-		AssertThat(t, remote, EqualTo{"proxy"})
+		assert.Equal(t, user, "user")
+		assert.Equal(t, remote, "proxy")
 	}))
 
 	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
@@ -1527,7 +1548,7 @@ func TestStartSessionProxyHeaders(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		u, _, _ := r.BasicAuth()
-		AssertThat(t, u, EqualTo{user})
+		assert.Equal(t, u, user)
 		_, _ = w.Write([]byte(`{"sessionId":"123"}`))
 	}))
 	selenium := httptest.NewServer(mux)
@@ -1551,10 +1572,11 @@ func TestStartSessionProxyHeaders(t *testing.T) {
 
 	rsp, err := createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1.0"}}`)
 
-	AssertThat(t, err, Is{nil})
-	var sess map[string]string
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&sess}})
-	AssertThat(t, sess["sessionId"], EqualTo{fmt.Sprintf("%s123", node.Sum())})
+	assert.NoError(t, err)
+	var sess map[string]interface{}
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
+	assert.NoError(t, json.NewDecoder(rsp.Body).Decode(&sess))
+	assert.Equal(t, sess["sessionId"], fmt.Sprintf("%s123", node.Sum()))
 }
 
 func TestStartSessionGuest(t *testing.T) {
@@ -1584,10 +1606,11 @@ func TestStartSessionGuest(t *testing.T) {
 	updateQuota(guestUserName, browsers)
 
 	rsp, err := createSessionWithoutAuthentication(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
-	AssertThat(t, err, Is{nil})
+	assert.NoError(t, err)
 	var value map[string]interface{}
-	AssertThat(t, rsp, AllOf{Code{http.StatusOK}, IsJson{&value}})
-	AssertThat(t, value["value"].(map[string]interface{})["sessionId"], EqualTo{fmt.Sprintf("%s123", node.Sum())})
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
+	assert.NoError(t, json.NewDecoder(rsp.Body).Decode(&value))
+	assert.Equal(t, value["value"].(map[string]interface{})["sessionId"], fmt.Sprintf("%s123", node.Sum()))
 }
 
 func TestStartSessionGuestFailNoQuota(t *testing.T) {
@@ -1605,9 +1628,9 @@ func TestStartSessionGuestFailNoQuota(t *testing.T) {
 	defer test.Unlock()
 
 	rsp, err := createSessionWithoutAuthentication(`{"desiredCapabilities":{"browserName":"{browser}", "version":"1.0"}}`)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp, AllOf{Code{http.StatusUnauthorized}, Message{"Guest access is unavailable"}})
-
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusUnauthorized)
+	assert.Equal(t, message(rsp), "Guest access is unavailable")
 }
 
 func TestStartSessionGuestAndCorrectBasicAuth(t *testing.T) {
@@ -1665,8 +1688,8 @@ func TestStartSessionGuestModeAndWrongBasicAuth(t *testing.T) {
 	client := &http.Client{}
 	rsp, err := client.Do(req)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, rsp.StatusCode, Is{http.StatusUnauthorized})
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusUnauthorized)
 }
 
 func createSessionWithoutAuthentication(capabilities string) (*http.Response, error) {
@@ -1682,11 +1705,11 @@ func doHTTPRequestWithoutAuthentication(method string, url string, body io.Reade
 
 func TestFileExists(t *testing.T) {
 	tmpDir := os.TempDir()
-	AssertThat(t, fileExists(tmpDir), Is{false})
-	AssertThat(t, fileExists(filepath.Join(tmpDir, "missing-file")), Is{false})
+	assert.False(t, fileExists(tmpDir))
+	assert.False(t, fileExists(filepath.Join(tmpDir, "missing-file")))
 	f, err := os.CreateTemp(tmpDir, "testfile")
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, fileExists(f.Name()), Is{true})
+	assert.NoError(t, err)
+	assert.True(t, fileExists(f.Name()))
 }
 
 func TestPanicGuestQuotaMissingUsersFileAuthPresent(t *testing.T) {
@@ -1708,9 +1731,9 @@ func TestPanicGuestQuotaMissingUsersFileAuthPresent(t *testing.T) {
 
 	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
 	req.SetBasicAuth("test", "test")
-	resp, err := http.DefaultClient.Do(req)
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, resp, Code{http.StatusOK})
+	rsp, err := http.DefaultClient.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, rsp.StatusCode, http.StatusOK)
 }
 
 func TestPlatformCapability(t *testing.T) {
@@ -1718,12 +1741,12 @@ func TestPlatformCapability(t *testing.T) {
 	testCaps := `{"desiredCapabilities": {"platformName": "WINDOWS"}, "capabilities": {"platformName": "windows"}}`
 	_ = json.Unmarshal([]byte(testCaps), &caps)
 
-	AssertThat(t, caps.platform(), EqualTo{"WINDOWS"})
+	assert.Equal(t, caps.platform(), "WINDOWS")
 }
 
 func TestLabelsCapabilityFromExtensions(t *testing.T) {
 	var caps caps
 	testCaps := `{"capabilities": {"alwaysMatch":{"ggr:options": {"labels": {"some-key": "some-value"}}}}}`
 	_ = json.Unmarshal([]byte(testCaps), &caps)
-	AssertThat(t, caps.labels(), EqualTo{"some-key=some-value"})
+	assert.Equal(t, caps.labels(), "some-key=some-value")
 }
