@@ -656,7 +656,7 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-File name should correspond to user name you added to <code>htpasswd</code> file.
+File name should correspond to username you added to <code>htpasswd</code> file.
 For user <code>test</code> we added on previous steps you should create <code>test.xml</code>.
 </td>
 </tr>
@@ -792,7 +792,7 @@ A frequent question being asked is the meaning of <code>count</code> attribute b
 <p>Version <code>number</code> is matched against <code>version</code> or <code>browserVersion</code> capability by prefix. For example both <code>61</code> and <code>61.0</code> in version capability (i.e. in your code) will match version number <code>61.0</code>.</p>
 </li>
 <li>
-<p>Similarly version <code>platform</code> attribute is matched against <code>platform</code> or <code>platformName</code> capability by prefix. When platform from capabilities equals to <code>ANY</code> - default platform will be chosen.</p>
+<p>Similarly, version <code>platform</code> attribute is matched against <code>platform</code> or <code>platformName</code> capability by prefix. When platform from capabilities equals to <code>ANY</code> - default platform will be chosen.</p>
 </li>
 <li>
 <p>Sometimes you may need to have the same browser name and version on different platforms, e.g. Firefox on both Linux and Windows. To achieve this you need to add <code>defaultPlatform</code> and <code>platform</code> attributes to quota file as follows:</p>
@@ -827,7 +827,7 @@ A frequent question being asked is the meaning of <code>count</code> attribute b
 </div>
 </div>
 <div class="paragraph">
-<p>Browser VNC clients like <a href="https://github.com/novnc/noVNC">noVNC</a> work with such URLs out of the box. By default having an XML host entry like this&#8230;&#8203;</p>
+<p>Browser VNC clients like <a href="https://github.com/novnc/noVNC">noVNC</a> work with such URLs out of the box. By default, having an XML host entry like this&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -880,7 +880,7 @@ A frequent question being asked is the meaning of <code>count</code> attribute b
 <p>Although Ggr is mainly used for creating your own Selenium cluster you can also configure it to obtain some browsers in external Selenium services such as <a href="http://saucelabs.com/">Saucelabs</a>, <a href="http://browserstack.com/">BrowserStack</a> or <a href="https://testingbot.com/">TestingBot</a>. These services always require username and password to be specified. Credentials should be set for each browser version in respective quota file:</p>
 </div>
 <div class="listingblock">
-<div class="title">Providing user name and password for external Selenium service</div>
+<div class="title">Providing username and password for external Selenium service</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="xml"><span class="tag">&lt;qa:browsers</span> <span class="attribute-name">xmlns:qa</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">urn:config.gridrouter.qatools.ru</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
 <span class="tag">&lt;browser</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">firefox</span><span class="delimiter">&quot;</span></span> <span class="attribute-name">defaultVersion</span>=<span class="string"><span class="delimiter">&quot;</span><span class="content">45.0</span><span class="delimiter">&quot;</span></span><span class="tag">&gt;</span>
@@ -897,7 +897,7 @@ A frequent question being asked is the meaning of <code>count</code> attribute b
 <div class="sect3">
 <h4 id="_guest_quota"><a class="anchor" href="#_guest_quota"></a>2.2.3. Guest Quota</h4>
 <div class="paragraph">
-<p>By default every quota file corresponds to a user. In some cases you may need to give anonymous (guest) access to some users. This is very useful to maintain a sandbox where users can debug their tests without disturbing other tests. Guest quota is enabled using Ggr flags:</p>
+<p>By default, every quota file corresponds to a user. In some cases you may need to give anonymous (guest) access to some users. This is very useful to maintain a sandbox where users can debug their tests without disturbing other tests. Guest quota is enabled using Ggr flags:</p>
 </div>
 <div class="literalblock">
 <div class="content">
@@ -931,8 +931,8 @@ A frequent question being asked is the meaning of <code>count</code> attribute b
 <p>To <strong>reload quota files</strong> just send <strong>SIGHUP</strong> to process or Docker container:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code># kill -HUP &lt;pid&gt;
-# docker kill -s HUP &lt;container-id-or-name&gt;</code></pre>
+<pre class="CodeRay highlight"><code data-lang="bash">$ kill -HUP &lt;pid&gt;
+$ docker kill -s HUP &lt;container-id-or-name&gt;</code></pre>
 </div>
 </div>
 <div class="admonitionblock note">
@@ -1069,10 +1069,10 @@ Notice that session ID for hub host (aka <code>real-session-id</code>) and for G
 <div class="sect2">
 <h3 id="_encrypting_connection_to_ggr"><a class="anchor" href="#_encrypting_connection_to_ggr"></a>2.8. Encrypting Connection to Ggr</h3>
 <div class="paragraph">
-<p>Ggr itself does not support any modern encryption technologies such as <a href="https://en.wikipedia.org/wiki/Transport_Layer_Security">TLS</a> or <a href="https://en.wikipedia.org/wiki/WebSocket">WebSocket Secure</a>. In order to use them you are expected to setup a reverse proxy having such capabilities. A typical <a href="http://nginx.org/">Nginx</a> configuration looks like the following:</p>
+<p>Ggr itself does not support any modern encryption technologies such as <a href="https://en.wikipedia.org/wiki/Transport_Layer_Security">TLS</a> or <a href="https://en.wikipedia.org/wiki/WebSocket">WebSocket Secure</a>. In order to use them you are expected to set up a reverse proxy having such capabilities. A typical <a href="http://nginx.org/">Nginx</a> configuration looks like the following:</p>
 </div>
 <div class="listingblock">
-<div class="title">Nginx configuration for encrypted connection</div>
+<div class="title">Nginx&#8217;s configuration for encrypted connection</div>
 <div class="content">
 <pre>map $http_upgrade $connection_upgrade {
     default upgrade;
@@ -1167,11 +1167,11 @@ server {
 <div class="listingblock">
 <div class="title">Result</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript">{<span class="key"><span class="delimiter">&quot;</span><span class="content">uptime</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">2m46.854829503s</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">lastReloadTime</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">2017-05-12 12:33:06.322038542 +0300 MSK</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">numRequests</span><span class="delimiter">&quot;</span></span>:<span class="integer">42</span>, <span class="key"><span class="delimiter">&quot;</span><span class="content">numSessions</span><span class="delimiter">&quot;</span></span>:<span class="integer">19</span>, <span class="key"><span class="delimiter">&quot;</span><span class="content">version</span><span class="delimiter">&quot;</span></span>: <span class="string"><span class="delimiter">&quot;</span><span class="content">1.6.3</span><span class="delimiter">&quot;</span></span>}</code></pre>
+<pre class="CodeRay highlight"><code data-lang="json">{<span class="key"><span class="delimiter">&quot;</span><span class="content">uptime</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">2m46.854829503s</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">lastReloadTime</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">2017-05-12 12:33:06.322038542 +0300 MSK</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">numRequests</span><span class="delimiter">&quot;</span></span>:<span class="integer">42</span>, <span class="key"><span class="delimiter">&quot;</span><span class="content">numSessions</span><span class="delimiter">&quot;</span></span>:<span class="integer">19</span>, <span class="key"><span class="delimiter">&quot;</span><span class="content">version</span><span class="delimiter">&quot;</span></span>: <span class="string"><span class="delimiter">&quot;</span><span class="content">1.6.3</span><span class="delimiter">&quot;</span></span>}</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>It returns <code>200 OK</code> when Ggr operates normally. Additionally server uptime, last quota reload time and overall number of session requests from service startup are returned in JSON format.</p>
+<p>It returns <code>200 OK</code> when Ggr operates normally. Additionally, server uptime, last quota reload time and overall number of session requests from service startup are returned in JSON format.</p>
 </div>
 <div class="sect3">
 <h4 id="_why_ggr_is_stateless"><a class="anchor" href="#_why_ggr_is_stateless"></a>2.10.1. Why Ggr is Stateless</h4>
@@ -1195,7 +1195,7 @@ server {
 <i class="fa icon-important" title="Important"></i>
 </td>
 <td class="content">
-Because of stateless Ggr architecture you can use an unlimited number of Ggr instances behind load balancer. In order to work properly it is very important to have exactly the same XML quota files on every Ggr instance. Otherwise some Ggr instances will return <code>404</code> error when a request with unknown host <code>S</code> arrives.
+Because of stateless Ggr architecture you can use an unlimited number of Ggr instances behind load balancer. In order to work properly it is very important to have exactly the same XML quota files on every Ggr instance. Otherwise, some Ggr instances will return <code>404</code> error when a request with unknown host <code>S</code> arrives.
 </td>
 </tr>
 </table>
@@ -1215,7 +1215,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <div class="listingblock">
 <div class="title">Result</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript">{<span class="key"><span class="delimiter">&quot;</span><span class="content">Name</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">my-host.example.com</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">Port</span><span class="delimiter">&quot;</span></span>:<span class="integer">4444</span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">Count</span><span class="delimiter">&quot;</span></span>:<span class="integer">5</span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">Username</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">Password</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="delimiter">&quot;</span></span>}</code></pre>
+<pre class="CodeRay highlight"><code data-lang="json">{<span class="key"><span class="delimiter">&quot;</span><span class="content">Name</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="content">my-host.example.com</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">Port</span><span class="delimiter">&quot;</span></span>:<span class="integer">4444</span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">Count</span><span class="delimiter">&quot;</span></span>:<span class="integer">5</span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">Username</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="delimiter">&quot;</span></span>,<span class="key"><span class="delimiter">&quot;</span><span class="content">Password</span><span class="delimiter">&quot;</span></span>:<span class="string"><span class="delimiter">&quot;</span><span class="delimiter">&quot;</span></span>}</code></pre>
 </div>
 </div>
 </div>
@@ -1503,7 +1503,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code>  -graceful-period duration
+<pre class="CodeRay highlight"><code data-lang="bash">  -graceful-period duration
             graceful shutdown period in time.Duration format, e.g. 300s or 500ms (default 5m0s)
   -guests-allowed
             Allow guest (unauthenticated) users to access the grid
@@ -1528,7 +1528,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code>$ ./ggr -quotaDir /my/custom/quota/dir</code></pre>
+<pre class="CodeRay highlight"><code data-lang="bash">$ ./ggr -quotaDir /my/custom/quota/dir</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1629,7 +1629,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2023-12-31 07:57:06 UTC
+Last updated 2023-12-31 08:13:20 UTC
 </div>
 </div>
 <!-- Global site tag (gtag.js) - Google Analytics -->
