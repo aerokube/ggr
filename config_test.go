@@ -245,9 +245,9 @@ func TestConfDirDoesNotExist(t *testing.T) {
 
 func TestConcurrentReload(t *testing.T) {
 	go func() {
-		loadQuotaFiles("quota")
+		_ = loadQuotaFiles("quota")
 	}()
-	loadQuotaFiles("quota")
+	_ = loadQuotaFiles("quota")
 }
 
 func TestChoosingAllHosts(t *testing.T) {

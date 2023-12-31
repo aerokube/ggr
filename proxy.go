@@ -149,7 +149,7 @@ func (c caps) capabilityJsonWireW3C(jsonWire, W3C string) string {
 	return result
 }
 
-func (c *caps) browser() string {
+func (c caps) browser() string {
 	browserName := c.capability("browserName")
 	if browserName != "" {
 		return browserName
@@ -237,7 +237,7 @@ func session(ctx context.Context, h *Host, header http.Header, c caps) (map[stri
 func reply(w http.ResponseWriter, msg map[string]interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(msg)
+	_ = json.NewEncoder(w).Encode(msg)
 }
 
 func serial() uint64 {
@@ -402,7 +402,7 @@ loop:
 }
 
 func secondsSince(start time.Time) float64 {
-	return float64(time.Now().Sub(start).Seconds())
+	return time.Now().Sub(start).Seconds()
 }
 
 func proxy(w http.ResponseWriter, r *http.Request) {
@@ -420,7 +420,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 				if ok {
 					if r.Body != nil {
 						if body, err := io.ReadAll(r.Body); err == nil {
-							r.Body.Close()
+							_ = r.Body.Close()
 							var msg map[string]interface{}
 							if err := json.Unmarshal(body, &msg); err == nil {
 								delete(msg, "sessionId")
@@ -462,7 +462,7 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 	lrt := lastReloadTime.Format(time.RFC3339)
 	confLock.RUnlock()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(struct {
+	_ = json.NewEncoder(w).Encode(struct {
 		Uptime         string `json:"uptime"`
 		LastReloadTime string `json:"lastReloadTime"`
 		NumRequests    uint64 `json:"numRequests"`
@@ -479,7 +479,7 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 
 func status(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(
+	_ = json.NewEncoder(w).Encode(
 		map[string]interface{}{
 			"value": map[string]interface{}{
 				"message": fmt.Sprintf("Ggr %s built at %s", gitRevision, buildStamp),
@@ -500,7 +500,7 @@ func host(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	if len(path) < tail {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid session ID"))
+		_, _ = w.Write([]byte("invalid session ID"))
 		return
 	}
 	sum := path[head:tail]
@@ -509,12 +509,12 @@ func host(w http.ResponseWriter, r *http.Request) {
 	confLock.RUnlock()
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("unknown host"))
+		_, _ = w.Write([]byte("unknown host"))
 		return
 	}
 	log.Printf("[%d] [-] [HOST_INFO_REQUESTED] [%s] [%s] [-] [%s] [%s] [-] [-]\n", id, user, remote, h.Name, sum)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Host{Name: h.Name, Port: h.Port, Count: h.Count})
+	_ = json.NewEncoder(w).Encode(Host{Name: h.Name, Port: h.Port, Count: h.Count})
 }
 
 func quotaInfo(w http.ResponseWriter, r *http.Request) {
@@ -539,7 +539,7 @@ func quotaInfo(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	json.NewEncoder(w).Encode(browsers.Browsers.Browsers)
+	_ = json.NewEncoder(w).Encode(browsers.Browsers.Browsers)
 }
 
 func postOnly(handler http.HandlerFunc) http.HandlerFunc {
@@ -726,10 +726,10 @@ func proxyConn(id uint64, wsconn *websocket.Conn, conn net.Conn, err error, sess
 	wsconn.PayloadType = websocket.BinaryFrame
 	go func() {
 		io.Copy(wsconn, conn)
-		wsconn.Close()
+		_ = wsconn.Close()
 		log.Printf("[%d] [-] [WS_SESSION_CLOSED] [-] [-] [-] [%s] [%s] [-] [-]", id, address, sessionID)
 	}()
-	io.Copy(conn, wsconn)
+	_, _ = io.Copy(conn, wsconn)
 	log.Printf("[%d] [-] [WS_CLIENT_DISCONNECTED] [-] [-] [-] [%s] [%s] [-] [-]", id, address, sessionID)
 }
 

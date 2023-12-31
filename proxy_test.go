@@ -50,7 +50,7 @@ func (m Message) Match(i interface{}) bool {
 	rsp := i.(*http.Response)
 	var reply map[string]interface{}
 	err := json.NewDecoder(rsp.Body).Decode(&reply)
-	rsp.Body.Close()
+	_ = rsp.Body.Close()
 	if err != nil {
 		return false
 	}
@@ -189,7 +189,7 @@ func testGetHost(t *testing.T, sessionID string, statusCode int) *Host {
 		return nil
 	}
 	var host Host
-	json.NewDecoder(rsp.Body).Decode(&host)
+	_ = json.NewDecoder(rsp.Body).Decode(&host)
 	return &host
 }
 
@@ -278,7 +278,7 @@ func testTCPServer(data string) net.Listener {
 				continue
 			}
 			defer conn.Close()
-			io.WriteString(conn, data)
+			_, _ = io.WriteString(conn, data)
 			return
 		}
 	}()
@@ -293,7 +293,7 @@ func TestProxyScreenWebSocketsProtocol(t *testing.T) {
 	const testData = "ws-data"
 	mux := http.NewServeMux()
 	mux.Handle("/vnc/123", websocket.Handler(func(wsconn *websocket.Conn) {
-		wsconn.Write([]byte(testData))
+		_, _ = wsconn.Write([]byte(testData))
 	}))
 
 	wsServer := httptest.NewServer(mux)
@@ -322,7 +322,7 @@ func TestProxyDevtools(t *testing.T) {
 	const testData = "devtools-data"
 	mux := http.NewServeMux()
 	mux.Handle("/devtools/123", websocket.Handler(func(wsconn *websocket.Conn) {
-		wsconn.Write([]byte(testData))
+		_, _ = wsconn.Write([]byte(testData))
 	}))
 
 	wsServer := httptest.NewServer(mux)
@@ -660,7 +660,7 @@ func TestSessionWrongHash(t *testing.T) {
 func TestStartSession(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"sessionId":"123"}`))
+		_, _ = w.Write([]byte(`{"sessionId":"123"}`))
 	}))
 
 	browsersProvider := func(node Host) Browsers {
@@ -737,7 +737,7 @@ func testStartSession(t *testing.T, mux *http.ServeMux, browsersProvider func(Ho
 func TestStartSessionWithJsonSpecChars(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"sessionId":"123"}`))
+		_, _ = w.Write([]byte(`{"sessionId":"123"}`))
 	}))
 
 	browsersProvider := func(node Host) Browsers {
@@ -759,7 +759,7 @@ func TestStartSessionWithOverriddenBasicAuth(t *testing.T) {
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		username, password, ok := r.BasicAuth()
 		if ok && username == "test" && password == "test-password" {
-			w.Write([]byte(`{"sessionId":"123"}`))
+			_, _ = w.Write([]byte(`{"sessionId":"123"}`))
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
 		}
@@ -785,7 +785,7 @@ func TestStartSessionWithPrefixVersion(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		r.Body.Close()
+		_ = r.Body.Close()
 		var sess map[string]map[string]string
 		err := json.Unmarshal(body, &sess)
 		AssertThat(t, err, Is{nil})
@@ -811,7 +811,7 @@ func TestStartSessionWithPrefixVersion(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1"}}`)
+	_, _ = createSession(`{"desiredCapabilities":{"browserName":"browser", "version":"1"}}`)
 }
 
 func TestCreateSessionW3CBrowserNotSet0(t *testing.T) {
@@ -839,8 +839,8 @@ func TestStartSessionWithDefaultVersion(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		r.Body.Close()
-		w.Write([]byte(`{"sessionId":"123"}`))
+		_ = r.Body.Close()
+		_, _ = w.Write([]byte(`{"sessionId":"123"}`))
 		var sess map[string]map[string]string
 		err := json.Unmarshal(body, &sess)
 		AssertThat(t, err, Is{nil})
@@ -871,17 +871,17 @@ func TestStartSessionWithDefaultVersion(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	createSession(`{"desiredCapabilities":{"browserName":"browser"}}`)
+	_, _ = createSession(`{"desiredCapabilities":{"browserName":"browser"}}`)
 }
 
 func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		r.Body.Close()
+		_ = r.Body.Close()
 		var sess map[string]map[string]map[string]interface{}
 		err := json.Unmarshal(body, &sess)
-		w.Write([]byte(`{"sessionId":"123"}`))
+		_, _ = w.Write([]byte(`{"sessionId":"123"}`))
 		AssertThat(t, err, Is{nil})
 		AssertThat(t, sess["capabilities"]["alwaysMatch"]["browserVersion"], EqualTo{"2.0"})
 
@@ -916,7 +916,7 @@ func TestStartSessionWithDefaultVersionW3C(t *testing.T) {
 		}}}}
 	updateQuota(user, browsers)
 
-	createSession(`{"capabilities":{"alwaysMatch":{"browserName":"browser", "selenoid:options": {"labels": {"some-key": "some-value"}}}}}`)
+	_, _ = createSession(`{"capabilities":{"alwaysMatch":{"browserName":"browser", "selenoid:options": {"labels": {"some-key": "some-value"}}}}}`)
 }
 
 func TestClientClosedConnection(t *testing.T) {
@@ -1043,7 +1043,7 @@ func TestStartSessionBrowserFail(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"value": {"message" : "Browser startup failure..."}}`))
+		_, _ = w.Write([]byte(`{"value": {"message" : "Browser startup failure..."}}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1074,7 +1074,7 @@ func TestStartSessionBrowserFailUnknownError(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{}`))
+		_, _ = w.Write([]byte(`{}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1105,7 +1105,7 @@ func TestStartSessionBrowserFailWrongValue(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"value": 1}`))
+		_, _ = w.Write([]byte(`{"value": 1}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1136,7 +1136,7 @@ func TestStartSessionBrowserFailWrongMsg(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"value": {"message" : true}}`))
+		_, _ = w.Write([]byte(`{"value": {"message" : true}}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1167,7 +1167,7 @@ func TestStartSessionFailJSONWireProtocol(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		//w.WriteHeader(http.StatusBadGateway)
-		w.Write([]byte(`{}`))
+		_, _ = w.Write([]byte(`{}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1197,7 +1197,7 @@ func TestStartSessionFailJSONWireProtocol(t *testing.T) {
 func TestStartSessionFailJSONWireProtocolNoSessionID(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"value":{}}`))
+		_, _ = w.Write([]byte(`{"value":{}}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1227,7 +1227,7 @@ func TestStartSessionFailJSONWireProtocolNoSessionID(t *testing.T) {
 func TestStartSessionFailJSONWireProtocolWrongType(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"value":{"sessionId":123}}`))
+		_, _ = w.Write([]byte(`{"value":{"sessionId":123}}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1257,7 +1257,7 @@ func TestStartSessionFailJSONWireProtocolWrongType(t *testing.T) {
 func TestStartSessionJSONWireProtocol(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"value":{"sessionId":"123"}}`))
+		_, _ = w.Write([]byte(`{"value":{"sessionId":"123"}}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1289,7 +1289,7 @@ func TestStartSessionJSONWireProtocol(t *testing.T) {
 func TestPanicRouteProtocolError(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"value":[]}`))
+		_, _ = w.Write([]byte(`{"value":[]}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1350,7 +1350,7 @@ func TestDeleteSession(t *testing.T) {
 func TestProxyRequest(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"value":{"message":"response"}}`))
+		_, _ = w.Write([]byte(`{"value":{"message":"response"}}`))
 	})
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1383,7 +1383,7 @@ func TestProxyJsonRequest(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
 		var msg map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&msg)
+		_ = json.NewDecoder(r.Body).Decode(&msg)
 		AssertThat(t, msg["sessionId"], Is{nil})
 	})
 	selenium := httptest.NewServer(mux)
@@ -1409,14 +1409,14 @@ func TestProxyJsonRequest(t *testing.T) {
 		updateQuota(user, browsers)
 	}()
 
-	doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.Sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
+	_, _ = doBasicHTTPRequest(http.MethodPost, gridrouter("/wd/hub/session/"+node.Sum()+"123"), bytes.NewReader([]byte(`{"sessionId":"123"}`)))
 }
 
 func TestProxyPlainRequest(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session/", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		r.Body.Close()
+		_ = r.Body.Close()
 		AssertThat(t, string(body), EqualTo{"request"})
 	})
 	selenium := httptest.NewServer(mux)
@@ -1483,7 +1483,7 @@ func TestRequest(t *testing.T) {
 	}))
 
 	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
-	http.DefaultClient.Do(r)
+	_, _ = http.DefaultClient.Do(r)
 }
 
 func TestRequestAuth(t *testing.T) {
@@ -1495,7 +1495,7 @@ func TestRequestAuth(t *testing.T) {
 
 	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
 	r.SetBasicAuth("user", "password")
-	http.DefaultClient.Do(r)
+	_, _ = http.DefaultClient.Do(r)
 }
 
 func TestRequestForwarded(t *testing.T) {
@@ -1507,7 +1507,7 @@ func TestRequestForwarded(t *testing.T) {
 
 	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
 	r.Header.Set("X-Forwarded-For", "proxy")
-	http.DefaultClient.Do(r)
+	_, _ = http.DefaultClient.Do(r)
 }
 
 func TestRequestAuthForwarded(t *testing.T) {
@@ -1520,7 +1520,7 @@ func TestRequestAuthForwarded(t *testing.T) {
 	r, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
 	r.Header.Set("X-Forwarded-For", "proxy")
 	r.SetBasicAuth("user", "password")
-	http.DefaultClient.Do(r)
+	_, _ = http.DefaultClient.Do(r)
 }
 
 func TestStartSessionProxyHeaders(t *testing.T) {
@@ -1528,7 +1528,7 @@ func TestStartSessionProxyHeaders(t *testing.T) {
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
 		u, _, _ := r.BasicAuth()
 		AssertThat(t, u, EqualTo{user})
-		w.Write([]byte(`{"sessionId":"123"}`))
+		_, _ = w.Write([]byte(`{"sessionId":"123"}`))
 	}))
 	selenium := httptest.NewServer(mux)
 	defer selenium.Close()
@@ -1562,7 +1562,7 @@ func TestStartSessionGuest(t *testing.T) {
 
 	dummyMux := http.NewServeMux()
 	dummyMux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"value":{"sessionId":"123"}}`))
+		_, _ = w.Write([]byte(`{"value":{"sessionId":"123"}}`))
 	}))
 	selenium := httptest.NewServer(dummyMux)
 	defer selenium.Close()
@@ -1595,7 +1595,7 @@ func TestStartSessionGuestFailNoQuota(t *testing.T) {
 
 	dummyMux := http.NewServeMux()
 	dummyMux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"value":{"sessionId":"123"}}`))
+		_, _ = w.Write([]byte(`{"value":{"sessionId":"123"}}`))
 	}))
 	selenium := httptest.NewServer(dummyMux)
 	defer selenium.Close()
@@ -1615,7 +1615,7 @@ func TestStartSessionGuestAndCorrectBasicAuth(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"sessionId":"123"}`))
+		_, _ = w.Write([]byte(`{"sessionId":"123"}`))
 	}))
 
 	browsersProvider := func(node Host) Browsers {
@@ -1637,7 +1637,7 @@ func TestStartSessionGuestModeAndWrongBasicAuth(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/wd/hub/session", postOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"sessionId":"123"}`))
+		_, _ = w.Write([]byte(`{"sessionId":"123"}`))
 	}))
 
 	selenium := httptest.NewServer(mux)
@@ -1716,7 +1716,7 @@ func TestPanicGuestQuotaMissingUsersFileAuthPresent(t *testing.T) {
 func TestPlatformCapability(t *testing.T) {
 	var caps caps
 	testCaps := `{"desiredCapabilities": {"platformName": "WINDOWS"}, "capabilities": {"platformName": "windows"}}`
-	json.Unmarshal([]byte(testCaps), &caps)
+	_ = json.Unmarshal([]byte(testCaps), &caps)
 
 	AssertThat(t, caps.platform(), EqualTo{"WINDOWS"})
 }
