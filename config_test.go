@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	assert "github.com/stretchr/testify/require"
 	"os"
 	"testing"
 
-	. "github.com/aandryashin/matchers"
 	. "github.com/aerokube/ggr/config"
 )
 
@@ -15,32 +15,32 @@ func init() {
 
 func TestEmptyListOfHosts(t *testing.T) {
 	host, index := choose(Hosts{})
-	AssertThat(t, host, Is{(*Host)(nil)})
-	AssertThat(t, index, EqualTo{-1})
+	assert.Nil(t, host)
+	assert.Equal(t, index, -1)
 }
 
 func TestNothingToChoose(t *testing.T) {
 	host, index := choose(Hosts{Host{Count: 0}, Host{Count: 0}})
-	AssertThat(t, host, Is{(*Host)(nil)})
-	AssertThat(t, index, EqualTo{-1})
+	assert.Nil(t, host)
+	assert.Equal(t, index, -1)
 }
 
 func TestChooseFirst(t *testing.T) {
 	host, index := choose(Hosts{Host{Name: "first", Count: 1}, Host{Name: "mid", Count: 0}, Host{Name: "last", Count: 0}})
-	AssertThat(t, host.Name, EqualTo{"first"})
-	AssertThat(t, index, EqualTo{0})
+	assert.Equal(t, host.Name, "first")
+	assert.Equal(t, index, 0)
 }
 
 func TestChooseMid(t *testing.T) {
 	host, index := choose(Hosts{Host{Name: "first", Count: 0}, Host{Name: "mid", Count: 1}, Host{Name: "last", Count: 0}})
-	AssertThat(t, host.Name, EqualTo{"mid"})
-	AssertThat(t, index, EqualTo{1})
+	assert.Equal(t, host.Name, "mid")
+	assert.Equal(t, index, 1)
 }
 
 func TestChooseLast(t *testing.T) {
 	host, index := choose(Hosts{Host{Name: "first", Count: 0}, Host{Name: "mid", Count: 0}, Host{Name: "last", Count: 1}})
-	AssertThat(t, host.Name, EqualTo{"last"})
-	AssertThat(t, index, EqualTo{2})
+	assert.Equal(t, host.Name, "last")
+	assert.Equal(t, index, 2)
 }
 
 var (
@@ -92,84 +92,84 @@ var (
 
 func TestFindDefaultVersion(t *testing.T) {
 	hosts, version, _ := browsersWithMultipleVersions.find("browser", "", "", newSet(), newSet())
-	AssertThat(t, version, EqualTo{"2.0"})
-	AssertThat(t, len(hosts), EqualTo{1})
-	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0"})
+	assert.Equal(t, version, "2.0")
+	assert.Len(t, hosts, 1)
+	assert.Equal(t, hosts[0].Name, "browser-2.0")
 }
 
 func TestFindVersion(t *testing.T) {
 	hosts, version, _ := browsersWithMultipleVersions.find("browser", "1.0", "LINUX", newSet(), newSet())
-	AssertThat(t, version, EqualTo{"1.0"})
-	AssertThat(t, len(hosts), EqualTo{1})
-	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
+	assert.Equal(t, version, "1.0")
+	assert.Len(t, hosts, 1)
+	assert.Equal(t, hosts[0].Name, "browser-1.0")
 }
 
 func TestFindVersionByPrefix(t *testing.T) {
 	hosts, version, _ := browsersWithMultipleVersions.find("browser", "1", "", newSet(), newSet())
-	AssertThat(t, version, EqualTo{"1.0"})
-	AssertThat(t, len(hosts), EqualTo{1})
-	AssertThat(t, hosts[0].Name, EqualTo{"browser-1.0"})
+	assert.Equal(t, version, "1.0")
+	assert.Len(t, hosts, 1)
+	assert.Equal(t, hosts[0].Name, "browser-1.0")
 }
 
 func TestVersionNotFound(t *testing.T) {
 	hosts, version, _ := browsersWithMultipleVersions.find("browser", "missing", "", newSet(), newSet())
-	AssertThat(t, version, EqualTo{"missing"})
-	AssertThat(t, len(hosts), EqualTo{0})
+	assert.Equal(t, version, "missing")
+	assert.Empty(t, hosts)
 }
 
 func TestFindWithExcludedRegions(t *testing.T) {
 	hosts, version, _ := browsersWithMultipleRegions.find("browser", "1.0", "", newSet(), newSet("f"))
-	AssertThat(t, version, EqualTo{"1.0"})
-	AssertThat(t, len(hosts), EqualTo{1})
-	AssertThat(t, hosts[0].Name, EqualTo{"browser-e-1.0"})
+	assert.Equal(t, version, "1.0")
+	assert.Len(t, hosts, 1)
+	assert.Equal(t, hosts[0].Name, "browser-e-1.0")
 }
 
 func TestFindWithExcludedRegionsExhausted(t *testing.T) {
 	hosts, _, excludedRegions := browsersWithMultipleRegions.find("browser", "1.0", "", newSet(), newSet("e", "f"))
-	AssertThat(t, len(hosts), EqualTo{2})
-	AssertThat(t, excludedRegions.size(), EqualTo{0})
+	assert.Len(t, hosts, 2)
+	assert.Equal(t, excludedRegions.size(), 0)
 }
 
 func TestFindWithExcludedHosts(t *testing.T) {
 	hosts, version, _ := browsersWithMultipleRegions.find("browser", "1.0", "", newSet("browser-e-1.0:4444"), newSet())
-	AssertThat(t, version, EqualTo{"1.0"})
-	AssertThat(t, len(hosts), EqualTo{1})
-	AssertThat(t, hosts[0].Name, EqualTo{"browser-f-1.0"})
+	assert.Equal(t, version, "1.0")
+	assert.Len(t, hosts, 1)
+	assert.Equal(t, hosts[0].Name, "browser-f-1.0")
 }
 
 func TestFindWithDefaultPlatform(t *testing.T) {
 	hosts, version, _ := browsersWithMultiplePlatforms.find("browser", "2.0", "", newSet(), newSet())
-	AssertThat(t, version, EqualTo{"2.0"})
-	AssertThat(t, len(hosts), EqualTo{1})
-	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0-linux"})
+	assert.Equal(t, version, "2.0")
+	assert.Len(t, hosts, 1)
+	assert.Equal(t, hosts[0].Name, "browser-2.0-linux")
 }
 
 func TestFindWithAnyPlatform(t *testing.T) {
 	hosts, version, _ := browsersWithMultiplePlatforms.find("browser", "2.0", "ANY", newSet(), newSet())
-	AssertThat(t, version, EqualTo{"2.0"})
-	AssertThat(t, len(hosts), EqualTo{1})
-	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0-linux"})
+	assert.Equal(t, version, "2.0")
+	assert.Len(t, hosts, 1)
+	assert.Equal(t, hosts[0].Name, "browser-2.0-linux")
 }
 
 func TestFindWithPlatform(t *testing.T) {
 	hosts, version, _ := browsersWithMultiplePlatforms.find("browser", "2.0", "LINUX", newSet(), newSet())
-	AssertThat(t, version, EqualTo{"2.0"})
-	AssertThat(t, len(hosts), EqualTo{1})
-	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0-linux"})
+	assert.Equal(t, version, "2.0")
+	assert.Len(t, hosts, 1)
+	assert.Equal(t, hosts[0].Name, "browser-2.0-linux")
 }
 
 func TestFindWithPlatformLowercase(t *testing.T) {
 	hosts, version, _ := browsersWithMultiplePlatforms.find("browser", "2.0", "windows", newSet(), newSet())
-	AssertThat(t, version, EqualTo{"2.0"})
-	AssertThat(t, len(hosts), EqualTo{1})
-	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0-windows"})
+	assert.Equal(t, version, "2.0")
+	assert.Len(t, hosts, 1)
+	assert.Equal(t, hosts[0].Name, "browser-2.0-windows")
 }
 
 func TestFindWithPlatformPrefix(t *testing.T) {
 	hosts, version, _ := browsersWithMultiplePlatforms.find("browser", "2.0", "WIN", newSet(), newSet())
-	AssertThat(t, version, EqualTo{"2.0"})
-	AssertThat(t, len(hosts), EqualTo{1})
-	AssertThat(t, hosts[0].Name, EqualTo{"browser-2.0-windows"})
+	assert.Equal(t, version, "2.0")
+	assert.Len(t, hosts, 1)
+	assert.Equal(t, hosts[0].Name, "browser-2.0-windows")
 }
 
 func TestReadNotExistingConfig(t *testing.T) {
@@ -184,8 +184,8 @@ func TestReadNotExistingConfig(t *testing.T) {
 	var browsers Browsers
 	err = readConfig(tmp.Name(), &browsers)
 
-	AssertThat(t, err, Is{Not{nil}})
-	AssertThat(t, err.Error(), EqualTo{fmt.Sprintf("error reading configuration file %s: open %s: no such file or directory", tmp.Name(), tmp.Name())})
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), fmt.Sprintf("error reading configuration file %s: open %s: no such file or directory", tmp.Name(), tmp.Name()))
 }
 
 func TestParseInvalidConfig(t *testing.T) {
@@ -205,8 +205,8 @@ func TestParseInvalidConfig(t *testing.T) {
 	var browsers Browsers
 	err = readConfig(tmp.Name(), &browsers)
 
-	AssertThat(t, err, Is{Not{nil}})
-	AssertThat(t, err.Error(), EqualTo{fmt.Sprintf("error parsing configuration file %s: EOF", tmp.Name())})
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), fmt.Sprintf("error parsing configuration file %s: EOF", tmp.Name()))
 }
 
 func TestParseConfig(t *testing.T) {
@@ -234,20 +234,20 @@ func testParseConfig(t *testing.T, config string) {
 	var browsers Browsers
 	err = readConfig(tmp.Name(), &browsers)
 
-	AssertThat(t, err, Is{nil})
-	AssertThat(t, browsers.Browsers[0].Name, EqualTo{"browser"})
+	assert.NoError(t, err)
+	assert.Equal(t, browsers.Browsers[0].Name, "browser")
 }
 
 func TestConfDirDoesNotExist(t *testing.T) {
 	err := loadQuotaFiles("missing-dir")
-	AssertThat(t, err, Is{Not{nil}})
+	assert.Error(t, err)
 }
 
 func TestConcurrentReload(t *testing.T) {
 	go func() {
-		loadQuotaFiles("quota")
+		_ = loadQuotaFiles("quota")
 	}()
-	loadQuotaFiles("quota")
+	_ = loadQuotaFiles("quota")
 }
 
 func TestChoosingAllHosts(t *testing.T) {
@@ -258,7 +258,7 @@ func TestChoosingAllHosts(t *testing.T) {
 		host, _ := choose(hosts)
 		chosenHosts[host.Name]++
 	}
-	AssertThat(t, chosenHosts["first"] > 0, Is{true})
-	AssertThat(t, chosenHosts["mid"] > 0, Is{true})
-	AssertThat(t, chosenHosts["last"] > 0, Is{true})
+	assert.True(t, chosenHosts["first"] > 0)
+	assert.True(t, chosenHosts["mid"] > 0)
+	assert.True(t, chosenHosts["last"] > 0)
 }

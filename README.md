@@ -43,7 +43,7 @@ $ cat /etc/grid-router/quota/test.xml
 </browser>
 </qa:browsers>
 ```
-***Note***: file name should correspond to user name you added to htpasswd file. For user ```test``` we added on previous steps you should create ```test.xml```.
+***Note***: file name should correspond to username you added to htpasswd file. For user ```test``` we added on previous steps you should create ```test.xml```.
 
 6) Start Ggr container:
 ```
