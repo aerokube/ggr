@@ -543,7 +543,7 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <div class="details">
 <span id="author" class="author">Alexander Andryashin, Ivan Krutov, Kirill Merkushev and the Aerokube community</span><br>
 <span id="revnumber">version latest,</span>
-<span id="revdate">2023-12-20</span>
+<span id="revdate">2023-12-31</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -1227,12 +1227,12 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code>2017/04/18 03:52:36 [12413389] [SESSION_ATTEMPTED] [my_quota] [192.168.2.3] [firefox-42.0] [firefox42-1.example.com:4444] [1]
+<pre>2017/04/18 03:52:36 [12413389] [SESSION_ATTEMPTED] [my_quota] [192.168.2.3] [firefox-42.0] [firefox42-1.example.com:4444] [1]
 2017/04/18 03:52:40 [12413389] [SESSION_FAILED] [my_quota] [192.168.2.3] [firefox-42.0] [firefox42-1.example.com:4444] Error forwarding the new session Request timed out waiting for a node to become available.
 2017/04/18 03:52:40 [12413390] [SESSION_ATTEMPTED] [my_quota] [192.168.2.3] [firefox-42.0] [firefox42-5.example.com:4444] [2]
 2017/04/18 03:52:45 [12413390] [5.86s] [SESSION_CREATED] [my_quota] [192.168.2.3] [firefox-42.0] [firefox42-5.example.com:4444] [0c500a6f-98d2-4871-acb7-637d85e1416a] [2]
 ....
-2017/04/18 03:53:05 [SESSION_DELETED] [192.168.2.3] [firefox42-5.example.com:4444] [0c500a6f-98d2-4871-acb7-637d85e1416a]</code></pre>
+2017/04/18 03:53:05 [SESSION_DELETED] [192.168.2.3] [firefox42-5.example.com:4444] [0c500a6f-98d2-4871-acb7-637d85e1416a]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1475,7 +1475,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 <div class="sect3">
 <h4 id="_custom_labels_in_log_file"><a class="anchor" href="#_custom_labels_in_log_file"></a>2.11.1. Custom Labels in Log File</h4>
 <div class="paragraph">
-<p>Sometimes you may need to add some custom metadata like build number or branch name to Selenium logs. Just add the following capability to your tests:</p>
+<p>Sometimes you may need to add some custom metadata like build number or branch name to Selenium logs. Just add the following capability to your tests under <code>ggr:options</code>:</p>
 </div>
 <div class="listingblock">
 <div class="title">Type: map, format: "&lt;key&gt;": "&lt;value&gt;"</div>
@@ -1488,7 +1488,7 @@ Because of stateless Ggr architecture you can use an unlimited number of Ggr ins
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code>[firefox-42.0 buildNumber=122 branch=feature-XXX]</code></pre>
+<pre>[firefox-42.0 buildNumber=122 branch=feature-XXX]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1629,7 +1629,7 @@ $ docker build -t ggr:latest .</code></pre>
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2023-12-20 08:51:26 UTC
+Last updated 2023-12-31 07:57:06 UTC
 </div>
 </div>
 <!-- Global site tag (gtag.js) - Google Analytics -->
